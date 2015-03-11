@@ -1,0 +1,107 @@
+@import "../../bower_components/bootstrap-sass/assets/stylesheets/_bootstrap.scss";
+
+div.video {
+	position: relative;
+	div.overlay {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		div.top {
+			position: absolute;
+			top: 0;
+			left: 0;
+			right: 0;
+			@include clearfix;
+		}
+		div.l {
+			float: left;
+			span:last-child {
+				border-radius: 0 0 5px 0;
+			}
+		}
+		div.r {
+			float: right;
+			span:first-child {
+				border-radius: 0 0 0 5px;
+			}
+		}
+		div.l, div.r {
+			@include clearfix;
+		}
+		span {
+			float: left;
+			background: rgba(0,0,0,0.5);
+			width: 32px;
+			height: 32px;
+			text-align: center;
+			line-height: 32px;
+			color: white;
+			> i {
+
+			}
+		}
+	}
+}
+
+div.users ul li.self {
+	font-weight: bold;
+}
+
+div.log-tab {
+	position: fixed;
+	height: 100%;
+	width: 250px;
+	right: 0px;
+	top: 0;
+	border-left: 1px solid #ccc;
+	a {
+		width: 100px;
+		height: 30px;
+		line-height: 30px;
+		-webkit-transform: rotate(-90deg);
+		display: block;
+		position: absolute;
+		top: 25%;
+		left: -65px;
+		border-bottom: 0;
+		vertical-align: middle;
+		text-align: center;
+		text-transform: uppercase;
+		border-radius: 5px 5px 0 0;
+		padding: 0;
+	}
+	ul.log {
+		list-style-type: none;
+		padding: 0;
+		margin: 0;
+		li {
+			display: block;
+			width: 100%;
+			padding: 5px;
+		}
+		li:nth-child(2n) {
+			background: #ddd;
+		}
+		position: absolute;
+		top: 0;
+		bottom: 60px;
+		right: 0;
+		left: 0;
+	}
+	textarea {
+		position: absolute;
+		height: 60px;
+		bottom: 0;
+	}
+}
+
+div.video-local {
+	video {
+		width: 100%;
+	}
+}
+video#remoteVideo {
+	width: 100%;
+}
