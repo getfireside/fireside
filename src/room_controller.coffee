@@ -266,7 +266,7 @@ class RoomController extends WildEmitter
 	constructor: (@model, config) ->
 		console.log "SET UP ROOM CONTROLLER..."
 		@defaults = 
-			url: "http://localhost:8001",
+			url: "/",
 			socketio: {}
 			media:
 				video: true
