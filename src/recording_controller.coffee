@@ -1,4 +1,4 @@
-WildEmitter = require 'WildEmitter'
+WildEmitter = require 'wildemitter'
 IDBWriter = require './writers/idbwriter.coffee' 
 moment = require 'moment'
 

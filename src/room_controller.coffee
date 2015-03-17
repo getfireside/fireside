@@ -1,4 +1,4 @@
-WildEmitter = require('WildEmitter')
+WildEmitter = require('wildemitter')
 webrtcSupport = require('webrtcsupport')
 attachMediaStream = require('attachmediastream')
 mockconsole = require('mockconsole')
@@ -6,6 +6,43 @@ io = require('socket.io-client')
 util = require('util')
 LocalMedia = require('localmedia')
 PeerConnection = require 'rtcpeerconnection'
+
+class FileReceiveSession extends WildEmitter
+	constructor: (@peer, @fileID) ->
+		@status = 'ready'
+		@peer.on 'channelMessage', (peer, channelLabel, data, channel) ->
+			if channelLabel != @_getChannelLabel()
+				return
+			@handleMessage data.type, data.payload
+
+	handleMessage: (type, payload) ->
+		@["handle"]
+
+	start: ->
+		if @status != 'ready'
+			return
+		@status = 'waitingForMeta'
+
+	_getChannelLabel: -> "file_#{@fileID}"
+
+	sendMessage: (type, payload) ->
+		@peer.sendDirectly @_getChannelLabel(), type, payload
+
+	requestChunk: (chunkIndex) ->
+		@peer.sendDirectly 'files', 'requestchunk', chunkIndex
+
+	cancel: ->
+
+	writeChunkBuffer: ->
+
+
+
+
+
+
+
+
+
 
 class Peer extends WildEmitter
 	constructor: (opts) ->
