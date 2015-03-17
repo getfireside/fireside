@@ -9,39 +9,13 @@ async = require 'async'
 session = require 'express-session'
 RedisSessionStore = (require 'connect-redis')(session)
 cookieParser = (require 'cookie-parser')()
+cons = require 'consolidate'
 
 config = 
 	stunservers: [
 		{url: "stun:stun.l.google.com:19302"}
 	]
 	turnservers: []
-
-app = express()
-app.use cookieParser
-sessionStore = session 
-	store: new RedisSessionStore 
-	resave: false
-	secret: 'NASTY PRECIOUS SECRET'
-	key: 'express.sid'
-	cookie: 
-		maxAge: 60*24*60*60*1000 # 60 days
-app.use sessionStore
-
-app.use '/dist', express.static('dist')
-app.use '/bower_components', express.static('bower_components')
-
-app.use express.static('public')
-
-server = http.Server(app)
-io = require('socket.io')(server)
-
-io.use (socket, next) ->
-	req = socket.handshake
-	res = {}
-	cookieParser req, res, (err) ->
-		if (err)
-			return next(err)
-		sessionStore(req, res, next)
 
 
 class RoomController
@@ -54,8 +28,9 @@ class RoomController
 		@client.exists @prefix + roomId, cb
 
 	createRoom: (cb) =>
-		key = randomstring 9
-		@client.set @prefix + key, 1, cb
+		key = randomstring.generate 9
+		@client.set @prefix + key, 1, (err, res) ->
+			cb(err, key, res)
 
 	getClients: (roomId, cb) =>
 		clients = {}
@@ -141,6 +116,56 @@ class RoomController
 safeCb = (cb) -> if typeof cb == 'function' then cb else (() -> null)
 
 roomController = new RoomController
+
+
+app = express()
+app.use cookieParser
+sessionStore = session 
+	store: new RedisSessionStore 
+	resave: false
+	secret: 'NASTY PRECIOUS SECRET'
+	key: 'express.sid'
+	cookie: 
+		maxAge: 60*24*60*60*1000 # 60 days
+app.use sessionStore
+
+app.use '/dist', express.static('dist')
+app.use '/bower_components', express.static('bower_components')
+
+# assign the swig engine to .html files 
+app.engine('html', cons.handlebars)
+ 
+# set .html as the default extension 
+app.set('view engine', 'html')
+app.set('views', __dirname + '/views')
+
+app.get '/', (req, res) -> res.render('index') 
+app.get '/rooms/:roomID', (req, res) -> 
+	id = req.params.roomID
+	roomController.roomExists id, (err, exists) ->
+		console.log exists
+		if exists
+			res.render 'room', 
+				roomID: id
+		else
+			res.sendStatus 404
+
+app.post '/rooms/new', (req, res) -> 
+	roomController.createRoom (err, id) ->
+		res.redirect('/rooms/' + id)
+
+
+server = http.Server(app)
+io = require('socket.io')(server)
+
+io.use (socket, next) ->
+	req = socket.handshake
+	res = {}
+	cookieParser req, res, (err) ->
+		if (err)
+			return next(err)
+		sessionStore(req, res, next)
+
 
 io.sockets.on 'connection', (client) ->
 	client.resources = 

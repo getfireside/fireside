@@ -7,7 +7,7 @@ attachMediaStream = require('attachmediastream');
 
 class App extends Marionette.Application
 	initialize: ->
-		@room = new Room 'MJ123kADIQo123P'
+		@room = new Room $('body').attr('data-room-id')
 
 		@rootView = new RoomView
 			model: @room
