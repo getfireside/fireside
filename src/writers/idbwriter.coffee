@@ -7,7 +7,6 @@ class IDBFile
                 filename: @path,
                 blob: blob
             req.onsuccess = (e) ->
-                console.log('successfully added blob to db')
                 result = e.target.result
                 fulfil(result)
             req.onerror = (e) ->
@@ -31,7 +30,7 @@ class IDBFile
         return new Promise (fulfil, reject) =>
             @readEach(
                 (b) -> blobs.push(b), 
-                -> fulfil(blobs),
+                -> fulfil(new Blob(blobs, {type: 'video/webm'})),
                 reject
             )
 

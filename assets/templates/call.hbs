@@ -1,6 +1,5 @@
-{{#if callConnected}}
-<div class="video">
-    {{view remoteVideo}}
+<div class="video" style="display:none;">
+    <video id="remoteVideo"></video>
     <div class="overlay">
         <div class="top">
             <div class="l">
@@ -22,8 +21,6 @@
         </div>
     </div>
 </div>
-{{else}}
 <div class="waiting">Waiting for video...</div>
-{{/if}}
 
-{{view controls}}
+<div class="controls"></div>

@@ -20,6 +20,7 @@ class Peer extends WildEmitter
 		@sid = opts.sid
 		@info = opts.info
 		@role = opts.role
+		@recordingStatus = opts.recordingStatus ? null
 
 		@pc = new PeerConnection(@controller.config.peerConnectionConfig, @controller.config.peerConnectionConstraints)
 		@pc.on 'ice', @onIceCandidate
@@ -120,6 +121,12 @@ class Peer extends WildEmitter
 			return false
 		dc.send JSON.stringify message
 		return true
+
+	requestRecordingStart: =>
+		@controller.connection.emit 'startRecordingRequest', @id
+
+	requestRecordingStop: =>
+		@controller.connection.emit 'stopRecordingRequest', @id
 
 	_observeDataChannel: (channel) =>
 		channel.onclose = @emit.bind(@, 'channelClose', channel);
@@ -259,10 +266,6 @@ class RoomController extends WildEmitter
 
 		@setupConnection()
 
-		# @on 'readyToCall', => 
-		# 	p = @joinRoom()
-		# 	p.catch (e) -> console.log e
-
 		@on 'joinedRoom', (r) -> console.log 'joined room with role', r
 		@on 'peerStreamAdded', @handlePeerStreamAdded
 		@on 'peerStreamRemoved', @handlePeerStreamRemoved
@@ -285,6 +288,16 @@ class RoomController extends WildEmitter
 		delete @peers[id]
 
 	getPeer: (id) -> @peers[id]
+
+	getInterviewees: -> _.filter @peers, ((p) -> p.role == 'interviewee')
+
+	startIntervieweeRecording: ->
+		for peer in @getInterviewees()
+			peer.requestRecordingStart()
+
+	stopIntervieweeRecording: ->
+		for peer in @getInterviewees()
+			peer.requestRecordingStop()
 
 	sendToAll: (message, payload) ->
 		for peer of @peers
@@ -328,7 +341,6 @@ class RoomController extends WildEmitter
 		@connection.on "connect", =>
 			@emit "connectionReady", @connection.io.engine.id
 			@sessionReady = true
-			@testReadiness()
 
 		@connection.on 'signalling', (message) =>
 			console.log message
@@ -336,6 +348,15 @@ class RoomController extends WildEmitter
 			peer.handleMessage(message)
 
 		@connection.on 'event', (data) => @emit "event", data
+
+		@on 'event', (evt) =>
+			if evt.type == 'recording'
+				# argh this thing is here again, really hackish. FIXME
+				statusMap = 
+					ready: 'ready'
+					started: 'recording'
+					stopped: 'ready'
+				@getPeer(evt.from).recordingStatus = statusMap[evt.data.subtype]
 
 		@connection.on 'remove', (data) =>
 			@getPeer(data.id).end()
@@ -388,6 +409,7 @@ class RoomController extends WildEmitter
 							resources: data.resources
 							role: data.role
 							sid: data.sid
+							recordingStatus: data.recordingStatus
 
 						@emit 'createdPeer', peer
 						if peer.resources.video and not @mainPeer?
@@ -399,10 +421,6 @@ class RoomController extends WildEmitter
 
 	setLocalName: (name) ->
 		@localName = name
-
-	testReadiness: ->
-		if @localMedia.localStreams.length and @sessionReady
-			@emit "readyToCall", @connection.io.engine.id
 
 	handlePeerStreamAdded: (peer) =>
 		console.log "peer stream added!"

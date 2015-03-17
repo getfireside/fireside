@@ -1,0 +1,7 @@
+<li class="announce">
+	<time title="{{formatTime timestamp 'MMMM Do YYYY, hh:mm:ss'}}" datetime="{{formatTime timestamp ''}}">{{formatTime timestamp 'hh:mm'}}</time>
+	<div class="content">
+		{{fromName}}: recording {{data.subtype}}.
+		{{#if data.url}}<a download href="{{data.url}}">Download</a>{{/if}}
+	</div>
+</li>

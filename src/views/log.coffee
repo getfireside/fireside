@@ -1,26 +1,46 @@
-class DefaultLogView extends Thorax.View
+class DefaultLogView extends Marionette.ItemView
 	constructor: (data) ->
 		data.template = Handlebars.templates['log-item-' + data.model.get('type')]
 		super data
 
-class LogCollectionView extends Thorax.CollectionView
+	serializeData: ->
+		data = @model.toJSON()
+		if not data.from 
+			data.from = 'self'
+			data.fromName = @options.parent.roomView.model.self.get('name')
+		else
+			data.fromName = @options.parent.roomView.getUserCollection().get(data.from).get('name')
+		return data
+
+class LogCollectionView extends Marionette.CollectionView
 	typeViews: 
 		'*': DefaultLogView
 
-	renderItem: (model, i) ->
-		View = @typeViews[model.get 'type'] ? @typeViews['*']
-		return new View({ model: model })
+	constructor: (opts) ->
+		super opts
+		@roomView = opts.roomView
 
-class LogView extends Thorax.View 
+	getChildView: (model) -> @typeViews[model.get 'type'] ? @typeViews['*']
+	childViewOptions: (model, index) => 
+		parent: @
+
+class LogView extends Marionette.LayoutView 
 	template: Handlebars.templates['log-panel']
-	constructor: (@roomView) ->
-		collection = @roomView.getLogCollection()
-		super
-			collection: collection
-			collectionView: new LogCollectionView 
-				collection: collection
-			events: 
-				'keydown textarea#msgInput': "keyDown"
+	regions:
+		logs: '#logsList'
+
+	events: 
+		'keydown textarea#msgInput': "keyDown"
+
+	constructor: (@roomView, opts) ->
+		opts = opts ? {}
+		opts.collection = @roomView.getLogCollection()
+		super opts
+	
+	onRender: ->
+		@logs.show new LogCollectionView
+			collection: @collection
+			roomView: @roomView
 
 	sendMsg: ->
 		v = @$el.find('#msgInput').val()
@@ -31,7 +51,5 @@ class LogView extends Thorax.View
 		if e.which == 13 and not e.ctrlKey
 			e.preventDefault()
 			@sendMsg()
-
-		
 
 module.exports = LogView

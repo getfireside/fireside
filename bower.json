@@ -26,6 +26,7 @@
     "thorax": "~2.3.2",
     "handlebars": "~3.0.0",
     "fontawesome": "~4.3.0",
-    "backbone.localstorage": "~1.1.16"
+    "backbone.localstorage": "~1.1.16",
+    "marionette": "~2.4.1"
   }
 }

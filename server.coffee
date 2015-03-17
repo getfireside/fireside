@@ -66,6 +66,7 @@ class RoomController
 				info: otherClient.info
 				sid: otherClient.sid
 				role: otherClient.role
+				recordingStatus: otherClient.recordingStatus or null
 		cb(null, clients)
 
 	getHost: (roomId, cb) => @client.get @prefix + roomId + '/host', cb
@@ -154,6 +155,15 @@ io.sockets.on 'connection', (client) ->
 				type: data.type
 				data: data.data
 				from: client.id
+
+			# this probably shouldn't be here, bit hackish - refactor later...
+			statusMap = 
+				ready: 'ready'
+				started: 'recording'
+				stopped: 'ready'
+
+			if data.type == 'recording'
+				client.recordingStatus = statusMap[data.data.subtype]
 
 	client.on 'signalling', (details) ->
 		if !details 

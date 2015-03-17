@@ -5,14 +5,14 @@ Room = require('./models/room.coffee')
 
 attachMediaStream = require('attachmediastream');
 
-class App extends Thorax.LayoutView
+class App extends Marionette.Application
 	initialize: ->
 		@room = new Room 'MJ123kADIQo123P'
 
-		@roomView = new RoomView
+		@rootView = new RoomView
 			model: @room
-		@setView @roomView
-		@appendTo 'body'
+
+		@rootView.render()
 
 $(document).ready ->
 	Handlebars.registerHelper 'formatTime', (m, s) -> m.format s

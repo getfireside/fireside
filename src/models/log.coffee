@@ -2,7 +2,7 @@ moment = require 'moment'
 
 Handlebars.registerHelper 'formatTime', (m, s) -> m.format s
 
-class Log extends Thorax.Model
+class Log extends Backbone.Model
 	constructor: (attributes, options) ->
 		if not attributes.timestamp?
 			attributes.timestamp = moment()

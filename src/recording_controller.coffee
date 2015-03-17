@@ -1,5 +1,6 @@
 WildEmitter = require 'WildEmitter'
 IDBWriter = require './writers/idbwriter.coffee' 
+moment = require 'moment'
 
 class RecordingController extends WildEmitter
 	constructor: (@room, @collection, config={}) ->
@@ -16,21 +17,23 @@ class RecordingController extends WildEmitter
 			@mediaRecorder.ondataavailable = @onDataAvailable
 			@mediaRecorder.onstart = @onStart
 			@mediaRecorder.onstop = @onStop
+			@status = 'ready'
+			@emit 'ready'
 
 	onStart: (e) =>
-		@currentRecording.set 'started', new Date()
+		@currentRecording.set 'started', new Date
 		@emit 'started', @currentRecording
 
 	onDataAvailable: (e) =>
-		console.log "got blob,", e.data.size
+		# console.log "got blob,", e.data.size
 		f = @writer.getFile @currentRecording.id
 		f.writeBlob(e.data).then ->
-			console.log "wrote", e.data.size
+			# console.log "wrote", e.data.size
 		@currentRecording.set 'filesize', @currentRecording.get 'filesize' + e.data.size
 		@currentRecording.save()
 
 	onStop: (e) =>
-		@currentRecording.set 'stopped', new Date()
+		@currentRecording.set 'stopped', new Date
 		@emit 'stopped', @currentRecording
 
 	start: ->

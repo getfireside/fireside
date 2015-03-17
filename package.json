@@ -1,37 +1,69 @@
 {
   "name": "yakk",
-  "version": "1.0.0",
-  "description": "yakk",
-  "main": "lib/server.js",
+  "version": "0.1.0",
+  "description": "WebRTC interviewing tool - see http://yakk.io for more info.",
+  "main": "server.coffee",
   "dependencies": {
-    "browserify": "^8.1.1",
-    "ember": "^1.0.0-pre.2",
-    "ember-data": "^1.0.0-beta.14.1",
-    "ember-handlebars": "^1.2.0",
-    "express": "^4.10.6",
-    "gulp": "^3.8.10",
-    "gulp-autoprefixer": "^2.0.0",
-    "gulp-bower": "^0.0.7",
-    "gulp-concat": "^2.4.3",
-    "gulp-declare": "^0.3.0",
-    "gulp-ember-templates": "^0.6.0",
-    "gulp-minify-css": "^0.3.11",
-    "gulp-notify": "^2.0.1",
-    "gulp-ruby-sass": "^0.7.1",
-    "gulp-uglify": "^1.0.2",
-    "gulp-usemin": "^0.3.8",
-    "gulp-wrap": "^0.10.1",
-    "webrtc.io": "0.0.4"
-  },
-  "devDependencies": {
-    "gulp-concat": "^2.4.3",
+    "async": "^0.9.0",
+    "attachmediastream": "^1.1.0",
+    "backbone": "^1.1.2",
+    "backbone.localstorage": "^1.1.16",
+    "backbone.stickit": "^0.9.0",
+    "browserify": "^8.1.3",
+    "coffeeify": "^1.0.0",
+    "connect-redis": "^2.2.0",
+    "cookie-parser": "^1.3.4",
+    "cookies-js": "^1.2.1",
+    "debowerify": "^1.2.0",
+    "express": "^4.12.2",
+    "express-session": "^1.10.4",
+    "gulp": "^3.8.11",
+    "gulp-concat": "^2.5.2",
     "gulp-declare": "^0.3.0",
     "gulp-handlebars": "^3.0.1",
-    "gulp-wrap": "^0.10.1"
+    "gulp-sass": "^1.3.3",
+    "gulp-sourcemaps": "^1.5.0",
+    "gulp-util": "^3.0.4",
+    "gulp-watch": "^4.2.0",
+    "gulp-wrap": "^0.10.1",
+    "hiredis": "^0.2.0",
+    "localmedia": "^1.0.5",
+    "lodash": "^3.5.0",
+    "mockconsole": "0.0.1",
+    "moment": "^2.9.0",
+    "node-uuid": "^1.4.3",
+    "randomstring": "^1.0.3",
+    "redis": "^0.12.1",
+    "rtcpeerconnection": "^3.0.10",
+    "signal-master": "^0.2.2",
+    "socket.io": "^1.3.5",
+    "socket.io-client": "^1.3.5",
+    "thorax": "^3.0.0-beta.5",
+    "thorax-browserify": "^2.4.1",
+    "underscore": "^1.8.2",
+    "util": "^0.10.3",
+    "vinyl-buffer": "^1.0.0",
+    "vinyl-source-stream": "^1.1.0",
+    "watchify": "^2.4.0",
+    "webrtcsupport": "^2.0.1",
+    "wildemitter": "^1.0.1"
   },
+  "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
   },
-  "author": "",
-  "license": "ISC"
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/donaldharvey/yakk"
+  },
+  "keywords": [
+    "yakk"
+  ],
+  "author": "Donald Harvey",
+  "license": "GPL",
+  "bugs": {
+    "url": "https://github.com/donaldharvey/yakk/issues"
+  },
+  "homepage": "https://github.com/donaldharvey/yakk"
 }
