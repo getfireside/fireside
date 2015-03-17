@@ -50,6 +50,10 @@ gulp.task('watch', function() {
   bundle()
 })
 
+gulp.task('default', ['js', 'sass', 'templates'], function() {
+
+})
+
 
 function bundle() {
   return bundler.bundle()
