@@ -1,7 +1,12 @@
 class DefaultLogView extends Marionette.ItemView
-	constructor: (data) ->
-		data.template = Handlebars.templates['log-item-' + data.model.get('type')]
-		super data
+	# constructor: (data) ->
+	# 	data.template = Handlebars.templates['log-item-' + data.model.get('type')]
+	# 	super data
+
+	template: (ctx) =>
+		mainTpl = Handlebars.templates['log-item']
+		ctx['inner'] = new Handlebars.SafeString(Handlebars.templates['log-item-' + @model.get('type')](ctx))
+		return mainTpl(ctx)
 
 	serializeData: ->
 		data = @model.toJSON()
