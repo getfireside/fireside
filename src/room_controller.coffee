@@ -59,6 +59,21 @@ class Peer extends WildEmitter
 		@role = opts.role
 		@recordingStatus = opts.recordingStatus ? null
 
+		@setupPc() 
+
+		@logger = @controller.logger
+
+		# call emitter constructor
+		super
+
+		# proxy events to parent
+		@on '*', => @controller.emit.apply(@controller, arguments)
+
+		@controller.on('localStream', @addLocalStream)
+		@on 'signalingStateChange', => console.log 'new signalling state,', @pc.signalingState
+
+	setupPc: =>
+		console.log 'setting up new peer connection...'
 		@pc = new PeerConnection(@controller.config.peerConnectionConfig, @controller.config.peerConnectionConstraints)
 		@pc.on 'ice', @onIceCandidate
 		@pc.on 'offer', (offer) => @send('offer', offer)
@@ -82,18 +97,12 @@ class Peer extends WildEmitter
 						@send('connectivityError')
 
 		@pc.on 'signalingStateChange', => @emit 'signalingStateChange'
-		@logger = @controller.logger
-
-		# call emitter constructor
-		super
-
-		# proxy events to parent
-		@on '*', => @controller.emit.apply(@controller, arguments)
-
-		@controller.on('localStream', @addLocalStream)
+		console.log 'set up.'
 
 		for stream in @controller.localMedia.localStreams
-			@addLocalStream stream
+			@pc.addStream(stream)
+
+
 
 	addLocalStream: (stream) =>
 		console.log "added stream!"
@@ -108,12 +117,18 @@ class Peer extends WildEmitter
 
 		switch message.type
 			when 'offer'
-				@logger.log 'received offer. trying to handle payload...'
-
+				# workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1064247	
 				message.payload.sdp = message.payload.sdp.replace('a=fmtp:0 profile-level-id=0x42e00c;packetization-mode=1\r\n', '')
+
+				@logger.log 'received offer. trying to handle payload...'
 				@pc.handleOffer message.payload, (err) =>
 					if (err)
 						@logger.log 'error handing payload', err
+						if err.name == 'INVALID_STATE' and err.message == 'Renegotiation of session description is not currently supported. See Bug 840728 for status.'
+							@logger.log 'Firefox bug 840728 - restarting stream.'
+							@endStream()
+							@setupPc()
+							@start()
 						return
 					# auto-accept
 					@logger.log 'auto-accepting answer...'
@@ -189,11 +204,11 @@ class Peer extends WildEmitter
 		if @streamClosed 
 			return
 		if candidate
-			this.send('candidate', candidate)
+			@send('candidate', candidate)
 		else
-			this.logger.log("End of candidates.")
+			@logger.log("End of candidates.")
 
-	start: =>
+	start: (icerestart=false) =>
 		@logger.log "trying to start", @id
 		# well, the webrtc api requires that we either
 		# a) create a datachannel a priori
@@ -202,14 +217,18 @@ class Peer extends WildEmitter
 		if (@enableDataChannels)
 			@getDataChannel('simplewebrtc')
 
-		@pc.offer @receiveMedia, (err, sessionDescription) =>
-			@logger.log "sending offer", sessionDescription, 'to', @id
-			@send('offer', sessionDescription)
-
-	icerestart: =>
+		@streamClosed = false
 		constraints = @receiveMedia
-		constraints.mandatory.IceRestart = true
-		@pc.offer(constraints, (err, success) -> null)
+		constraints.mandatory.IceRestart = icerestart
+
+		@pc.offer constraints, (err, sessionDescription) =>
+			if err
+				@logger.log 'error!', err
+			#	return
+			#@logger.log "sending offer", sessionDescription, 'to', @id
+			
+			# below is now commented out in webrtc.js - find out why...
+			#@send('offer', sessionDescription)
 
 	endStream: =>
 		if @streamClosed
@@ -309,8 +328,8 @@ class RoomController extends WildEmitter
 		@on 'peerRemoved', @handlePeerRemoved
 		@on 'peerResourcesUpdated', (peer) =>
 			@logger.log "peer resources updated!"
-			if peer.resources.video and not @mainPeer?
-				@mainPeer = peer
+			if peer.resources.video and @getInterviewees().length <= 1
+				@logger.log 'requesting peer start.'
 				peer.start()
 
 		# @mainPeer = null
@@ -449,8 +468,7 @@ class RoomController extends WildEmitter
 							recordingStatus: data.recordingStatus
 
 						@emit 'createdPeer', peer
-						if peer.resources.video and not @mainPeer?
-							@mainPeer = peer
+						if peer.resources.video and @getInterviewees().length <= 1
 							peer.start()
 
 					fulfil(roomData)
@@ -465,8 +483,6 @@ class RoomController extends WildEmitter
 
 	handlePeerStreamRemoved: (peer) =>
 		console.log "peer stream removed."
-		if (@mainPeer? and peer.id == @mainPeer.id)
-			@mainPeer = null
 		@emit 'videoRemoved', peer
 
 	handlePeerRemoved: (peer) =>
