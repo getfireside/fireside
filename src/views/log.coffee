@@ -30,7 +30,6 @@ class LogCollectionView extends Marionette.CollectionView
 		parent: @
 
 	onAddChild: ->
-		debugger;
 		@roomView.$('div.scroller').scrollTop(@roomView.$('div.scroller').height())
 
 class LogView extends Marionette.LayoutView 
