@@ -29,6 +29,10 @@ class LogCollectionView extends Marionette.CollectionView
 	childViewOptions: (model, index) => 
 		parent: @
 
+	onAddChild: ->
+		debugger;
+		@roomView.$('div.scroller').scrollTop(@roomView.$('div.scroller').height())
+
 class LogView extends Marionette.LayoutView 
 	template: Handlebars.templates['log-panel']
 	regions:
