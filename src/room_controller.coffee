@@ -68,6 +68,7 @@ class Peer extends WildEmitter
 
 		# proxy events to parent
 		@on '*', => @controller.emit.apply(@controller, arguments)
+		@on '*', => @logger.log "PEER EVENT", @, arguments
 
 		@controller.on('localStream', @addLocalStream)
 		@on 'signalingStateChange', => console.log 'new signalling state,', @pc.signalingState
@@ -110,8 +111,6 @@ class Peer extends WildEmitter
 
 
 	handleMessage: (message) ->
-		@logger.log('getting', message.type, message, 'from', message.from)
-
 		if message.prefix
 			@browserPrefix = message.prefix;
 
@@ -126,7 +125,7 @@ class Peer extends WildEmitter
 						@logger.log 'error handing payload', err
 						if err.name == 'INVALID_STATE' and err.message == 'Renegotiation of session description is not currently supported. See Bug 840728 for status.'
 							@logger.log 'Firefox bug 840728 - restarting stream.'
-							@endStream()
+							@endStream(true) #restart = true
 							@setupPc()
 							@start()
 						return
@@ -136,8 +135,8 @@ class Peer extends WildEmitter
 						if (err)
 							@logger.log "error calling pc.answer", err
 							return
-						@logger.log 'answering', message.from, 'with', sessionDescription
-						@send('answer', sessionDescription)
+						#@logger.log 'answering', message.from, 'with', sessionDescription
+						#@send('answer', sessionDescription)
 
 			when 'answer'
 				@logger.log 'accepting stream from', message.from
@@ -151,6 +150,10 @@ class Peer extends WildEmitter
 			when 'unmute'
 				@controller.emit('unmute', {id: message.from, name: message.payload.name})
 
+			when 'restart'
+				@pc.close()
+				@setupPc()
+
 	send: (type, payload) =>
 		message = 
 			to: @id
@@ -159,7 +162,7 @@ class Peer extends WildEmitter
 			type: type
 			payload: payload
 			prefix: @controller.capabilities.prefix
-		@logger.log "sending", type, "to", @id, ":", message
+		@logger.log "SIGNALLING: SENT", message
 		@controller.connection.emit 'signalling', message
 
 	sendDirectly: (channel, type, payload) =>
@@ -230,10 +233,12 @@ class Peer extends WildEmitter
 			# below is now commented out in webrtc.js - find out why...
 			#@send('offer', sessionDescription)
 
-	endStream: =>
+	endStream: (restart=false) =>
 		if @streamClosed
 			return
 		@pc.close()
+		if restart 
+			@send 'restart'
 		@handleStreamRemoved()
 
 	unbindEvents: =>
@@ -329,7 +334,7 @@ class RoomController extends WildEmitter
 		@on 'peerResourcesUpdated', (peer) =>
 			@logger.log "peer resources updated!"
 			if peer.resources.video and @getInterviewees().length <= 1
-				@logger.log 'requesting peer start.'
+				@logger.log 'requesting peer start following peerResourcesUpdated...'
 				peer.start()
 
 		# @mainPeer = null
@@ -399,7 +404,7 @@ class RoomController extends WildEmitter
 			@sessionReady = true
 
 		@connection.on 'signalling', (message) =>
-			console.log message
+			@logger.log 'SIGNALLING: RECEIVED', message
 			peer = @getPeer(message.from)
 			peer.handleMessage(message)
 
@@ -418,7 +423,7 @@ class RoomController extends WildEmitter
 			@getPeer(data.id).end()
 
 		@connection.on 'announce', (data) =>
-			@logger.log "ANNOUNCING THE AMAZING", data?.info?.name
+			@logger.log "ANNOUNCE!", data?.info?.name
 			peer = @createPeer
 				id: data.id
 				enableDataChannels: @config.enableDataChannels
@@ -478,11 +483,11 @@ class RoomController extends WildEmitter
 		@localName = name
 
 	handlePeerStreamAdded: (peer) =>
-		console.log "peer stream added!"
+		console.log "peer stream added!", peer.id
 		@emit 'videoAdded', peer
 
 	handlePeerStreamRemoved: (peer) =>
-		console.log "peer stream removed."
+		console.log "peer stream removed.", peer.id
 		@emit 'videoRemoved', peer
 
 	handlePeerRemoved: (peer) =>
