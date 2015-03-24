@@ -151,7 +151,7 @@ class Peer extends WildEmitter
 				@controller.emit('unmute', {id: message.from, name: message.payload.name})
 
 			when 'restart'
-				@pc.close()
+				@endStream()
 				@setupPc()
 
 	send: (type, payload) =>
@@ -256,17 +256,19 @@ class Peer extends WildEmitter
 
 
 	handleRemoteStreamAdded: (event) =>
-		if (@stream)
-			@logger.warn('Already have a remote stream')
-		else
-			@stream = event.stream;
-			# FIXME: addEventListener('ended', ...) would be nicer
-			# but does not work in firefox 
-			@stream.onended = =>
-				@endStream()
+		# let's just go ahead and replace rather than worrying about existing streams...
+		#if (@stream)
+		#	@logger.warn('Already have a remote stream')
+		#	return
 
-			@controller.emit('peerStreamAdded', @)
-			@logger.log "GOT STREAM!"
+		@stream = event.stream;
+		# FIXME: addEventListener('ended', ...) would be nicer
+		# but does not work in firefox 
+		@stream.onended = =>
+			@endStream()
+
+		@controller.emit('peerStreamAdded', @)
+		@logger.log "GOT STREAM!"
 
 	handleStreamRemoved: =>
 		@streamClosed = true
