@@ -301,7 +301,7 @@ class RoomController extends WildEmitter
 			peerConnectionConfig:
 				iceServers: [
 					{url: "stun:stun.l.google.com:19302"},
-					{url: 'turn:test.yakk.io:3478'}
+					{url: 'turn:test.yakk.io:3478', credential: 'yakk', username: 'yakk'}
 				]
 
 			peerConnectionConstraints: 
