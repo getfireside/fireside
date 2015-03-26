@@ -89,15 +89,18 @@ class Peer extends WildEmitter
 		@pc.on 'negotiationNeeded', => @emit 'negotiationNeeded'
 		@pc.on 'iceConnectionStateChange', => @emit 'iceConnectionStateChange'
 		@pc.on 'iceConnectionStateChange', =>
+			@logger.log 'new state', @pc.iceConnectionState
 			switch @pc.iceConnectionState
 				when 'failed'
 					# currently, in chrome only the initiator goes to failed
 					# so we need to signal this to the peer
 					if @pc.pc.peerconnection.localDescription.type == 'offer'
+						@log 'sending the connectivityError..'
 						@controller.emit('iceFailed', @)
 						@send('connectivityError')
 
 		@pc.on 'signalingStateChange', => @emit 'signalingStateChange'
+		@pc.on '*', => @logger.debug "DEBUG PC EVENT", arguments
 		console.log 'set up.'
 
 		for stream in @controller.localMedia.localStreams
