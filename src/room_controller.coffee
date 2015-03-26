@@ -300,7 +300,8 @@ class RoomController extends WildEmitter
 			enableDataChannels: true
 			peerConnectionConfig:
 				iceServers: [
-					{url: "stun:stun.l.google.com:19302"}
+					{url: "stun:stun.l.google.com:19302"},
+					{url: 'turn:test.yakk.io:3478'}
 				]
 
 			peerConnectionConstraints: 
