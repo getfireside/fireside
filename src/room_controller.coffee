@@ -193,7 +193,7 @@ class Peer extends WildEmitter
 	# Fetch or create a data channel by the given name
 	getDataChannel: (name, opts) ->
 		if (!@controller.capabilities.dataChannel) 
-			return @emit('error', new Error('createDataChannel not supported'));
+			@logger.warn 'DataChannel is claimed to not be currently supported...'
 		channel = @channels[name];
 		if channel
 			return channel
