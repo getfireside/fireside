@@ -59,9 +59,10 @@ class Peer extends WildEmitter
 		@role = opts.role
 		@recordingStatus = opts.recordingStatus ? null
 
+		@logger = @controller.logger
+
 		@setupPc() 
 
-		@logger = @controller.logger
 
 		# call emitter constructor
 		super
@@ -75,6 +76,10 @@ class Peer extends WildEmitter
 
 	setupPc: =>
 		console.log 'setting up new peer connection...'
+		if @pc?
+			@oldPc = @pc
+			@oldPc.releaseGroup()
+
 		@pc = new PeerConnection(@controller.config.peerConnectionConfig, @controller.config.peerConnectionConstraints)
 		@pc.on 'ice', @onIceCandidate
 		@pc.on 'offer', (offer) => @send('offer', offer)
@@ -130,7 +135,7 @@ class Peer extends WildEmitter
 							@logger.log 'Firefox bug 840728 - restarting stream.'
 							@endStream(true) #restart = true
 							@setupPc()
-							@start()
+							@start(true)
 						return
 					# auto-accept
 					@logger.log 'auto-accepting answer...'
@@ -154,6 +159,7 @@ class Peer extends WildEmitter
 				@controller.emit('unmute', {id: message.from, name: message.payload.name})
 
 			when 'restart'
+				@logger.log 'restart received... attempting restart.'
 				@endStream()
 				@setupPc()
 
@@ -207,8 +213,6 @@ class Peer extends WildEmitter
 		return channel
 
 	onIceCandidate: (candidate) =>
-		if @streamClosed 
-			return
 		if candidate
 			@send('candidate', candidate)
 		else
@@ -253,7 +257,7 @@ class Peer extends WildEmitter
 		@logger.log @id, "leaving"
 		@endStream()
 		@closed = true
-		@off()
+		@releaseGroup()
 		@unbindEvents()
 		@controller.emit 'peerRemoved', @
 
@@ -304,6 +308,12 @@ class RoomController extends WildEmitter
 			peerConnectionConfig:
 				iceServers: [
 					{url: "stun:stun.l.google.com:19302"},
+					{url: "stun:stun1.l.google.com:19302"},
+					{url: "stun:stun2.l.google.com:19302"},
+					{url: "stun:stun3.l.google.com:19302"},
+					{url: "stun:stun4.l.google.com:19302"},
+					{url: "stun:stunserver.org"},
+					{url: "stun:stun.services.mozilla.com"},
 					{url: 'turn:test.yakk.io:3478', credential: 'yakk', username: 'yakk'}
 				]
 
