@@ -13,14 +13,20 @@ var concat = require('gulp-concat');
 var watch = require('gulp-watch');
 var sass = require('gulp-sass')
 
+function getBundler(watch) {
+  if (watch) {
+    var bundler = watchify(browserify('./src/app.coffee', watchify.args));
+  }
+  else {
+    var bundler = browserify('./src/app.coffee')
+  }
+  // add any other browserify options or transforms here
+  bundler.transform('coffeeify');
+  bundler.transform('debowerify');
+  return bundler
+}
 
-var bundler = watchify(browserify('./src/app.coffee', watchify.args));
-// add any other browserify options or transforms here
-bundler.transform('coffeeify');
-bundler.transform('debowerify');
-
-gulp.task('js', bundle); // so you can run `gulp js` to build the file
-bundler.on('update', bundle); // on any dep update, runs the bundler
+gulp.task('js', function() { bundle(getBundler(false)) }); // so you can run `gulp js` to build the file
 
 gulp.task('templates', function(){
   gulp.src('./assets/templates/*.hbs')
@@ -47,7 +53,9 @@ gulp.task('sass', function() {
 gulp.task('watch', function() {
   gulp.watch('./assets/scss/*.scss', ['sass'])
   gulp.watch('./assets/templates/**/*.hbs', ['templates'])
-  bundle()
+  var bundler = getBundler(true)
+  bundler.on('update', function() { bundle(bundler) }); // on any dep update, runs the bundler
+  bundle(bundler)
 })
 
 gulp.task('default', ['js', 'sass', 'templates'], function() {
@@ -55,7 +63,7 @@ gulp.task('default', ['js', 'sass', 'templates'], function() {
 })
 
 
-function bundle() {
+function bundle(bundler) {
   return bundler.bundle()
     // log errors if they happen
     .on('error', gutil.log.bind(gutil, 'Browserify Error'))
