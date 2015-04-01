@@ -32,24 +32,41 @@
           
         </div>
       </div>
-    </div>
-</div>
 
-<div class="modal fade" id="nameModal" tabindex="-1" role="dialog" aria-labelledby="nameModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        <h4 class="modal-title" id="nameModalLabel">What's your name?</h4>
+      <div class="modal fade" id="nameModal" tabindex="-1" role="dialog" aria-labelledby="nameModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title" id="nameModalLabel">What's your name?</h4>
+            </div>
+            <div class="modal-body">
+              <input type="text" class="form-control" placeholder="Anonymous">
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary save">Connect</button>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="modal-body">
-        <input type="text" class="form-control" placeholder="Anonymous">
+      <div class="modal fade" id="ffVideoResModal" tabindex="-1" role="dialog" aria-labelledby="ffVideoResModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+              <h4 class="modal-title" id="ffVideoResModalLabel">Manually specify your camera resolution</h4>
+            </div>
+            <div class="modal-body">
+              <p class="ffextn-not-installed"><a href="/dist/yakk-ff-change-res.xpi">Install our firefox extension</a> so that you can manually change your camera resolution. Just hit install, then reload the page.</p>
+
+              Width: <input name="width" type="text" class="form-control" placeholder="e.g. 1280">
+              Height: <input name="height" type="text" class="form-control" placeholder="e.g. 720">
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-primary save" disabled>Save and reload</button>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary save">Connect</button>
-      </div>
-    </div>
-  </div>
-</div>
     </body>
 </html>
