@@ -10,12 +10,20 @@ session = require 'express-session'
 RedisSessionStore = (require 'connect-redis')(session)
 cookieParser = (require 'cookie-parser')()
 cons = require 'consolidate'
+AWS = require 'aws-sdk'
+bodyParser = require 'body-parser'
+require 'coffee-script/register'
+config = require './config.coffee'
 
-config = 
-	stunservers: [
-		{url: "stun:stun.l.google.com:19302"}
-	]
-	turnservers: []
+
+AWS.config.update
+	accessKeyId: config.awsAccessKeyId
+	secretAccessKey: config.awsSecretAccessKey
+	region: config.awsRegion
+
+s3UploadsBucket = new AWS.S3
+	params: 
+		Bucket: config.uploadsBucketName
 
 
 class RoomController
@@ -129,6 +137,8 @@ sessionStore = session
 		maxAge: 60*24*60*60*1000 # 60 days
 app.use sessionStore
 
+jsonParser = bodyParser.json()
+
 app.use '/dist', express.static('dist')
 app.use '/bower_components', express.static('bower_components')
 
@@ -140,20 +150,86 @@ app.set('view engine', 'html')
 app.set('views', __dirname + '/views')
 
 app.get '/', (req, res) -> res.render('index') 
-app.get '/rooms/:roomID', (req, res) -> 
-	id = req.params.roomID
-	roomController.roomExists id, (err, exists) ->
-		console.log exists
-		if exists
-			res.render 'room', 
-				roomID: id
-		else
-			res.sendStatus 404
 
 app.post '/rooms/new', (req, res) -> 
 	roomController.createRoom (err, id) ->
 		res.redirect('/rooms/' + id)
 
+doIfRoomExists = (id, req, res, cbIfExists) ->
+	roomController.roomExists id, (err, exists) ->
+		if exists
+			cbIfExists(null, id, req, res)
+		else
+			res.sendStatus 404
+
+app.get '/rooms/:roomID', (req, res) -> 
+	doIfRoomExists req.params.roomID, req, res, (err, id, req, res) ->
+		res.render 'room', 
+			roomID: id
+
+doIfHasRole = (id, allowedRoles, req, res, next, cb) ->
+	sid = req.session.id
+	roomController.determineRole id, sid, (err, role) ->
+		if err == 'Room does not exist'
+			res.sendStatus 404
+			return
+		if not _.contains allowedRoles, role
+			res.sendStatus 403
+			return
+		if err
+			return next(err)
+		return cb(id, role, req, res, next)
+
+
+
+
+app.post '/rooms/:roomID/upload/start/', (req, res, next) ->
+	id = req.params.roomID
+	sid = req.session.id
+	# ensure that the user is already in the room!
+	doIfHasRole id, ['host', 'interviewee'], req, res, next, (id, role, req, res, next) ->
+		key = ([id, sid, randomstring.generate 5].join '/') + '.webm'
+		params = 
+			Key: key
+			ACL: 'public-read'
+			ContentType: req.query['content-type'] ? 'video/webm'
+		s3UploadsBucket.createMultipartUpload params, (err, data) ->
+			res.json
+				key: key
+				uploadId: data.UploadId
+
+app.post '/rooms/:roomID/upload/sign/', jsonParser, (req, res, next) ->
+	# sign request with uploadId, key, contentLength set as required.
+	if !req.body 
+		return res.sendStatus(400)
+	sid = req.session.id
+	# we should probably validate the incoming JSON first.. let's just run with it for now.
+	doIfHasRole req.params.roomID, ['host', 'interviewee'], req, res, next, (id, role, req, res, next) ->
+		key = req.body.key
+		if key.indexOf(id + '/' + sid) != 0
+			return res.sendStatus 400
+		params = 
+			UploadId: req.body.uploadId
+			Key: key
+			PartNumber: req.body.partNumber
+		s3UploadsBucket.getSignedUrl 'uploadPart', params, (err, url) ->
+			if err
+				return next(err)
+			res.json
+				url: url
+			
+
+
+
+
+
+
+
+
+
+		
+
+			
 
 server = http.Server(app)
 io = require('socket.io')(server)
@@ -278,21 +354,11 @@ io.sockets.on 'connection', (client) ->
 			cb(client.info)
 
 
-	client.emit('stunservers', config.stunservers or []);
+	client.emit('stunservers', config.stunservers or [])
+	client.emit('turnservers', config.turnservers or [])
 
-	# create shared secret nonces for TURN authentication
-	# the process is described in draft-uberti-behave-turn-rest
-	credentials = []
-	config.turnservers.forEach (server) ->
-		hmac = crypto.createHmac('sha1', server.secret)
-		# default to 86400 seconds timeout unless specified
-		username = Math.floor(new Date().getTime() / 1000) + (server.expiry or 86400) + ""
-		hmac.update(username)
-		credentials.push 
-			username: username
-			credential: hmac.digest('base64')
-			url: server.url
-
-	client.emit('turnservers', credentials)
+app.use (err, req, res, next) ->
+  console.error(err.stack)
+  res.status(500).send('Something broke!')
 
 server.listen(8001)
