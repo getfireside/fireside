@@ -180,49 +180,86 @@ doIfHasRole = (id, allowedRoles, req, res, next, cb) ->
 			return next(err)
 		return cb(id, role, req, res, next)
 
+getKeyFromId = (roomID, sid, recID) -> ([roomID, sid, recID].join '/') + '.webm'
+checkKeyIsValid = (key) -> key.indexOf(id + '/' + sid) == 0
 
-
-
-app.post '/rooms/:roomID/upload/start/', (req, res, next) ->
-	id = req.params.roomID
+app.post '/rooms/:roomID/uploads/', jsonParser, (req, res, next) ->
+	if !req.body 
+		return res.sendStatus(400)
+	roomID = req.params.roomID
 	sid = req.session.id
+	recID = req.body.id
 	# ensure that the user is already in the room!
-	doIfHasRole id, ['host', 'interviewee'], req, res, next, (id, role, req, res, next) ->
-		key = ([id, sid, randomstring.generate 5].join '/') + '.webm'
+	doIfHasRole roomID, ['host', 'interviewee'], req, res, next, (roomID, role, req, res, next) ->
+		key = getKeyFromId(roomID, sid, recID)
 		params = 
 			Key: key
 			ACL: 'public-read'
-			ContentType: req.query['content-type'] ? 'video/webm'
+			ContentType: 'video/webm'
 		s3UploadsBucket.createMultipartUpload params, (err, data) ->
+			if err
+				return next(err)
 			res.json
-				key: key
-				uploadId: data.UploadId
+				awsUploadId: data.UploadId
 
-app.post '/rooms/:roomID/upload/sign/', jsonParser, (req, res, next) ->
+app.get '/rooms/:roomID/uploads/:recID/status/', (req, res, next) ->
+	sid = req.session.id
+	key = getKeyFromId(req.params.roomID, sid, req.params.recID)
+	uploadId = req.query.awsUploadId
+	params = 
+		key: key
+		uploadId: uploadId
+	parts = {}
+	s3UploadsBucket.listParts(params).eachItem (err, partData) ->
+		if err
+			return next(err)
+
+		if partData == null
+			res.json
+				parts: parts
+		else
+			parts[partData.PartNumber] = 
+				lastModified: partData.LastModified
+				etag: partData.ETag
+				size: partData.size
+
+
+app.post '/rooms/:roomID/uploads/:recID/sign/', jsonParser, (req, res, next) ->
 	# sign request with uploadId, key, contentLength set as required.
 	if !req.body 
 		return res.sendStatus(400)
 	sid = req.session.id
 	# we should probably validate the incoming JSON first.. let's just run with it for now.
 	doIfHasRole req.params.roomID, ['host', 'interviewee'], req, res, next, (id, role, req, res, next) ->
-		key = req.body.key
-		if key.indexOf(id + '/' + sid) != 0
-			return res.sendStatus 400
 		params = 
-			UploadId: req.body.uploadId
-			Key: key
+			UploadId: req.body.awsUploadId
+			Key: getKeyFromId(req.params.roomID, sid, req.params.recID)
 			PartNumber: req.body.partNumber
+
 		s3UploadsBucket.getSignedUrl 'uploadPart', params, (err, url) ->
 			if err
 				return next(err)
 			res.json
 				url: url
+
+app.post '/rooms/:roomID/uploads/:recID/complete/', jsonParser, (req, res, next) ->
+	if !req.body 
+		return res.sendStatus(400)
+	sid = req.session.id
+	doIfHasRole req.params.roomID, ['host', 'interviewee'], req, res, next, (id, role, req, res, next) -> 
+		params = 
+			UploadId: req.body.awsUploadId
+			Key: getKeyFromId(req.params.roomID, sid, req.params.recID)
+			MultipartUpload: 
+				Parts: _.map req.body.parts, (etag, partNo) -> {ETag: etag, PartNumber: partNo}
+
+		s3UploadsBucket.completeMultipartUpload params, (err, data) ->
+			if err
+				return next(err)
+			res.json
+				url: Location
+
 			
-
-
-
-
-
 
 
 
