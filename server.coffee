@@ -207,21 +207,41 @@ app.get '/rooms/:roomID/uploads/:recID/status/', (req, res, next) ->
 	key = getKeyFromId(req.params.roomID, sid, req.params.recID)
 	uploadId = req.query.awsUploadId
 	params = 
-		key: key
-		uploadId: uploadId
-	parts = {}
-	s3UploadsBucket.listParts(params).eachItem (err, partData) ->
-		if err
-			return next(err)
+		Key: key
+		UploadId: uploadId
+	
 
-		if partData == null
-			res.json
-				parts: parts
+	s3UploadsBucket.headObject {Key: key}, (err, data) ->
+		if (err)
+			console.log(err)
+
+			parts = {}
+			hasErrored = false
+
+			s3UploadsBucket.listParts(params).eachItem (err, partData) ->
+				if hasErrored
+					return
+
+				if err
+					hasErrored = true
+					if err.code == 'NoSuchUpload'
+						# check if key exists
+						res.sendStatus 404
+					else
+						return next(err)
+
+				if partData == null
+					res.json
+						parts: parts
+						status: 'in-progress'
+				else
+					parts[partData.PartNumber] = 
+						lastModified: partData.LastModified
+						etag: partData.ETag
+						size: partData.size
 		else
-			parts[partData.PartNumber] = 
-				lastModified: partData.LastModified
-				etag: partData.ETag
-				size: partData.size
+			return res.json
+				status: 'complete'
 
 
 app.post '/rooms/:roomID/uploads/:recID/sign/', jsonParser, (req, res, next) ->
@@ -236,11 +256,8 @@ app.post '/rooms/:roomID/uploads/:recID/sign/', jsonParser, (req, res, next) ->
 			Key: getKeyFromId(req.params.roomID, sid, req.params.recID)
 			PartNumber: req.body.partNumber
 
-		s3UploadsBucket.getSignedUrl 'uploadPart', params, (err, url) ->
-			if err
-				return next(err)
-			res.json
-				url: url
+		res.json
+			url: s3UploadsBucket.getSignedUrl 'uploadPart', params
 
 app.post '/rooms/:roomID/uploads/:recID/complete/', jsonParser, (req, res, next) ->
 	if !req.body 
@@ -257,7 +274,7 @@ app.post '/rooms/:roomID/uploads/:recID/complete/', jsonParser, (req, res, next)
 			if err
 				return next(err)
 			res.json
-				url: Location
+				url: data.Location
 
 			
 
