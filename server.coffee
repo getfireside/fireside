@@ -212,8 +212,9 @@ app.get '/rooms/:roomID/uploads/:recID/status/', (req, res, next) ->
 	
 
 	s3UploadsBucket.headObject {Key: key}, (err, data) ->
-		if (err)
-			console.log(err)
+		if err
+			if err.code != 'NotFound'
+				return res.sendStatus 404
 
 			parts = {}
 			hasErrored = false
