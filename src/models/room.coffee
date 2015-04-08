@@ -34,12 +34,15 @@ class Room extends Backbone.Model
 
 
 		@recordingController.on 'stopped', (rec) =>
-			rec.getBlobUrl (url) =>
-				@logCollection.add
-					type: 'recording'
-					data: 
-						subtype: 'stopped'
-						url: url
+			rec.getBlobUrl (err, url) =>
+				if err
+					return console.log(err)
+				else
+					@logCollection.add
+						type: 'recording'
+						data: 
+							subtype: 'stopped'
+							url: url
 
 			@self.set 'recordingStatus', 'recording'
 

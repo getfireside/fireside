@@ -186,12 +186,3 @@ class S3Uploader
 			cb(error)
 
 module.exports = S3Uploader
-
-
-
-
-
-
-
-s3 = new S3Uploader
-
