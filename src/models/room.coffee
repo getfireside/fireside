@@ -20,9 +20,9 @@ class Room extends Backbone.Model
 
 		$.getJSON "/rooms/#{roomID}/clients/", (res) =>
 			@historicalClients = res.clients
-
-		$.getJSON "/rooms/#{roomID}/logs/", (res) =>
-			@logCollection.add res.logs
+			
+			$.getJSON "/rooms/#{roomID}/logs/", (res) =>
+				@logCollection.add res.logs
 
 		@recordingCollection = new RecordingCollection [], {room: @}
 		@recordingController = new RecordingController @, @recordingCollection
