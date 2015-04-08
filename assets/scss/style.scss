@@ -107,12 +107,11 @@ div#logPanel {
 		li {
 			display: block;
 			padding: 1px;
-			time, div.content {
-				display: inline-block;
-			}
 			time {
+				display: inline-block;
 				width: 6ex;
 			}
+			div.content { display: inline; }
 		}
 		// hacky marionette div wrappers...
 		> div > div:nth-child(2n) {
