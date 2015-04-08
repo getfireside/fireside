@@ -36,7 +36,8 @@ class LogCollectionView extends Marionette.CollectionView
 		parent: @
 
 	onAddChild: ->
-		@roomView.$('div.scroller').scrollTop(@roomView.$('div.scroller').height())
+		# todo: better scrolling, use a jquery plugin or something
+		@roomView.$('div.scroller').scrollTop(@roomView.$('div.scroller ul#logsList').height() + 1000)
 
 class LogView extends Marionette.LayoutView 
 	template: Handlebars.templates['log-panel']
@@ -62,7 +63,7 @@ class LogView extends Marionette.LayoutView
 		@roomView.sendMsg v
 
 	keyDown: (e) ->
-		if e.which == 13 and not e.ctrlKey
+		if e.which == 13 and not e.ctrlKey and @$el.find('#msgInput').val()
 			e.preventDefault()
 			@sendMsg()
 
