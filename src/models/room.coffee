@@ -18,6 +18,12 @@ class Room extends Backbone.Model
 		@userCollection = new UserCollection([@self])
 		@logCollection = new LogCollection([])
 
+		$.getJSON "/rooms/#{roomID}/clients/", (res) =>
+			@historicalClients = res.clients
+
+		$.getJSON "/rooms/#{roomID}/logs/", (res) =>
+			@logCollection.add res.logs
+
 		@recordingCollection = new RecordingCollection [], {room: @}
 		@recordingController = new RecordingController @, @recordingCollection
 
@@ -120,7 +126,7 @@ class Room extends Backbone.Model
 			@userCollection.remove {id: peer.id}
 			@logCollection.add
 				type: 'leave'
-				data: u
+				from: peer.id
 
 		statusMap = 
 			ready: 'ready'
@@ -129,16 +135,17 @@ class Room extends Backbone.Model
 
 		@roomController.on "event", (evt) =>
 			# probably should put this in a subhandler later...
+			if evt.type != 'recording' or (evt.data.subtype != 'upload-progress' and evt.data.subtype != 'upload-complete')
+				log = new LogEvent evt
+				@logCollection.add log
+
 			if evt.type == 'recording' 
 				if evt.from
 					status = statusMap[evt.data.subtype]
 					@userCollection.get(evt.from).set 'recordingStatus', status
-				if evt.data.subtype != 'upload-progress' and evt.data.subtype != 'upload-complete'
-					log = new LogEvent evt
-					@logCollection.add log
 					if evt.data.subtype == 'stopped'
 						lastStoppedLog = log
-				else
+				if evt.data.subtype == 'upload-progress' or evt.data.subtype == 'upload-complete'
 					console.log lastStoppedLog
 					# attempt to find the correct log event and update it
 					if lastStoppedLog

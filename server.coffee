@@ -40,6 +40,21 @@ class RoomController
 		@client.set @prefix + key, 1, (err, res) ->
 			cb(err, key, res)
 
+	addToLog: (roomId, evt, cb) =>
+		@client.rpush(@prefix + roomId + '/logs', JSON.stringify evt, cb)
+
+	getLogs: (roomId, cb) =>
+		@client.lrange @prefix + roomId + '/logs', 0, -1, (err, data) =>
+			cb err, _.map(data, (i) -> JSON.parse(i))
+
+	setClientInfo: (roomId, clientId, data, cb) => 
+		@client.hset @prefix + roomId + '/clients', clientId, JSON.stringify(data), cb
+
+	getClientsInfo: (roomId, cb) => 
+		@client.hgetall @prefix + roomId + '/clients', (err, data) =>
+			json = _.mapValues data, (v) -> JSON.parse v 
+			cb(err, json)
+
 	getClients: (roomId, cb) =>
 		clients = {}
 		for id of io.nsps['/'].adapter.rooms[roomId]
@@ -161,6 +176,22 @@ doIfRoomExists = (id, req, res, cbIfExists) ->
 			cbIfExists(null, id, req, res)
 		else
 			res.sendStatus 404
+
+app.get '/rooms/:roomID/clients/', (req, res, next) -> 
+	doIfRoomExists req.params.roomID, req, res, (err, id, req, res) ->
+		roomController.getClientsInfo id, (err, clients) ->
+			if err
+				return next(err)
+			res.json
+				clients: clients
+
+app.get '/rooms/:roomID/logs/', (req, res, next) -> 
+	doIfRoomExists req.params.roomID, req, res, (err, id, req, res) ->
+		roomController.getLogs id, (err, logs) ->
+			if err
+				return next(err)
+			res.json
+				logs: logs
 
 app.get '/rooms/:roomID', (req, res) -> 
 	doIfRoomExists req.params.roomID, req, res, (err, id, req, res) ->
@@ -307,10 +338,13 @@ io.sockets.on 'connection', (client) ->
 
 	client.on 'event', (data) ->
 		if client.room
-			client.broadcast.to(client.room).emit 'event', 
+			evt = 
 				type: data.type
 				data: data.data
 				from: client.id
+				timestamp: new Date()
+
+			client.broadcast.to(client.room).emit 'event', evt				
 
 			# this probably shouldn't be here, bit hackish - refactor later...
 			statusMap = 
@@ -320,6 +354,10 @@ io.sockets.on 'connection', (client) ->
 
 			if data.type == 'recording'
 				client.recordingStatus = statusMap[data.data.subtype]
+
+			# add it to the log...
+			if not (evt.type == 'recording' and evt.data.subtype == 'upload-progress')
+				roomController.addToLog client.room, evt
 
 	client.on 'signalling', (details) ->
 		if !details 
@@ -354,6 +392,12 @@ io.sockets.on 'connection', (client) ->
 				newResources: newResources
 
 	dc = ->
+		roomController.addToLog client.room, 
+			type: 'leave'
+			from: client.id
+			data: {}
+			timestamp: new Date()
+
 		console.log "leave", client.id
 		if client.room
 			client.broadcast.to(client.room).emit 'remove',
@@ -387,7 +431,15 @@ io.sockets.on 'connection', (client) ->
 					client.join(roomId)
 					client.room = roomId
 					client.info = data?.info
+					roomController.setClientInfo roomId, client.id, client.info
 					client.resources = data.resources
+
+					roomController.addToLog client.room, 
+						type: 'announce'
+						from: client.id
+						data: {}
+						timestamp: new Date()
+
 					client.broadcast.to(client.room).emit 'announce', 
 						id: client.id
 						sid: client.sid

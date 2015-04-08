@@ -6,6 +6,8 @@ class Log extends Backbone.Model
 	constructor: (attributes, options) ->
 		if not attributes.timestamp?
 			attributes.timestamp = moment()
+		if not (attributes.timestamp instanceof moment)
+			attributes.timestamp = moment(attributes.timestamp)
 		super attributes, options
 
 	displayTimestamp: ->

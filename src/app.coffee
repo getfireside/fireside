@@ -20,4 +20,5 @@ $(document).ready ->
 	Handlebars.registerHelper 'equals', (a, b) -> a == b
 	Handlebars.registerHelper 'percent', (v) -> v * 100
 	Handlebars.registerHelper 'nicePercentage', (v) -> ~~(v*100) + '%'
+	Handlebars.registerHelper 'replace', (r1, r2, s) -> s.replace(r1, r2)
 	window.yakk = new App()

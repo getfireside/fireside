@@ -1,6 +1,6 @@
-{{fromName}}: recording {{data.subtype}}.
+<em><strong>{{fromName}}</strong>: recording {{replace '-' ' ' data.subtype}}</em>.
 {{#if data.url}}
-<a class="button" href="{{data.url}}">Download</a>
+<a class="btn btn-sm btn-primary" href="{{data.url}}">Download</a>
 {{else}}
 {{#if data.progress}}
 <div class="progress">
