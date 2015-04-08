@@ -1,2 +1,12 @@
 {{fromName}}: recording {{data.subtype}}.
-{{#if data.url}}<a download href="{{data.url}}">Download</a>{{/if}}
+{{#if data.url}}
+<a class="button" href="{{data.url}}">Download</a>
+{{else}}
+{{#if data.progress}}
+<div class="progress">
+  <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="{{percent data.progress}}" aria-valuemin="0" aria-valuemax="100" style="width: {{percent data.progress}}%">
+    <span class="sr-only">{{nicePercentage data.progress}}</span>
+  </div>
+</div>
+{{/if}}
+{{/if}}

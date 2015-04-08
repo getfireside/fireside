@@ -17,9 +17,14 @@ class DefaultLogView extends Marionette.ItemView
 			data.fromName = @options.parent.roomView.getUserCollection().get(data.from).get('name')
 		return data
 
+class RecordingLogView extends DefaultLogView
+	modelEvents:
+		change: 'render'
+
 class LogCollectionView extends Marionette.CollectionView
 	typeViews: 
 		'*': DefaultLogView
+		'recording': RecordingLogView
 
 	constructor: (opts) ->
 		super opts

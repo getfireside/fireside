@@ -6,6 +6,9 @@ User = require('../models/user.coffee')
 LogCollection = require('../collections/log.coffee')
 LogEvent = require('../models/log.coffee')
 
+# put me in a more sensible place please.
+lastStoppedLog = null
+
 class Room extends Backbone.Model
 	defaults = {}
 	constructor: (roomID) ->
@@ -34,23 +37,47 @@ class Room extends Backbone.Model
 
 
 		@recordingController.on 'stopped', (rec) =>
-			rec.getBlobUrl (err, url) =>
-				if err
-					return console.log(err)
-				else
-					@logCollection.add
-						type: 'recording'
-						data: 
-							subtype: 'stopped'
-							url: url
-
-			@self.set 'recordingStatus', 'recording'
+			rec.upload()
+			log = null
 
 			@roomController.sendEvent
 				type: 'recording'
 				data: 
 					subtype: 'stopped'
 					recData: rec.toJSON()
+
+			rec.on 'uploadStarted', =>
+				log = @logCollection.add
+					type: 'recording'
+					data: 
+						subtype: 'stopped'
+						progress: 0
+
+			rec.on 'uploadProgress', (rec, v) =>
+				# doing this isn't very nice, need to change later.
+				data = _.clone log.get 'data'
+				data.progress = v 
+				log.set 'data', data
+
+				@roomController.sendEvent
+					type: 'recording'
+					data: 
+						subtype: 'upload-progress'
+						progress: v
+
+			rec.on 'uploadComplete', (rec, url) =>
+				data = _.clone log.get 'data'
+				data.progress = 1
+				data.url = url 
+				log.set 'data', data
+
+				@roomController.sendEvent
+					type: 'recording'
+					data: 
+						subtype: 'upload-complete'
+						url: url
+
+			@self.set 'recordingStatus', 'ready'
 
 			@status = 'ready'
 
@@ -101,11 +128,25 @@ class Room extends Backbone.Model
 			stopped: 'ready'
 
 		@roomController.on "event", (evt) =>
-			@logCollection.add new LogEvent evt
-			# probably should put this in a subhandler for now...
-			if evt.type == 'recording' and evt.from
-				status = statusMap[evt.data.subtype]
-				@userCollection.get(evt.from).set 'recordingStatus', status
+			# probably should put this in a subhandler later...
+			if evt.type == 'recording' 
+				if evt.from
+					status = statusMap[evt.data.subtype]
+					@userCollection.get(evt.from).set 'recordingStatus', status
+				if evt.data.subtype != 'upload-progress' and evt.data.subtype != 'upload-complete'
+					log = new LogEvent evt
+					@logCollection.add log
+					if evt.data.subtype == 'stopped'
+						lastStoppedLog = log
+				else
+					console.log lastStoppedLog
+					# attempt to find the correct log event and update it
+					if lastStoppedLog
+						if evt.data.subtype == 'upload-progress'
+							lastStoppedLog.set 'data', _.extend {}, lastStoppedLog.get('data'), {progress:evt.data.progress}
+						if evt.data.subtype == 'upload-complete'
+							lastStoppedLog.set 'data', _.extend {}, lastStoppedLog.get('data'), {url: evt.data.url}
+
 
 		@roomController.on "startRecordingRequest", =>
 			if @recordingController.status == 'ready'

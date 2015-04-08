@@ -1,5 +1,6 @@
 WildEmitter = require 'wildemitter'
 IDBWriter = require './writers/idbwriter.coffee' 
+S3Uploader = require './s3uploader.coffee'
 moment = require 'moment'
 
 class RecordingController extends WildEmitter
@@ -10,6 +11,7 @@ class RecordingController extends WildEmitter
 		@config = _.extend {}, defaults, config
 		@writer = config?.writer ? new IDBWriter 'filesys'
 		@writer.open()
+		@s3 = new S3Uploader()
 
 	addStream: (stream) -> 
 		if MediaRecorder?
@@ -47,5 +49,6 @@ class RecordingController extends WildEmitter
 	stop: ->
 		@mediaRecorder.stop()
 		@status = 'ready'
+
 
 module.exports = RecordingController

@@ -157,7 +157,7 @@ class S3Uploader
 			signUploadUrl: window.location.href + '/uploads/:recId/sign/'
 			uploadStatusUrl: window.location.href + '/uploads/:recId/status/'
 			completeUrl: window.location.href + '/uploads/:recId/complete/'
-			numConnections: 1
+			numConnections: 4
 			partSize: 1024*1024*5 # 5MB
 		@config = _.extend {}, defaults, config
 
