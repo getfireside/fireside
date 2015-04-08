@@ -41,16 +41,31 @@ class S3UploadSession
 	constructor: (@uploader, opts) ->
 		@recId = opts.recId
 		@awsUploadId = opts.awsUploadId
-		@partSizes = opts.partSizes
-		@getNthBlob = opts.getNthBlob
-		completedParts = opts.completedParts ? {}
-		# data: received data from server
-		# uploader: the parent uploader class
-		# parts: a map of the form {partNo: size}
-		@parts = _.mapObject @partSizes, (size, partNo) -> {size: size}
+		@blob = opts.blob
+		@progressCb = opts.progressCb ? $.noop
+
+		@parts = {}
+		numParts = Math.ceil(@blob.size / @uploader.config.partSize)
+		for n in [1..numParts]
+			if n == numParts
+				@parts[n] = {size: @blob.size % @uploader.config.partSize}
+			else
+				@parts[n] = {size: @uploader.config.partSize}
+
+		completedParts = _.mapObject opts.completedParts ? {}, (data, partNo) -> _.extend {}, data, {progress: 1}
+		# sum up all the completed bytes...
 		_.extend @parts, completedParts
 
 		@status = 'ready'
+
+	getNthBlob: (n) -> @blob.slice (n-1) * @uploader.config.partSize, Math.min(n*@uploader.config.partSize, @blob.size), @blob.type
+
+	getUploadProgress: ->
+		# slightly silly and inefficient, fix later
+		total = 0
+		for partNo, info of @parts
+			total += ((info.progress ? 0) * info.size)
+		return (total / @blob.size)
 
 	uploadPart: (number, blob, cb, progressCb) ->
 		console.log "Attempting to upload part #{number}..."
@@ -58,19 +73,25 @@ class S3UploadSession
 		data = 
 			awsUploadId: @awsUploadId
 			partNumber: number
+
+		onProgress = (v) =>
+			@parts[number].progress = v
+			progressCb(@getUploadProgress())
+
 		req = $.postJSON(@uploader.config.signUploadUrl.replace(':recId', @recId), data)
 		req.done (data) =>
 			console.log "Part #{number} req signed."
 			# do a put request to the URL.
 			# cb = (err, data) ->
 			# 	debugger	
-			putReq = putBlob(data.url, blob, progressCb)
+			putReq = putBlob(data.url, blob, onProgress)
 			putReq.done (data, status, xhr) => 
 				console.log "#{number} uploaded."
 				# add the resulting part, etag and size to our @parts hash.
 				@parts[number] = 
 					etag: xhr.getResponseHeader('ETag')
 					size: blob.size
+					progress: 1
 				cb(null, number)
 			putReq.fail (xhr, status, error) -> cb(error, xhr)
 
@@ -137,29 +158,28 @@ class S3Uploader
 			uploadStatusUrl: window.location.href + '/uploads/:recId/status/'
 			completeUrl: window.location.href + '/uploads/:recId/complete/'
 			numConnections: 1
+			partSize: 1024*1024*5 # 5MB
 		@config = _.extend {}, defaults, config
 
-	startUploadSession: (recId, partSizes, getNthBlob, cb) ->
+	startUploadSession: (recId, blob, cb) ->
 		req = $.postJSON(@config.startUploadUrl, {id: recId})
 		req.done (data) => 
 			session = new S3UploadSession @, 
 				recId: recId
 				awsUploadId: data.awsUploadId
-				partSizes: partSizes
-				getNthBlob: getNthBlob
+				blob: blob
 			cb(null, session)
 		req.fail (xhr, status, error) ->
 			cb(error)
 		#TODO: if it already exists, check its status.
 
-	continueUploadSession: (recId, awsUploadId, partSizes, getNthBlob, cb) ->
+	continueUploadSession: (recId, awsUploadId, blob, cb) ->
 		req = $.get @config.uploadStatusUrl.replace(':recId', recId), awsUploadId: uploadId
 		req.done (data) =>
 			session = new S3UploadSession @, 
 				recId: recId
 				awsUploadId: data.awsUploadId
-				partSizes: partSizes
-				getNthBlob: getNthBlob
+				blob: blob
 				completedParts: data.parts
 			cb(null, session)
 		req.fail (xhr, status, error) ->
