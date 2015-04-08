@@ -1,4 +1,4 @@
-putBlob = (url, blob, cb, progressFn=$.noop) ->
+putBlob = (url, blob, progressFn=$.noop) ->
 	# xhr = new XMLHttpRequest
 
 	# xhr.addEventListener 'progress', ((prog) ->
@@ -19,7 +19,7 @@ putBlob = (url, blob, cb, progressFn=$.noop) ->
 		contentType: false
 		cache: false
 		xhr: ->
-			x = $.ajaxSettings.xhr();
+			x = $.ajaxSettings.xhr()
 			if x.upload and progressFn
 				x.upload.addEventListener 'progress', ((prog) ->
 					value = (prog.loaded / prog.total)
