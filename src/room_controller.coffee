@@ -500,11 +500,11 @@ class RoomController extends WildEmitter
 
 	handlePeerStreamAdded: (peer) =>
 		console.log "peer stream added!", peer.id
-		@emit 'videoAdded', peer
+		@emit 'streamAdded', peer
 
 	handlePeerStreamRemoved: (peer) =>
 		console.log "peer stream removed.", peer.id
-		@emit 'videoRemoved', peer
+		@emit 'streamRemoved', peer
 
 	handlePeerRemoved: (peer) =>
 		@removePeer peer.id

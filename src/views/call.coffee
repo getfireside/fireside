@@ -79,12 +79,12 @@ class CallView extends Marionette.LayoutView
 	getVideoEl: ->
 		return @$('div.video-local video')
 
-	handleRemoteVideoStart: (peer) =>
+	handleStreamStart: (peer) =>
 		@$('div.video').show()
 		@$('div.waiting').hide()
 		attachMediaStream(peer.stream, @$('video#remoteVideo')[0])
 
-	handleRemoteVideoEnd: (peer) =>
+	handleStreamEnd: (peer) =>
 		@$('div.waiting').show()
 
 
