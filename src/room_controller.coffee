@@ -7,33 +7,33 @@ util = require('util')
 LocalMedia = require('localmedia')
 PeerConnection = require 'rtcpeerconnection'
 
-class FileReceiveSession extends WildEmitter
-	constructor: (@peer, @fileID) ->
-		@status = 'ready'
-		@peer.on 'channelMessage', (peer, channelLabel, data, channel) ->
-			if channelLabel != @_getChannelLabel()
-				return
-			@handleMessage data.type, data.payload
+# class FileReceiveSession extends WildEmitter
+# 	constructor: (@peer, @fileID) ->
+# 		@status = 'ready'
+# 		@peer.on 'channelMessage', (peer, channelLabel, data, channel) ->
+# 			if channelLabel != @_getChannelLabel()
+# 				return
+# 			@handleMessage data.type, data.payload
 
-	handleMessage: (type, payload) ->
-		@["handle"]
+# 	handleMessage: (type, payload) ->
+# 		@["handle"]
 
-	start: ->
-		if @status != 'ready'
-			return
-		@status = 'waitingForMeta'
+# 	start: ->
+# 		if @status != 'ready'
+# 			return
+# 		@status = 'waitingForMeta'
 
-	_getChannelLabel: -> "file_#{@fileID}"
+# 	_getChannelLabel: -> "file_#{@fileID}"
 
-	sendMessage: (type, payload) ->
-		@peer.sendDirectly @_getChannelLabel(), type, payload
+# 	sendMessage: (type, payload) ->
+# 		@peer.sendDirectly @_getChannelLabel(), type, payload
 
-	requestChunk: (chunkIndex) ->
-		@peer.sendDirectly 'files', 'requestchunk', chunkIndex
+# 	requestChunk: (chunkIndex) ->
+# 		@peer.sendDirectly 'files', 'requestchunk', chunkIndex
 
-	cancel: ->
+# 	cancel: ->
 
-	writeChunkBuffer: ->
+# 	writeChunkBuffer: ->
 
 
 
@@ -274,11 +274,14 @@ class Peer extends WildEmitter
 		@stream.onended = =>
 			@endStream()
 
+		@emit 'peerStreamAdded'
 		@controller.emit('peerStreamAdded', @)
 		@logger.log "GOT STREAM!"
 
 	handleStreamRemoved: =>
 		@streamClosed = true
+
+		@emit 'peerStreamRemoved'
 		@controller.emit 'peerStreamRemoved', @
 
 	handleDataChannelAdded: (channel) =>
@@ -349,9 +352,8 @@ class RoomController extends WildEmitter
 		@on 'peerRemoved', @handlePeerRemoved
 		@on 'peerResourcesUpdated', (peer) =>
 			@logger.log "peer resources updated!"
-			if peer.resources.video and @getInterviewees().length <= 1
-				@logger.log 'requesting peer start following peerResourcesUpdated...'
-				peer.start()
+			@logger.log 'requesting peer start following peerResourcesUpdated...'
+			peer.start()
 
 		# @mainPeer = null
 
@@ -389,25 +391,22 @@ class RoomController extends WildEmitter
 				peer.sendDirectly channel, message, payload
 
 
-	startLocalVideo: (el, cb) ->
+	startLocalMedia: (type='video', el, cb) ->
 		if not @localMedia.localStreams.length
-			@localMedia.start {video: true, audio: true}, (err, stream) =>
+			@localMedia.start {video: (type == 'video'), audio: true}, (err, stream) =>
 				if err
 					# handle error
 					console.log err
 				else
-					attachMediaStream(stream, $(el)[0], 
-						autoplay: true
-						mirror: true
-						muted: true
-					)
 					@logger.log "emitting updateResources!"
 					@connection.emit "updateResources", 
 						id: @connection.io.engine.id
-						video: true
+						audio: true
+						video: type == 'video'
 					if cb?
-						cb(stream)
+						cb(null, stream)
 		else
+			# TODO: properlyp handle case where e.g. audio is started and video is requested
 			if cb?
 				cb(@localMedia.localStreams[0])
 
@@ -499,12 +498,12 @@ class RoomController extends WildEmitter
 		@localName = name
 
 	handlePeerStreamAdded: (peer) =>
-		console.log "peer stream added!", peer.id
-		@emit 'streamAdded', peer
+		# console.log "peer stream added!", peer.id
+		# @emit 'streamAdded', peer
 
 	handlePeerStreamRemoved: (peer) =>
-		console.log "peer stream removed.", peer.id
-		@emit 'streamRemoved', peer
+		# console.log "peer stream removed.", peer.id
+		# @emit 'streamRemoved', peer
 
 	handlePeerRemoved: (peer) =>
 		@removePeer peer.id

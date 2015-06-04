@@ -13,9 +13,14 @@ class Room extends Backbone.Model
 	defaults = {}
 	constructor: (roomID) ->
 		super {id: roomID, randomName: User.getRandomName()}
+		@set 'mode', 
+			stream: 'audio'
+			record: 'audio'
+
 		@roomController = new RoomController @
+
 		@self = new User
-		@userCollection = new UserCollection([@self])
+		@userCollection = new UserCollection([])
 		@logCollection = new LogCollection([])
 
 		$.getJSON "/rooms/#{roomID}/clients/", (res) =>
@@ -93,12 +98,6 @@ class Room extends Backbone.Model
 				status: 'connected'
 				isSelf: true
 
-		@roomController.on "videoAdded", (peer) =>
-			@userCollection.get(peer.id).set('status', 'streaming')
-
-		@roomController.on "videoRemoved", (peer) =>
-			@userCollection.get(peer.id).set('status', 'connected')
-
 		@roomController.on "joinedRoom", (role) =>
 			@trigger 'setRole', role
 			@self.set 'role', role
@@ -107,21 +106,14 @@ class Room extends Backbone.Model
 				data: 'Joined room.'
 
 		@roomController.on "createdPeer", (peer) =>
-			@userCollection.add 
-				id: peer.id
-				name: peer.info?.name
-				role: peer.role
-				status: 'connected'
-				recordingStatus: peer.recordingStatus
-
-		@roomController.on "peerInfoUpdated", (peer) =>
-			@userCollection.get(peer.id).set peer.info
+			@userCollection.add {}, {peer: peer}
 
 		@roomController.on 'localStream', (stream) =>
 			@recordingController.addStream stream
 			@self.set 'status', 'streaming'
 
 		@roomController.on "peerRemoved", (peer) =>
+			debugger
 			u = @userCollection.get peer.id 
 			@userCollection.remove {id: peer.id}
 			@logCollection.add
@@ -167,6 +159,9 @@ class Room extends Backbone.Model
 			@logCollection.add 
 				type: 'announce'
 				data: @userCollection.get peer.id
+
+		@roomController.on 'joinedRoom', (role) =>
+			@roomController.startLocalMedia(@get('mode'), (err, stream) => @trigger 'localStreamUpdated', @get('mode'), stream)
 
 	getUserCollection: -> @userCollection 
 	getLogCollection: -> @logCollection

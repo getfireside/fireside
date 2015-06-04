@@ -11,6 +11,49 @@ div#container {
 	height: 100%;
 }
 
+div#sidebarArea {
+	width: 25%;
+	max-width: 400px;
+	min-width: 250px;
+	display: flex;
+	flex-flow: column;
+	#controlsPane {
+		flex: 0 0 auto;
+	}
+	#eventLogPane {
+		flex: 5 1 auto;
+	}
+	nav {
+		flex: 0 0 auto;
+		height: 40px;
+	}
+}
+div#mainArea {
+	> nav {
+		flex: 0 0 auto;
+		height: 40px;
+	}
+	flex: 1;
+	display: flex;
+	flex-flow: column;
+	#mainPane {
+		flex: 1 1 auto;
+		display: flex;
+		.user-grid {
+			flex: 1 1 auto;
+			display: flex;
+			flex-flow: row wrap;
+			align-items: center;
+			justify-content: space-around;
+			.peer, .user {
+				width: 100%;
+				height: 100%;
+				margin: 10px;
+			}
+		}
+	}
+}
+
 div.pane {
 	h3 {
 		margin: 0;
@@ -18,78 +61,88 @@ div.pane {
 		text-align: center;
 		padding-bottom: 3px;
 	}
-	width: 25%;
-	flex: 1 0 25%;
 	position: relative;
 	padding: 10px;
 }
 
-div#callPanel {
-	width: 50%;
-	flex: 1 0 50%;
-}
-
-div#usersPanel {
-	ul#usersList {
-		list-style-type: none;
-		padding: 0;
-		margin: 0;
-	}
-}
-
-div.video {
-	position: relative;
-	div.overlay {
-		position: absolute;
-		top: 0;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		div.top {
-			position: absolute;
-			top: 0;
-			left: 0;
-			right: 0;
-			@include clearfix;
+.user, .peer {
+	div.visual {
+		> img, video {
+			width: 50%;
+			margin: 0 auto;
+			display: block;
 		}
-		div.l {
-			float: left;
-			span:last-child {
-				border-radius: 0 0 5px 0;
-			}
-		}
-		div.r {
-			float: right;
-			span:first-child {
-				border-radius: 0 0 0 5px;
-			}
-		}
-		div.l, div.r {
-			@include clearfix;
-		}
-		span {
-			float: left;
-			background: rgba(0,0,0,0.5);
-			width: 32px;
-			height: 32px;
-			text-align: center;
-			line-height: 32px;
-			color: white;
-			> i {
-
-			}
+		img {
+			max-width: 256px;
 		}
 	}
 }
 
+// div#callPanel {
+// 	width: 50%;
+// 	flex: 1 0 50%;
+// }
 
-div.users ul li.self {
-	font-weight: bold;
-}
+// div#usersPanel {
+// 	ul#usersList {
+// 		list-style-type: none;
+// 		padding: 0;
+// 		margin: 0;
+// 	}
+// }
+
+// div.video {
+// 	position: relative;
+// 	div.overlay {
+// 		position: absolute;
+// 		top: 0;
+// 		left: 0;
+// 		right: 0;
+// 		bottom: 0;
+// 		div.top {
+// 			position: absolute;
+// 			top: 0;
+// 			left: 0;
+// 			right: 0;
+// 			@include clearfix;
+// 		}
+// 		div.l {
+// 			float: left;
+// 			span:last-child {
+// 				border-radius: 0 0 5px 0;
+// 			}
+// 		}
+// 		div.r {
+// 			float: right;
+// 			span:first-child {
+// 				border-radius: 0 0 0 5px;
+// 			}
+// 		}
+// 		div.l, div.r {
+// 			@include clearfix;
+// 		}
+// 		span {
+// 			float: left;
+// 			background: rgba(0,0,0,0.5);
+// 			width: 32px;
+// 			height: 32px;
+// 			text-align: center;
+// 			line-height: 32px;
+// 			color: white;
+// 			> i {
+
+// 			}
+// 		}
+// 	}
+// }
 
 
-div#logPanel {
-	padding-bottom: 60px;
+// div.users ul li.self {
+// 	font-weight: bold;
+// }
+
+
+div#eventLogPane {
 	.scroller {
 		position: absolute;
 		top: 5px;
@@ -129,11 +182,11 @@ div#logPanel {
 
 
 
-div.video-local {
-	video {
-		width: 100%;
-	}
-}
-video#remoteVideo {
-	width: 100%;
-}
+// div.video-local {
+// 	video {
+// 		width: 100%;
+// 	}
+// }
+// video#remoteVideo {
+// 	width: 100%;
+// }

@@ -1,30 +1,28 @@
 View = require '../view.coffee'
-CallView = require './call.coffee'
-LogView = require './log.coffee'
 UsersView = require './users.coffee'
+LogView = require './log.coffee'
+ControlsPane = require './controls.coffee'
 cookies = require 'cookies-js'
 
 class RoomView extends Marionette.LayoutView
 	el: 'body' 
 	template: false
 	regions: 
-		call: '#callPanel'
-		log: '#logPanel'
-		users: '#usersPanel'
+		users: '#mainPane'
+		log: '#eventLogPane'
+		controls: '#controlsPane'
 
 	onRender: ->
-		@callView = new CallView @
-		@logView = new LogView @
 		@usersView = new UsersView @
-		@showChildView 'call', @callView
-		@showChildView 'log', @logView
-		@showChildView 'users', @usersView
+		@logView = new LogView @
+		@controlsPane = new ControlsPane @
 
-		@model.roomController.on 'videoAdded', @callView.handleRemoteVideoStart
-		@model.roomController.on 'videoRemoved', @callView.handleRemoteVideoEnd
-		@model.roomController.on 'joinedRoom', (role) =>
-			if role != 'peer'
-				@model.roomController.startLocalVideo(@callView.getVideoEl())
+		@showChildView 'users', @usersView
+		@showChildView 'log', @logView
+		@showChildView 'controls', @controlsPane
+
+		# @model.roomController.on 'streamAdded', @callView.handleRemoteStreamStart
+		# @model.roomController.on 'streamRemoved', @callView.handleRemoteStreamEnd
 
 		# really shouldn't be in the view but leave this here for now...
 		join = (n) =>

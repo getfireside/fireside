@@ -22,14 +22,18 @@
 
     <body data-room-id="{{roomID}}">
       <div id="container">
-        <div id="usersPanel" class="pane">
-            
+        <div id="sidebarArea">
+          <nav class="main">
+            <h1>Fireside</h1>
+          </nav>
+          <div id="controlsPane" class="pane"></div>
+          <div id="eventLogPane" class="pane"></div>
         </div>
-        <div id="callPanel" class="pane">
-            
-        </div>
-        <div id="logPanel" class="pane">
-          
+        <div id="mainArea">
+          <nav class="room">
+            <h1><a href="#">getfireside.co/<strong>{{roomID}}</strong></a></h1>
+          </nav>
+          <div id="mainPane"></div>
         </div>
       </div>
 
