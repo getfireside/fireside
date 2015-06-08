@@ -14,7 +14,8 @@ AWS = require 'aws-sdk'
 bodyParser = require 'body-parser'
 require 'coffee-script/register'
 config = require './config.coffee'
-
+mime = require 'mime'
+mime.define {'audio/wav': ['wav']}
 
 AWS.config.update
 	accessKeyId: config.awsAccessKeyId
@@ -211,7 +212,7 @@ doIfHasRole = (id, allowedRoles, req, res, next, cb) ->
 			return next(err)
 		return cb(id, role, req, res, next)
 
-getKeyFromId = (roomID, sid, recID) -> ([roomID, sid, recID].join '/') + '.webm'
+getKeyFromId = (roomID, sid, recID) -> ([roomID, sid, recID].join '/')
 checkKeyIsValid = (key) -> key.indexOf(id + '/' + sid) == 0
 
 app.post '/rooms/:roomID/uploads/', jsonParser, (req, res, next) ->
@@ -223,10 +224,13 @@ app.post '/rooms/:roomID/uploads/', jsonParser, (req, res, next) ->
 	# ensure that the user is already in the room!
 	doIfHasRole roomID, ['host', 'interviewee'], req, res, next, (roomID, role, req, res, next) ->
 		key = getKeyFromId(roomID, sid, recID)
+		type = req.body.type or 'video/webm'
+		ext = mime.extension(type)
 		params = 
 			Key: key
 			ACL: 'public-read'
-			ContentType: 'video/webm'
+			ContentType: req.body.type or 'video/webm'
+			ContentDisposition: "attachment;filename=recording.#{ext}"
 		s3UploadsBucket.createMultipartUpload params, (err, data) ->
 			if err
 				return next(err)
@@ -306,16 +310,7 @@ app.post '/rooms/:roomID/uploads/:recID/complete/', jsonParser, (req, res, next)
 			if err
 				return next(err)
 			res.json
-				url: data.Location
-
-			
-
-
-
-
-		
-
-			
+				url: data.Location	
 
 server = http.Server(app)
 io = require('socket.io')(server)

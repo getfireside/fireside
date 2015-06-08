@@ -48,7 +48,7 @@ class Room extends Backbone.Model
 
 
 		@recordingController.on 'stopped', (rec) =>
-			rec.upload()
+			rec.upload(@recordingController.filer)
 			log = null
 
 			@roomController.sendEvent
@@ -113,7 +113,6 @@ class Room extends Backbone.Model
 			@self.set 'status', 'streaming'
 
 		@roomController.on "peerRemoved", (peer) =>
-			debugger
 			u = @userCollection.get peer.id 
 			@userCollection.remove {id: peer.id}
 			@logCollection.add

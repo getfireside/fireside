@@ -3,11 +3,13 @@ RoomView = require('./views/room.coffee')
 #UsersView = require('./views/users').UsersView
 Room = require('./models/room.coffee')
 S3Uploader = require('./s3uploader.coffee')
-
+getFS = require './fs/getfs.coffee'
 attachMediaStream = require('attachmediastream')
 
 class App extends Marionette.Application
 	initialize: ->
+		@fs = getFS()
+		@fs.open()
 		@room = new Room $('body').attr('data-room-id')
 
 		@rootView = new RoomView

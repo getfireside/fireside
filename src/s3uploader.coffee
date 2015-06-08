@@ -14,7 +14,7 @@ putBlob = (url, blob, progressFn=$.noop) ->
 	$.ajax
 		type: 'PUT'
 		url: url
-		data: blob
+		data: blob.slice(0, blob.length) # ff cors workaround
 		processData: false
 		contentType: false
 		cache: false
@@ -42,6 +42,7 @@ class S3UploadSession
 		@recId = opts.recId
 		@awsUploadId = opts.awsUploadId
 		@blob = opts.blob
+		
 		@progressCb = opts.progressCb ? $.noop
 
 		@parts = {}
@@ -162,7 +163,7 @@ class S3Uploader
 		@config = _.extend {}, defaults, config
 
 	startUploadSession: (recId, blob, cb) ->
-		req = $.postJSON(@config.startUploadUrl, {id: recId})
+		req = $.postJSON(@config.startUploadUrl, {id: recId, type: blob.type})
 		req.done (data) => 
 			session = new S3UploadSession @, 
 				recId: recId

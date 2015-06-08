@@ -23,10 +23,16 @@ function getBundler(watch) {
   // add any other browserify options or transforms here
   bundler.transform('coffeeify');
   bundler.transform('debowerify');
+  //bundler.transform('browserify-shim')
   return bundler
 }
 
-gulp.task('js', function() { bundle(getBundler(false)) }); // so you can run `gulp js` to build the file
+gulp.task('js', function() { 
+  bundle(getBundler(false)) 
+  workerBundler = browserify('./src/recorders/wav/worker.coffee')
+  workerBundler.transform('coffeeify')
+  bundle(workerBundler)
+}); // so you can run `gulp js` to build the file
 
 gulp.task('templates', function(){
   gulp.src('./assets/templates/*.hbs')

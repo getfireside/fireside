@@ -1,5 +1,4 @@
 Recording = require('../models/recording.coffee')
-IDBWriter = require '../writers/idbwriter.coffee' 
 
 class RecordingCollection extends Backbone.Collection
 	model: Recording

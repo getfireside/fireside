@@ -27,7 +27,8 @@
     "handlebars": "~3.0.0",
     "fontawesome": "~4.3.0",
     "backbone.localstorage": "~1.1.16",
-    "marionette": "~2.4.1"
+    "marionette": "~2.4.1",
+    "filer.js": "donaldharvey/filer.js#~0.4.4"
   },
   "resolutions": {
     "underscore": "~1.8.3"

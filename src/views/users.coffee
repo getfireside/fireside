@@ -13,7 +13,6 @@ class UserItemView extends Marionette.ItemView
 		'streamAdded': 'onStreamAdded'
 
 	onStreamAdded: =>		
-		alert('hey!')
 		if @model.peer.resources.video
 			el = @$('video')[0]
 			@$('video').show()

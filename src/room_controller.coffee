@@ -342,7 +342,8 @@ class RoomController extends WildEmitter
 		@logger = @config.logger
 
 		@localMedia = new LocalMedia @config
-		@localMedia.on 'localStream', (stream) => @emit 'localStream', stream
+		@localMedia.on 'localStream', (stream) => 
+			@emit 'localStream', stream
 
 		@setupConnection()
 

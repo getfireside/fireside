@@ -1,7 +1,6 @@
 WildEmitter = require 'wildemitter'
-IDBWriter = require './writers/idbwriter.coffee' 
-S3Uploader = require './s3uploader.coffee'
 moment = require 'moment'
+WAVAudioRecorder = require './recorders/wav/recorder.coffee'
 
 class RecordingController extends WildEmitter
 	constructor: (@room, @collection, config={}) ->
@@ -9,46 +8,53 @@ class RecordingController extends WildEmitter
 		defaults = 
 			recordingPeriod: 1000
 		@config = _.extend {}, defaults, config
-		@writer = config?.writer ? new IDBWriter 'filesys'
-		@writer.open()
-		@s3 = new S3Uploader()
 
-	addStream: (stream) -> 
-		if MediaRecorder?
+	addStream: (stream, type) -> 
+		if type == 'video' and MediaRecorder?
 			@mediaRecorder = new MediaRecorder stream
-			@mediaRecorder.ondataavailable = @onDataAvailable
-			@mediaRecorder.onstart = @onStart
-			@mediaRecorder.onstop = @onStop
-			@status = 'ready'
-			@emit 'ready'
+		else
+			@mediaRecorder = new WAVAudioRecorder stream
+
+		@mediaRecorder.ondataavailable = @onDataAvailable
+		@mediaRecorder.onstart = @onStart
+		@mediaRecorder.onstop = @onStop
+		@status = 'ready'
+		@emit 'ready'
 
 	onStart: (e) =>
 		@currentRecording.set 'started', new Date
 		@emit 'started', @currentRecording
 
 	onDataAvailable: (e) =>
-		# console.log "got blob,", e.data.size
-		f = @writer.getFile @currentRecording.id
-		f.writeBlob(e.data).then ->
-			# console.log "wrote", e.data.size
-		@currentRecording.set 'filesize', @currentRecording.get 'filesize' + e.data.size
-		@currentRecording.save()
+		console.log "got blob,", e.data.size
+		@currentRecording.appendBlob e.data, (err) ->
+			if err
+				console.error(err)
 
 	onStop: (e) =>
+		if @mediaRecorder instanceof WAVAudioRecorder
+			@mediaRecorder.fixWaveFile @currentRecording, (err) =>
+				if not err
+					console.log "fixed wave file!"
+					@emit 'stopped', @currentRecording
+				else
+					@emit 'stopped', @currentRecording
+		else
+			@emit 'stopped', @currentRecording
 		@currentRecording.set 'stopped', new Date
-		@emit 'stopped', @currentRecording
+		@status = 'ready'
 
 	start: ->
-		#if not @mediaRecorder?
-		#	throw new Error('No stream set up yet.')
-		@currentRecording = @collection.create()
 		if @status != 'started'
+			@currentRecording = @collection.create
+				roomId: @room.id
+				type: if @mediaRecorder instanceof WAVAudioRecorder then 'audio/wav'  else 'video/webm'
 			@mediaRecorder.start(@config.recordingPeriod)
 			@status = 'started'
 
 	stop: ->
 		@mediaRecorder.stop()
-		@status = 'ready'
+		@status = 'stopping'
 
 
 module.exports = RecordingController

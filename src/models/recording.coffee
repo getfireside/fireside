@@ -1,27 +1,51 @@
-IDBWriter = require '../writers/idbwriter.coffee' 
 S3Uploader = require '../s3uploader.coffee'
 s3 = new S3Uploader
 
+mimesMap =
+	'audio/wav': 'wav'
+	'video/webm': 'webm'
+	'audio/ogg': 'ogg'
+
 class Recording extends Backbone.Model
 	getBlob: (cb) ->
-		writer = new IDBWriter 'filesys'
-		writer.open().then =>
-			f = writer.getFile @id
-			f.read().then (blob) =>
-				cb(null, blob)
+		f = yakk.fs.getFile @getFilename()
+		p = f.read()
+		p.then (blob) => cb(null, blob)
+		p.catch (err) -> cb(err)
 
 	getBlobUrl: (cb) ->
 		@getBlob (err, blob) ->
 			cb(err, URL.createObjectURL blob)
+
+	appendBlob: (blob, cb) ->
+		f = yakk.fs.getFile @getFilename()
+		p = f.append(blob)
+		p.then (e) => 
+			@set 'filesize', (@get('filesize') or 0) + blob.size
+			@save() 
+			cb(null, e)
+		p.catch (e) =>
+			cb(e)
+
+	overwriteHeader: (blob, cb) ->
+		f = yakk.fs.getFile @getFilename()
+		p = f.write(blob, 0)
+		p.then -> cb(null)
+		p.catch (e) -> 
+			console.error e
+			cb(e)
+
+	getFileExt: -> mimesMap[@get 'type']
+
+	getFilename: -> "fireside/rooms/#{@get "roomId"}/#{@id}.#{@getFileExt()}"
+
+	getNiceFilename: -> "Recording of #{@get username} on #{@get date}"
 
 	upload: (cb=$.noop, progressCb=$.noop) ->
 		if @uploadSession != undefined
 			return
 
 		@getBlob (err, blob) =>
-			# get rid of the type - firefox CORS workaround.
-			blob = blob.slice(0, blob.size)
-
 			@uploadSession = null
 
 			handler = (err, session) =>
