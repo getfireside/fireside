@@ -1,4 +1,4 @@
-attachMediaStream = require 'attachMediaStream'
+attachMediaStream = require 'attachmediastream'
 
 class UserItemView extends Marionette.ItemView
 	template: Handlebars.templates['user']
