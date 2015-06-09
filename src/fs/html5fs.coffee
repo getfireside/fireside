@@ -43,7 +43,7 @@ class HTML5FS
             @filer.init opts, fulfil, reject
 
     getFile: (path, opts) -> 
-        @filer.mkdir path.split('/').slice(0, -1).join('/')
-        return new HTML5FSFile(path, @)
+        return new Promise (fulfil, reject) =>
+            @filer.mkdir path.split('/').slice(0, -1).join('/'), false, (=> fulfil(new HTML5FSFile(path, @))), reject
 
 module.exports = HTML5FS

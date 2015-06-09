@@ -9,7 +9,7 @@ class RoomView extends Marionette.LayoutView
 	template: false
 	regions: 
 		users: '#mainPane'
-		log: '#eventLogPane'
+		secondary: '#secondaryPane'
 		controls: '#controlsPane'
 
 	onRender: ->
@@ -18,7 +18,7 @@ class RoomView extends Marionette.LayoutView
 		@controlsPane = new ControlsPane @
 
 		@showChildView 'users', @usersView
-		@showChildView 'log', @logView
+		@showChildView 'secondary', @logView
 		@showChildView 'controls', @controlsPane
 
 		# @model.roomController.on 'streamAdded', @callView.handleRemoteStreamStart

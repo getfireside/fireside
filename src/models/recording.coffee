@@ -8,32 +8,32 @@ mimesMap =
 
 class Recording extends Backbone.Model
 	getBlob: (cb) ->
-		f = yakk.fs.getFile @getFilename()
-		p = f.read()
-		p.then (blob) => cb(null, blob)
-		p.catch (err) -> cb(err)
+		yakk.fs.getFile(@getFilename()).then (f) ->
+			p = f.read()
+			p.then (blob) -> cb(null, blob)
+			p.catch (err) -> cb(err)
 
 	getBlobUrl: (cb) ->
 		@getBlob (err, blob) ->
 			cb(err, URL.createObjectURL blob)
 
 	appendBlob: (blob, cb) ->
-		f = yakk.fs.getFile @getFilename()
-		p = f.append(blob)
-		p.then (e) => 
-			@set 'filesize', (@get('filesize') or 0) + blob.size
-			@save() 
-			cb(null, e)
-		p.catch (e) =>
-			cb(e)
+		yakk.fs.getFile(@getFilename()).then (f) =>
+			p = f.append(blob)
+			p.then (e) => 
+				@set 'filesize', (@get('filesize') or 0) + blob.size
+				@save() 
+				cb(null, e)
+			p.catch (e) =>
+				cb(e)
 
 	overwriteHeader: (blob, cb) ->
-		f = yakk.fs.getFile @getFilename()
-		p = f.write(blob, 0)
-		p.then -> cb(null)
-		p.catch (e) -> 
-			console.error e
-			cb(e)
+		yakk.fs.getFile(@getFilename()).then (f) ->
+			p = f.write(blob, 0)
+			p.then -> cb(null)
+			p.catch (e) -> 
+				console.error e
+				cb(e)
 
 	getFileExt: -> mimesMap[@get 'type']
 

@@ -14,7 +14,7 @@ putBlob = (url, blob, progressFn=$.noop) ->
 	$.ajax
 		type: 'PUT'
 		url: url
-		data: blob.slice(0, blob.length) # ff cors workaround
+		data: blob.slice(0, blob.size) # ff cors workaround
 		processData: false
 		contentType: false
 		cache: false
