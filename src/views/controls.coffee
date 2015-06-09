@@ -1,5 +1,5 @@
 moment = require 'moment'
-attachMediaStream = require 'attachMediaStream'
+attachMediaStream = require 'attachmediastream'
 #View = require '../view.coffee'
 
 formatDiff = (a, b) -> moment.utc(b - a).format("HH:mm:ss")
