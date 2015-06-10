@@ -39,6 +39,9 @@ div#sidebarArea {
 	min-width: 250px;
 	display: flex;
 	flex-flow: column;
+	a {
+		color: white;
+	}
 	#controlsPane {
 		flex: 0 0 auto;
 		div.box {
@@ -47,6 +50,21 @@ div#sidebarArea {
 			text-align: center;
 		}
 		padding: 0;
+		#self {
+			div.name {
+				margin-top: 5px;
+			}
+			progress.meter {
+				&::-webkit-progress-bar {
+					background: rgba(white,0.2);
+				}
+				&::-webkit-progress-value {
+					background: white;
+				}
+				margin-top: 5px;
+				margin-bottom: 10px;
+			}
+		}
 	}
 	#secondaryPane {
 		flex: 1 1 auto;
@@ -100,6 +118,12 @@ div#mainArea {
 		flex: 1 1 auto;
 		display: flex;
 		.user-grid {
+			em.empty {
+				font-weight: bold;
+				font-style: italic;
+				font-size: 30px;
+				color: #B2B2B2;
+			}
 			background: url(img/bg.png);
 			flex: 1 1 auto;
 			display: flex;
@@ -137,22 +161,6 @@ div#mainArea {
 					text-align: center;
 					font-size: 20px;
 				}
-				progress {
-					display: block;
-					height: 5px;
-					-webkit-appearance: none;
-					-moz-appearance: none;
-					border: none;
-					appearance: none;
-					width: 50%;
-					margin: 0 auto;
-					&::-webkit-progress-bar {
-						background: rgba(0,0,0,0.2);
-					}
-					&::-webkit-progress-value {
-						background: black;
-					}
-				}
 			}
 		}
 	}
@@ -169,6 +177,9 @@ div.pane {
 }
 
 .user, .peer {
+	a.options i {
+		font-size: 0.9em;
+	}
 	div.visual {
 		> img, video {
 			width: 50%;
@@ -177,6 +188,22 @@ div.pane {
 		}
 		img {
 			max-width: 256px;
+		}
+	}
+	progress.meter {
+		display: block;
+		height: 5px;
+		-webkit-appearance: none;
+		-moz-appearance: none;
+		border: none;
+		appearance: none;
+		width: 50%;
+		margin: 0 auto;
+		&::-webkit-progress-bar {
+			background: rgba(0,0,0,0.2);
+		}
+		&::-webkit-progress-value {
+			background: black;
 		}
 	}
 }

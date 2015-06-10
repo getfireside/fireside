@@ -4,6 +4,16 @@ class UserItemView extends Marionette.ItemView
 	template: Handlebars.templates['user']
 	modelEvents: 
 		'change': 'render'
+
+	render: ->
+		if not @isRendered
+			super()
+		else
+			@triggerMethod 'before:render', @
+			data = @serializeData()
+			@$('div.name em').text(data.name)
+			@triggerMethod 'render', @
+		return @
 	onRender: => 
 		# Hack to get rid of the unnecessary wrapper div.
 		# TODO: figure out a way to cleanly generalise this.
@@ -20,19 +30,22 @@ class UserItemView extends Marionette.ItemView
 			el = @$('audio')[0]
 		attachMediaStream @model.peer.stream, el
 
-
+class EmptyView extends Marionette.ItemView
+	template: Handlebars.templates['no-users']
+	onRender: -> 
+		# Hack to get rid of the unnecessary wrapper div.
+		# TODO: figure out a way to cleanly generalise this.
+		@setElement(@el.innerHTML)
 
 
 class UsersView extends Marionette.CollectionView
 	tagName: 'div'
 	className: 'user-grid'
 	childView: UserItemView
+	emptyView: EmptyView
 	constructor: (@roomView) ->
 		super
 			collection: @roomView.getUserCollection()
-	render: -> 
-		ret = super()
-		return ret
 
 # class UsersView extends Marionette.LayoutView
 # 	regions: 

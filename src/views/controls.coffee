@@ -14,7 +14,7 @@ class ControlsPane extends Marionette.LayoutView
 		super opts
 
 	onRender: ->
-		@selfView = new SelfView @roomView
+		@selfView = new SelfView @roomView, {model: @roomView.model.self}
 		@controlsView = new ControlsView @roomView
 
 		@showChildView 'self', @selfView
@@ -34,6 +34,22 @@ class SelfView extends Marionette.ItemView
 			attachMediaStream stream, el, 
 				muted: true
 				mirror: true
+		opts.model.on 'change', => @render()
+
+	render: ->
+		if not @isRendered
+			super()
+		else
+			@triggerMethod 'before:render', @
+			data = @serializeData()
+			@$('div.name em').text(data.name)
+			@triggerMethod 'render', @
+		return @
+
+
+
+
+
 
 class ControlsView extends Marionette.ItemView
 	template: Handlebars.templates['host-controls']
