@@ -52,7 +52,11 @@ class SelfView extends Marionette.ItemView
 
 
 class ControlsView extends Marionette.ItemView
-	template: Handlebars.templates['host-controls']
+	template: => 
+		if @roomView and @roomView.model.self.get('role') == 'host' 
+			return Handlebars.templates['host-controls']
+		else
+			return Handlebars.templates['nonhost-controls']
 	constructor: (@roomView, opts) ->
 		super opts
 		timer = null
@@ -72,6 +76,9 @@ class ControlsView extends Marionette.ItemView
 			@$('button.recorder').removeClass 'stop'
 			@$('button.recorder span.text').text('Record')
 			@$('button.recorder time').html('')
+
+		@roomView.model.self.on 'change:role', => 
+			@render()
 
 
 	onButtonClick: ->

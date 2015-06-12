@@ -94,6 +94,9 @@ class IDBFS
         transaction = @db.transaction ["chunks"], (if ro then "readonly" else "readwrite")
         return transaction.objectStore "chunks"
 
-    getFile: (path, opts) -> return new IDBFile(path, @)
+    getFile: (path, opts) -> 
+        return new Promise (fulfil, reject) => 
+            fulfil(new IDBFile(path, @))
+            return
 
 module.exports = IDBFS
