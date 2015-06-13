@@ -11,6 +11,7 @@ html, body {
 }
 
 div#mainArea, div#sidebarArea {
+	position: relative;
 	nav {
 		height: 40px;
 		background: black;
@@ -21,6 +22,31 @@ div#mainArea, div#sidebarArea {
 			font-size: 20px;
 			line-height: 40px;
 			vertical-align: middle;
+		}
+	}
+}
+
+div#statusArea {
+	position: absolute;
+	width: 100%;
+	div.status {
+		a {
+			color: white;
+			text-decoration: underline;
+		}
+		font-size: 16px;
+		font-style: italic;
+		line-height: 20px;
+		padding: 9px 10px 8px;
+		text-align: center;
+		font-weight: bold;
+		color: white;
+		background: rgba(#9455A6, 0.67);
+		&.error {
+			background: rgba(#C62F2F, 0.67);
+		}
+		&.success {
+			background: rgba(#66A655, 0.67);
 		}
 	}
 }

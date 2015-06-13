@@ -1,6 +1,7 @@
 View = require '../view.coffee'
 UsersView = require './users.coffee'
 LogView = require './log.coffee'
+statusViews = require './status.coffee'
 ControlsPane = require './controls.coffee'
 cookies = require 'cookies-js'
 
@@ -8,21 +9,49 @@ class RoomView extends Marionette.LayoutView
 	el: 'body' 
 	template: false
 	regions: 
-		users: '#mainPane'
+		main: '#mainPane'
 		secondary: '#secondaryPane'
 		controls: '#controlsPane'
+		status: '#statusArea'
 
 	onRender: ->
 		@usersView = new UsersView @
 		@logView = new LogView @
 		@controlsPane = new ControlsPane @
 
-		@showChildView 'users', @usersView
+		@showChildView 'main', @usersView
 		@showChildView 'secondary', @logView
 		@showChildView 'controls', @controlsPane
 
 		# @model.roomController.on 'streamAdded', @callView.handleRemoteStreamStart
 		# @model.roomController.on 'streamRemoved', @callView.handleRemoteStreamEnd
+
+		@model.roomController.connection.on 'disconnect', =>
+			if not @connectionStatusView?
+				@connectionStatusView = new statusViews.ConnectionStatusView
+					model: new Backbone.Model
+						error: true
+				@connectionStatusView.on 'retry', => @model.roomController.connection.socket.reconnect()
+				@showChildView 'status', @connectionStatusView
+
+		@model.roomController.connection.on 'reconnect_failed', =>
+			if @connectionStatusView?
+				@connectionStatusView.model.set 
+					reconnecting: false
+
+		@model.roomController.connection.on 'reconnecting', =>
+			@connectionStatusView.model.set 'reconnecting', true
+
+		@model.roomController.connection.on 'reconnect', =>
+			if @connectionStatusView?
+				@connectionStatusView.model.set
+					error: false
+				@connectionStatusView.render()
+				setTimeout((=> 
+					@status.reset()
+					delete @connectionStatusView
+				), 1000)
+
 
 		# really shouldn't be in the view but leave this here for now...
 		join = (n) =>
