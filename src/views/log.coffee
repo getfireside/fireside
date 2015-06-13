@@ -1,4 +1,6 @@
 class DefaultLogView extends Marionette.ItemView
+	tagName: 'li'
+	className: -> @model.get 'type'
 	# constructor: (data) ->
 	# 	data.template = Handlebars.templates['log-item-' + data.model.get('type')]
 	# 	super data
@@ -8,8 +10,8 @@ class DefaultLogView extends Marionette.ItemView
 		ctx['inner'] = new Handlebars.SafeString(Handlebars.templates['log-item-' + @model.get('type')](ctx))
 		return mainTpl(ctx)
 
-	onRender: ->
-		@setElement @el.innerHTML
+	# onRender: ->
+	# 	@setElement @el.innerHTML
 
 	serializeData: ->
 		data = @model.toJSON()
@@ -24,6 +26,10 @@ class DefaultLogView extends Marionette.ItemView
 class RecordingLogView extends DefaultLogView
 	modelEvents:
 		change: 'render'
+
+	onRender: ->
+		#debugger
+		#super()
 
 class LogCollectionView extends Marionette.CollectionView
 	tagName: 'ul'
@@ -42,7 +48,7 @@ class LogCollectionView extends Marionette.CollectionView
 
 	onAddChild: ->
 		# todo: better scrolling, use a jquery plugin or something
-		# @roomView.$('div.scroller').scrollTop(@roomView.$('div.scroller ul#logsList').height() + 1000)
+		@roomView.$('div.scroller').scrollTop(@roomView.$('div.scroller ul#logsList').height() + 1000)
 
 class LogView extends Marionette.LayoutView 
 	template: Handlebars.templates['log-panel']
