@@ -64,7 +64,9 @@ class IDBFile
 
 
 class IDBFS
-    constructor: (@dbname) ->
+    constructor: (opts) ->
+        @dbname = opts.dbname
+        @logger = opts.logger
     open: ->
         return new Promise (fulfil, reject) =>
             if @db

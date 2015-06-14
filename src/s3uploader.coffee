@@ -1,3 +1,5 @@
+LoggingController = require './logger.coffee'
+
 putBlob = (url, blob, progressFn=$.noop) ->
 	# xhr = new XMLHttpRequest
 
@@ -26,7 +28,6 @@ putBlob = (url, blob, progressFn=$.noop) ->
 					progressFn(value)
 				), false
 			return x
-		complete: (res) -> console.log arguments
 
 $.postJSON = (url, data, success) -> 
 	$.ajax
@@ -42,7 +43,7 @@ class S3UploadSession
 		@recId = opts.recId
 		@awsUploadId = opts.awsUploadId
 		@blob = opts.blob
-		
+		@logger = opts.logger ? (new LoggingController).l('s3')
 		@progressCb = opts.progressCb ? $.noop
 
 		@parts = {}
@@ -69,7 +70,7 @@ class S3UploadSession
 		return (total / @blob.size)
 
 	uploadPart: (number, blob, cb, progressCb) ->
-		console.log "Attempting to upload part #{number}..."
+		@logger.log "Attempting to upload part #{number}..."
 		# first sign the req.
 		data = 
 			awsUploadId: @awsUploadId
@@ -81,13 +82,13 @@ class S3UploadSession
 
 		req = $.postJSON(@uploader.config.signUploadUrl.replace(':recId', @recId), data)
 		req.done (data) =>
-			console.log "Part #{number} req signed."
+			@logger.log "Part #{number} req signed."
 			# do a put request to the URL.
 			# cb = (err, data) ->
 			# 	debugger	
 			putReq = putBlob(data.url, blob, onProgress)
 			putReq.done (data, status, xhr) => 
-				console.log "#{number} uploaded."
+				@logger.log "#{number} uploaded."
 				# add the resulting part, etag and size to our @parts hash.
 				@parts[number] = 
 					etag: xhr.getResponseHeader('ETag')
@@ -117,17 +118,17 @@ class S3UploadSession
 		for num, info of @parts 
 			if not info.etag 
 				@queue.push num
-		console.log 'Starting upload. Queue is:', @queue
+		@logger.log ['Starting upload. Queue is:', @queue]
 
 		onBlobUpload = (err, num) =>
 			if (err)
 				# retry
-				console.log "Error uploading blob ##{num}:", err
-				console.log "Retrying..."
+				@logger.log ["Error uploading blob ##{num}:", err]
+				@logger.log "Retrying..."
 				@uploadPart(num, blob, onBlobUpload, progressCb)
 				return
 
-			console.log "Event received from #{num} - removing from inProgress."
+			@logger.log "Event received from #{num} - removing from inProgress."
 			delete @inProgress[num]
 			if @status == 'started'
 				if @queue.length == 0
@@ -138,7 +139,7 @@ class S3UploadSession
 					num = @queue.shift()
 					blob = @getNthBlob(num)
 
-					console.log "Adding #{num} to inProgress."
+					@logger.log "Adding #{num} to inProgress."
 					@inProgress[num] = 1
 					@uploadPart(num, blob, onBlobUpload, progressCb)
 
@@ -147,7 +148,7 @@ class S3UploadSession
 			num = @queue.shift()
 			blob = @getNthBlob(num)
 
-			console.log "Adding #{num} to inProgress."
+			@logger.log "Adding #{num} to inProgress."
 			@inProgress[num] = 1
 			@uploadPart(num, blob, onBlobUpload, progressCb)
 
@@ -161,6 +162,7 @@ class S3Uploader
 			numConnections: 4
 			partSize: 1024*1024*5 # 5MB
 		@config = _.extend {}, defaults, config
+		@config.logger ?= new LoggingController
 
 	startUploadSession: (recId, blob, cb) ->
 		req = $.postJSON(@config.startUploadUrl, {id: recId, type: blob.type})

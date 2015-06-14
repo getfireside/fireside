@@ -10,8 +10,10 @@ LoggingController = require('./logger.coffee')
 class App extends Marionette.Application
 	initialize: ->
 		@logger = new LoggingController
-		@fs = getFS()
-		@fs.open()
+		@s3 = new S3Uploader
+			logger: @logger.l('s3uploader')
+		@fs = new getFS
+			logger: @logger.l 'recordingcontroller:fs'
 		@room = new Room $('body').attr('data-room-id'), @
 
 		@rootView = new RoomView

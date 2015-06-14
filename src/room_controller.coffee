@@ -35,15 +35,6 @@ LoggingController = require './logger.coffee'
 
 # 	writeChunkBuffer: ->
 
-
-
-
-
-
-
-
-
-
 class Peer extends WildEmitter
 	constructor: (opts) ->
 		@id = opts.id
@@ -72,7 +63,7 @@ class Peer extends WildEmitter
 		@on '*', => @logger.trace arguments
 
 		@controller.on('localStream', @addLocalStream)
-		@on 'signalingStateChange', => @logger.log 'new signalling state,', @pc.signalingState
+		@on 'signalingStateChange', => @logger.log ['new signalling state,', @pc.signalingState]
 
 	setupPc: =>
 		@logger.log 'setting up new peer connection...'
@@ -94,7 +85,7 @@ class Peer extends WildEmitter
 		@pc.on 'negotiationNeeded', => @emit 'negotiationNeeded'
 		@pc.on 'iceConnectionStateChange', => @emit 'iceConnectionStateChange'
 		@pc.on 'iceConnectionStateChange', =>
-			@logger.log 'new state', @pc.iceConnectionState
+			@logger.log ['new state', @pc.iceConnectionState]
 			switch @pc.iceConnectionState
 				when 'failed'
 					# currently, in chrome only the initiator goes to failed
@@ -105,7 +96,7 @@ class Peer extends WildEmitter
 						@send('connectivityError')
 
 		@pc.on 'signalingStateChange', => @emit 'signalingStateChange'
-		@pc.on '*', => @logger.log "DEBUG PC EVENT", arguments
+		@pc.on '*', => @logger.log ["DEBUG PC EVENT", arguments]
 		@logger.log 'done setting up PC.'
 
 		for stream in @controller.localMedia.localStreams
@@ -130,7 +121,7 @@ class Peer extends WildEmitter
 				@logger.log 'received offer. trying to handle payload...'
 				@pc.handleOffer message.payload, (err) =>
 					if (err)
-						@logger.log 'error handing payload', err
+						@logger.log ['error handing payload', err]
 						if err.name == 'INVALID_STATE' and err.message == 'Renegotiation of session description is not currently supported. See Bug 840728 for status.'
 							@logger.log 'Firefox bug 840728 - restarting stream.'
 							@endStream(true) #restart = true
@@ -141,13 +132,13 @@ class Peer extends WildEmitter
 					@logger.log 'auto-accepting answer...'
 					@pc.answer @receiveMedia, (err, sessionDescription) =>
 						if (err)
-							@logger.log "error calling pc.answer", err
+							@logger.log ["error calling pc.answer", err]
 							return
 						#@logger.log 'answering', message.from, 'with', sessionDescription
 						#@send('answer', sessionDescription)
 
 			when 'answer'
-				@logger.log 'accepting stream from', message.from
+				@logger.log ['accepting stream from', message.from]
 				@pc.handleAnswer(message.payload)
 			when 'candidate'
 				@pc.processIce(message.payload)
@@ -171,7 +162,7 @@ class Peer extends WildEmitter
 			type: type
 			payload: payload
 			prefix: @controller.capabilities.prefix
-		@logger.log "SIGNALLING: SENT", message
+		@logger.log ["SIGNALLING: SENT", message]
 		@controller.connection.emit 'signalling', message
 
 	sendDirectly: (channel, type, payload) =>
@@ -179,7 +170,7 @@ class Peer extends WildEmitter
 			type: type
 			payload: payload
 
-		@logger.log "sending via datachannel", channel, type, message
+		@logger.log ["sending via datachannel", channel, type, message]
 		dc = @getDataChannel channel
 		if dc.readyState != 'open'
 			return false
@@ -193,11 +184,11 @@ class Peer extends WildEmitter
 		@controller.connection.emit 'stopRecordingRequest', @id
 
 	_observeDataChannel: (channel) =>
-		channel.onclose = @emit.bind(@, 'channelClose', channel);
-		channel.onerror = @emit.bind(@, 'channelError', channel);
+		channel.onclose = @emit.bind(@, 'channelClose', channel)
+		channel.onerror = @emit.bind(@, 'channelError', channel)
 		channel.onmessage = (event) =>
 			@emit 'channelMessage', @, channel.label, JSON.parse(event.data), channel, event
-		channel.onopen = @emit.bind(this, 'channelOpen', channel);
+		channel.onopen = @emit.bind(this, 'channelOpen', channel)
 
 	# Fetch or create a data channel by the given name
 	getDataChannel: (name, opts) ->
@@ -219,7 +210,7 @@ class Peer extends WildEmitter
 			@logger.log("End of candidates.")
 
 	start: (icerestart=false) =>
-		@logger.log "trying to start", @id
+		@logger.log ["trying to start", @id]
 		# well, the webrtc api requires that we either
 		# a) create a datachannel a priori
 		# b) do a renegotiation later to add the SCTP m-line
@@ -233,7 +224,7 @@ class Peer extends WildEmitter
 
 		@pc.offer constraints, (err, sessionDescription) =>
 			if err
-				@logger.log 'error!', err
+				@logger.error ['error!', err]
 			#	return
 			#@logger.log "sending offer", sessionDescription, 'to', @id
 			
@@ -254,7 +245,7 @@ class Peer extends WildEmitter
 	end: =>
 		if @closed
 			return
-		@logger.log @id, "leaving"
+		@logger.log [@id, "leaving"]
 		@endStream()
 		@closed = true
 		@releaseGroup()
@@ -338,13 +329,14 @@ class RoomController extends WildEmitter
 		@peers = {}
 		@logger = @config.logger ? new LoggingController
 
-		@localMedia = new LocalMedia @config
+		lmConf = _.extend {}, @config, {logger: @logger.l('localmedia').adapt()}
+		@localMedia = new LocalMedia lmConf
 		@localMedia.on 'localStream', (stream) => 
 			@emit 'localStream', stream
 
 		@setupConnection()
 
-		@on 'joinedRoom', (r) -> @logger.log 'joined room with role', r
+		@on 'joinedRoom', (r) -> @logger.log ['joined room with role', r]
 		@on 'peerRemoved', @handlePeerRemoved
 		@on 'peerResourcesUpdated', (peer) =>
 			@logger.log "peer resources updated!"
@@ -416,7 +408,7 @@ class RoomController extends WildEmitter
 			@sessionReady = true
 
 		@connection.on 'signalling', (message) =>
-			@logger.l('signalling').log('received', message)
+			@logger.l('signalling').log ['received', message]
 			peer = @getPeer(message.from)
 			peer.handleMessage(message)
 
@@ -473,7 +465,7 @@ class RoomController extends WildEmitter
 					reject(err)
 				else
 					@role = roomData.role
-					@logger.log "people in room", roomData.clients
+					@logger.log ["people in room", roomData.clients]
 					for id, data of roomData.clients
 						peer = @createPeer
 							id: id,

@@ -1,3 +1,6 @@
+pad = require 'pad'
+colour = require 'colour'
+
 class LoggingController
 	constructor: (opts) ->
 		opts ?= {}
@@ -28,13 +31,25 @@ class Logger
 				@log(data, opts)
 			@[name] = f
 		alias(n) for n in 'error warn info debug trace'.split ' '
+
 	log: (data, opts) ->
 		opts ?= {}
-		opts.level ?= 'log'
+		opts.level = opts.level or 'log'
 		@controller.write(@, data, opts)
 
 	logger: (name, opts) -> @controller.logger("#{@name}:#{name}")
 	l: (name, opts) -> @logger(name, opts)
+	adapt: =>
+		l = (level) =>
+			return =>
+				@log arguments,
+					level: name
+		return {
+			log: l('debug')
+			error: l('error')
+		}
+			
+
 
 class Appender
 	write: (log) ->
@@ -59,7 +74,9 @@ class ConsoleAppender
 	constructor: (opts) ->
 	format: (log) -> 
 		time = log.timestamp.toTimeString().split(' ')[0]
-		return "#{time} #{log.name} #{log.level?.toUpperCase()}"
-	write: (log) -> console[ConsoleAppender.map[log.level or 'debug']](@format(log), log.data)
+		return ["#{time} #{pad(log.level.toUpperCase(), 5)} %c#{log.name}", 'color: purple; font-weight: bold;']
+	write: (log) -> 
+		fn = console[ConsoleAppender.map[log.level or 'debug']]
+		fn.apply(console, @format(log).concat(log.data))
 
 module.exports = LoggingController

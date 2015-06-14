@@ -36,8 +36,13 @@ class Room extends Backbone.Model
 				@logger.l('setup').info 'Received logs from server'
 				@logCollection.add res.logs
 
-		@recordingCollection = new RecordingCollection [], {room: @}
-		@recordingController = new RecordingController @, @recordingCollection
+		@recordingCollection = new RecordingCollection [], 
+			room: @
+			s3: @app.s3
+			localStorage: new Backbone.LocalStorage @id + '-recordings'
+
+		@recordingController = new RecordingController @, @recordingCollection,
+			logger: @logger.l('recordingcontroller')
 
 		@recordingController.on 'started', =>
 			@sendEvent

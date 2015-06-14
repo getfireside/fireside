@@ -1,12 +1,11 @@
-S3Uploader = require '../s3uploader.coffee'
-s3 = new S3Uploader
-
 mimesMap =
 	'audio/wav': 'wav'
 	'video/webm': 'webm'
 	'audio/ogg': 'ogg'
 
 class Recording extends Backbone.Model
+	initialize: (attrs, opts) ->
+		@app = opts.app
 	getBlob: (cb) ->
 		yakk.fs.getFile(@getFilename()).then (f) ->
 			p = f.read()
@@ -69,10 +68,8 @@ class Recording extends Backbone.Model
 					@uploadSession.doUpload onComplete, onProgress
 
 			if @get('uploadId')?
-				s3.continueUploadSession @id, @get('uploadId'), blob, handler
+				@collection.s3.continueUploadSession @id, @get('uploadId'), blob, handler
 			else
-				s3.startUploadSession @id, blob, handler
-
-
+				@collection.s3.startUploadSession @id, blob, handler
 	
 module.exports = Recording

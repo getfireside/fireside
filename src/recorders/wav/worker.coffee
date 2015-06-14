@@ -60,18 +60,14 @@ init = (config) ->
 	sampleRate = config.sampleRate
 	sliceLength = config.timeslice * sampleRate / 1000
 	dataBuffer.push writeHeader(sampleRate, 0)
-	console.log 'init'
 
 record = (inputBuffer) ->
 	recBuffersL.push inputBuffer[0]
 	recBuffersR.push inputBuffer[1]
 	recLength += inputBuffer[0].length
-
-	console.log 'added', inputBuffer[0].length
 	
 	# check if we need to write back buffers
 	if recLength > sliceLength
-		console.log 'writing data back to window'
 		writeData()
 
 writeData = () ->
@@ -84,8 +80,6 @@ writeData = () ->
 	audioBlob = new Blob([view], type: 'audio/wav')
 	dataBuffer.push(audioBlob)
 	clear()
-	console.log dataBuffer
-	console.log (b.size for b in dataBuffer)
 	@postMessage new Blob(dataBuffer.splice(0, dataBuffer.length), {type: 'audio/wav'})
 
 clear = ->
@@ -130,7 +124,6 @@ floatTo16BitPCM = (output, offset, input) ->
 	return
 
 @onmessage = (e) ->
-	console.log e.data.command, e.data
 	switch e.data.command
 		when 'init'
 			init e.data.config

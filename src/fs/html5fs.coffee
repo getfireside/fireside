@@ -33,17 +33,27 @@ class HTML5FSFile
 
 
 class HTML5FS
-    constructor: (@dbname) ->
+    constructor: (opts) ->
+        @logger = opts.logger
     open: ->
         return new Promise (fulfil, reject) =>
-            @filer = new Filer()
-            opts = 
-                persistent: true
-                size: 650*1024*1024
-            @filer.init opts, fulfil, reject
+            if not @filer 
+                @filer = new Filer()
+                opts = 
+                    persistent: true
+                    size: 650*1024*1024
+                @filer.init opts, fulfil, reject
+            else
+                fulfil()
 
     getFile: (path, opts) -> 
         return new Promise (fulfil, reject) =>
             @filer.mkdir path.split('/').slice(0, -1).join('/'), false, (=> fulfil(new HTML5FSFile(path, @))), reject
+
+    getSpaceInfo: ->
+        return new Promise (fulfil, reject) =>
+            f = (used, free, total) ->
+                fulfil({used: used, free: free, total:total})
+            @filer.df(f, reject)
 
 module.exports = HTML5FS
