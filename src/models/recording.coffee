@@ -16,6 +16,8 @@ class Recording extends Backbone.Model
 		@getBlob (err, blob) ->
 			cb(err, URL.createObjectURL blob)
 
+	duration: -> (new Date(@get('stopped')) - new Date(@get('started'))) / 1000
+
 	appendBlob: (blob, cb) ->
 		yakk.fs.getFile(@getFilename()).then (f) =>
 			p = f.append(blob)
@@ -38,7 +40,7 @@ class Recording extends Backbone.Model
 
 	getFilename: -> "fireside/rooms/#{@get "roomId"}/#{@id}.#{@getFileExt()}"
 
-	getNiceFilename: -> "Recording of #{@get username} on #{@get date}"
+	getNiceFilename: -> "Recording of #{@get username} on #{@get started}"
 
 	upload: (cb=$.noop, progressCb=$.noop) ->
 		if @uploadSession != undefined

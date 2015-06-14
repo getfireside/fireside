@@ -60,6 +60,7 @@ class RecordingController extends WildEmitter
 		else
 			@emit 'stopped', @currentRecording
 		@currentRecording.set 'stopped', new Date
+		@logger.info "Recording completed - length: #{@currentRecording.duration()} secs; size: #{@currentRecording.get 'filesize'} bytes"
 		@status = 'ready'
 
 	start: ->

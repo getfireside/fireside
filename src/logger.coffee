@@ -62,6 +62,10 @@ class MemListAppender
 
 	write: (log) -> @logs.push log
 
+	export: -> 
+		logs: @logs
+		data: @data
+
 class ConsoleAppender
 	@map = 
 		error: 'error'

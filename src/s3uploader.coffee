@@ -29,12 +29,13 @@ putBlob = (url, blob, progressFn=$.noop) ->
 				), false
 			return x
 
-$.postJSON = (url, data, success) -> 
+$.postJSON = (url, data, success, error) -> 
 	$.ajax
 	    type: 'POST',
 	    url: url,
 	    data: JSON.stringify data
 	    success: success
+	    error: error
 	    contentType: "application/json",
 	    dataType: 'json'
 

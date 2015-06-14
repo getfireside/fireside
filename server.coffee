@@ -16,6 +16,7 @@ require 'coffee-script/register'
 config = require './config.coffee'
 mime = require 'mime'
 mime.define {'audio/wav': ['wav']}
+nodemailer = require 'nodemailer'
 
 AWS.config.update
 	accessKeyId: config.awsAccessKeyId
@@ -177,6 +178,21 @@ doIfRoomExists = (id, req, res, cbIfExists) ->
 			cbIfExists(null, id, req, res)
 		else
 			res.sendStatus 404
+
+app.post '/report-issue/', jsonParser, (req, res, next) ->
+	transporter = nodemailer.createTransport()
+	transporter.sendMail
+		from: config.reportEmailFrom
+		to: config.reportEmailTo
+		subject: "Report from room #{req.body.roomID}"
+		text: "Check the attachment."
+		attachments: [
+			filename: "report.json"
+			content: new Buffer(JSON.stringify req.body)
+		]
+	return res.json
+		status: 'complete'
+
 
 app.get '/rooms/:roomID/clients/', (req, res, next) -> 
 	doIfRoomExists req.params.roomID, req, res, (err, id, req, res) ->

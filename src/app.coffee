@@ -21,6 +21,9 @@ class App extends Marionette.Application
 
 		@rootView.render()
 
+		$(window).on 'error', (e) =>
+			@logger.l('app').error(e)
+
 $(document).ready ->
 	Handlebars.registerHelper 'formatTime', (m, s) -> m.format s
 	Handlebars.registerHelper 'equals', (a, b) -> a == b

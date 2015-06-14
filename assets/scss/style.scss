@@ -14,14 +14,55 @@ div#mainArea, div#sidebarArea {
 	position: relative;
 	nav {
 		height: 40px;
+		min-height: 0;
+		border-radius: 0;
+		margin: 0;
+		border: none;
+		div.navbar-collapse {
+			padding: 0;
+		}
+		ul {
+			margin: 0;
+			li a {
+				padding: 10px;
+				color: white;
+				&:hover {
+					background: $sidebarBg;
+				}
+				&:focus {
+					background: $sidebarBg;	
+				}
+			}
+			.open > a {
+				background: $sidebarBg;
+			}
+			a.settings {
+				font-size: 20px;
+			}
+		}
+		ul.dropdown-menu li a {
+			color: black;
+			&:hover, &:active, &:focus {
+				color: white;
+			}
+		}
 		background: black;
 		color: white;
-		padding: 0 10px;
+		padding: 0 0 0 10px;
 		h1 {
 			margin: 0;
 			font-size: 20px;
 			line-height: 40px;
 			vertical-align: middle;
+			a {
+				color: #666;
+				strong {
+					color: white;
+				}
+				&:hover {
+					text-decoration: none;
+				}
+			}
 		}
 	}
 }

@@ -30,3 +30,11 @@ node_modules
 # Mac .DS_Store
 .DS_Store
 
+# Config file with AWS keys etc
+config.coffee
+
+# Bower
+bower_components/
+
+# Dist
+dist/

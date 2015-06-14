@@ -52,6 +52,26 @@ class RoomView extends Marionette.LayoutView
 					delete @connectionStatusView
 				), 1000)
 
+		@$('#reportModal form').on 'submit', =>
+			@$('#reportModal form textarea, #reportModal form button').attr('disabled', true)
+			data = 
+				logs: @model.app.logger.appenders[0].export()
+				report: @$('#reportModal textarea').val()
+				roomID: @model.id
+				timestamp: (new Date)
+			success = =>
+				@$('#reportModal textarea').val('')
+				@$('#reportModal').modal('hide')
+				@$('#reportModal div.alert').remove()
+			failure = =>
+				if not @$('#reportModal div.alert').length
+					@$('#reportModal textarea').before("""<div class="alert alert-danger" role="alert">There was a problem submitting. Please try again.</div>""")
+				@$('#reportModal form textarea, #reportModal form button').attr('disabled', false)
+
+			$.postJSON '/report-issue/', data, success, failure
+			return false
+
+
 
 		# really shouldn't be in the view but leave this here for now...
 		join = (n) =>
