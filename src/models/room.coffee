@@ -11,22 +11,29 @@ lastStoppedLog = null
 
 class Room extends Backbone.Model
 	defaults = {}
-	constructor: (roomID) ->
+	constructor: (roomID, app) ->
 		super {id: roomID, randomName: User.getRandomName()}
+		@app = app
+		@logger = app.logger
+		@logger.l('setup').info("Initializing room #{@id}")
+
 		@set 'mode', 
 			stream: 'audio'
 			record: 'audio'
 
-		@roomController = new RoomController @
+		@roomController = new RoomController @id, 
+			logger: @logger.l('conn')
 
 		@self = new User
 		@userCollection = new UserCollection([])
 		@logCollection = new LogCollection([])
 
 		$.getJSON "/rooms/#{roomID}/clients/", (res) =>
+			@logger.l('setup').info 'Received clients list from server'
 			@historicalClients = res.clients
 			
 			$.getJSON "/rooms/#{roomID}/logs/", (res) =>
+				@logger.l('setup').info 'Received logs from server'
 				@logCollection.add res.logs
 
 		@recordingCollection = new RecordingCollection [], {room: @}

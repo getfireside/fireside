@@ -1,11 +1,11 @@
 WildEmitter = require('wildemitter')
 webrtcSupport = require('webrtcsupport')
 attachMediaStream = require('attachmediastream')
-mockconsole = require('mockconsole')
 io = require('socket.io-client')
 util = require('util')
 LocalMedia = require('localmedia')
 PeerConnection = require 'rtcpeerconnection'
+LoggingController = require './logger.coffee'
 
 # class FileReceiveSession extends WildEmitter
 # 	constructor: (@peer, @fileID) ->
@@ -59,7 +59,7 @@ class Peer extends WildEmitter
 		@role = opts.role
 		@recordingStatus = opts.recordingStatus ? null
 
-		@logger = @controller.logger
+		@logger = @controller.logger.l('peer').l(@id)
 
 		@setupPc() 
 
@@ -69,13 +69,13 @@ class Peer extends WildEmitter
 
 		# proxy events to parent
 		@on '*', => @controller.emit.apply(@controller, arguments)
-		@on '*', => @logger.log "PEER EVENT", @, arguments
+		@on '*', => @logger.trace arguments
 
 		@controller.on('localStream', @addLocalStream)
-		@on 'signalingStateChange', => console.log 'new signalling state,', @pc.signalingState
+		@on 'signalingStateChange', => @logger.log 'new signalling state,', @pc.signalingState
 
 	setupPc: =>
-		console.log 'setting up new peer connection...'
+		@logger.log 'setting up new peer connection...'
 		if @pc?
 			@oldPc = @pc
 			@oldPc.releaseGroup()
@@ -106,7 +106,7 @@ class Peer extends WildEmitter
 
 		@pc.on 'signalingStateChange', => @emit 'signalingStateChange'
 		@pc.on '*', => @logger.log "DEBUG PC EVENT", arguments
-		console.log 'set up.'
+		@logger.log 'done setting up PC.'
 
 		for stream in @controller.localMedia.localStreams
 			@pc.addStream(stream)
@@ -114,7 +114,7 @@ class Peer extends WildEmitter
 
 
 	addLocalStream: (stream) =>
-		console.log "added stream!"
+		@logger.log "added the local stream!"
 		@pc.addStream(stream)
 
 
@@ -299,8 +299,7 @@ class Peer extends WildEmitter
 
 
 class RoomController extends WildEmitter
-	constructor: (@model, config) ->
-		console.log "SET UP ROOM CONTROLLER..."
+	constructor: (@id, config) ->
 		@defaults = 
 			url: window.location.origin,
 			socketio: {}
@@ -330,8 +329,6 @@ class RoomController extends WildEmitter
 					OfferToReceiveAudio: true
 					OfferToReceiveVideo: true
 
-			logger: console
-
 
 		@config = _.extend {}, @defaults, config 
 
@@ -339,7 +336,7 @@ class RoomController extends WildEmitter
 
 		@capabilities = webrtcSupport
 		@peers = {}
-		@logger = @config.logger
+		@logger = @config.logger ? new LoggingController
 
 		@localMedia = new LocalMedia @config
 		@localMedia.on 'localStream', (stream) => 
@@ -347,9 +344,7 @@ class RoomController extends WildEmitter
 
 		@setupConnection()
 
-		@on 'joinedRoom', (r) -> console.log 'joined room with role', r
-		@on 'peerStreamAdded', @handlePeerStreamAdded
-		@on 'peerStreamRemoved', @handlePeerStreamRemoved
+		@on 'joinedRoom', (r) -> @logger.log 'joined room with role', r
 		@on 'peerRemoved', @handlePeerRemoved
 		@on 'peerResourcesUpdated', (peer) =>
 			@logger.log "peer resources updated!"
@@ -397,7 +392,7 @@ class RoomController extends WildEmitter
 			@localMedia.start {video: (type == 'video'), audio: true}, (err, stream) =>
 				if err
 					# handle error
-					console.log err
+					@logger.error err
 				else
 					@logger.log "emitting updateResources!"
 					@connection.emit "updateResources", 
@@ -407,7 +402,7 @@ class RoomController extends WildEmitter
 					if cb?
 						cb(null, stream)
 		else
-			# TODO: properlyp handle case where e.g. audio is started and video is requested
+			# TODO: properly handle case where e.g. audio is started and video is requested
 			if cb?
 				cb(@localMedia.localStreams[0])
 
@@ -416,11 +411,12 @@ class RoomController extends WildEmitter
 		@connection = io.connect(@config.url, @config.socketio)
 
 		@connection.on "connect", =>
+			@logger.info "socket connection to #{@config.url} established"
 			@emit "connectionReady", @connection.io.engine.id
 			@sessionReady = true
 
 		@connection.on 'signalling', (message) =>
-			@logger.log 'SIGNALLING: RECEIVED', message
+			@logger.l('signalling').log('received', message)
 			peer = @getPeer(message.from)
 			peer.handleMessage(message)
 
@@ -439,7 +435,7 @@ class RoomController extends WildEmitter
 			@getPeer(data.id).end()
 
 		@connection.on 'announce', (data) =>
-			@logger.log "ANNOUNCE!", data?.info?.name
+			@logger.l('announce').info(data)
 			peer = @createPeer
 				id: data.id
 				enableDataChannels: @config.enableDataChannels
@@ -453,13 +449,13 @@ class RoomController extends WildEmitter
 
 		@connection.on 'startRecordingRequest', (data) =>
 			if @getPeer(data.host).role != 'host'
-				@logger.log "according to local data the startRecording message didn't come from a host."
+				@logger.warn "according to local data the startRecording message didn't come from a host."
 				return
 			@emit 'startRecordingRequest'
 
 		@connection.on 'stopRecordingRequest', (data) =>
 			if @getPeer(data.host).role != 'host'
-				@logger.log "according to local data the stopRecording message didn't come from a host."
+				@logger.warn "according to local data the stopRecording message didn't come from a host."
 				return
 			@emit 'stopRecordingRequest'
 
@@ -468,16 +464,16 @@ class RoomController extends WildEmitter
 			@getPeer(data.id).updateResources(data.newResources)
 
 	joinRoom: ->
-		console.log 'joining room...'
+		@logger.log 'joining room...'
 		return new Promise (fulfil, reject) =>
 			info = 
 				name: @localName
-			@connection.emit 'join', {room: @model.id, info: info}, (err, roomData) =>
+			@connection.emit 'join', {room: @id, info: info}, (err, roomData) =>
 				if err
 					reject(err)
 				else
 					@role = roomData.role
-					console.log "people in room", roomData.clients
+					@logger.log "people in room", roomData.clients
 					for id, data of roomData.clients
 						peer = @createPeer
 							id: id,
@@ -497,14 +493,6 @@ class RoomController extends WildEmitter
 
 	setLocalName: (name) ->
 		@localName = name
-
-	handlePeerStreamAdded: (peer) =>
-		# console.log "peer stream added!", peer.id
-		# @emit 'streamAdded', peer
-
-	handlePeerStreamRemoved: (peer) =>
-		# console.log "peer stream removed.", peer.id
-		# @emit 'streamRemoved', peer
 
 	handlePeerRemoved: (peer) =>
 		@removePeer peer.id
