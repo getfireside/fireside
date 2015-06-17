@@ -398,7 +398,25 @@ div#eventLogPane {
 	}
 }
 
-
+div#ffGUMInstructions {
+	position: absolute;
+	top: 0;
+	left: 0;
+	bottom: 0;
+	right: 0;
+	background: rgba(0,0,0,0.7);
+	display: block;
+	z-index: 100;
+	color: white;
+	p {
+		font-size: 23px;
+		margin-top: 176px;
+		margin-left: 46px;
+		width: 50%;
+		font-style: italic;
+		text-shadow: 1px 1px 4px black;
+	}
+}
 
 // div.video-local {
 // 	video {

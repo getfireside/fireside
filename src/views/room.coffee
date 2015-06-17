@@ -52,6 +52,20 @@ class RoomView extends Marionette.LayoutView
 					delete @connectionStatusView
 				), 1000)
 
+
+		is_firefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
+
+		@model.roomController.on 'requestLocalMedia', =>
+			if is_firefox
+				@$('div#ffGUMInstructions').show()
+
+		hideIfMoz = =>
+			if is_firefox
+				@$('div#ffGUMInstructions').hide()			
+
+		@model.roomController.on 'requestLocalMediaAccepted', hideIfMoz 
+		@model.roomController.on 'requestLocalMediaFailed', hideIfMoz 
+
 		@$('#reportModal form').on 'submit', =>
 			@$('#reportModal form textarea, #reportModal form button').attr('disabled', true)
 			data = 

@@ -384,10 +384,12 @@ class RoomController extends WildEmitter
 
 	startLocalMedia: (type='video', el, cb) ->
 		if not @localMedia.localStreams.length
+			@emit 'requestLocalMedia'
 			@localMedia.start {video: (type == 'video'), audio: true}, (err, stream) =>
 				if err
 					# handle error
 					@logger.error err
+					@emit 'requestLocalMediaFailed'
 				else
 					@logger.log "emitting updateResources!"
 					@connection.emit "updateResources", 
@@ -396,6 +398,7 @@ class RoomController extends WildEmitter
 						video: type == 'video'
 					if cb?
 						cb(null, stream)
+					@emit 'requestLocalMediaAccepted'
 		else
 			# TODO: properly handle case where e.g. audio is started and video is requested
 			if cb?
