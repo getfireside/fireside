@@ -23,5 +23,7 @@ class User extends Backbone.Model
 
 		super attrs, options
 
+	requestKick: -> @peer.requestKick()
+
 	
 module.exports = User

@@ -4,6 +4,11 @@ class UserItemView extends Marionette.ItemView
 	template: Handlebars.templates['user']
 	modelEvents: 
 		'change': 'render'
+	events: 
+		'click a.kick': 'onKick'
+
+	onKick: -> 
+		@model.requestKick()
 
 	render: ->
 		if not @isRendered
@@ -14,6 +19,7 @@ class UserItemView extends Marionette.ItemView
 			@$('div.name em').text(data.name)
 			@triggerMethod 'render', @
 		return @
+
 	onRender: => 
 		# Hack to get rid of the unnecessary wrapper div.
 		# TODO: figure out a way to cleanly generalise this.

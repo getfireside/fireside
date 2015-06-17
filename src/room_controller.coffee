@@ -183,6 +183,9 @@ class Peer extends WildEmitter
 	requestRecordingStop: =>
 		@controller.connection.emit 'stopRecordingRequest', @id
 
+	requestKick: =>
+		@controller.connection.emit 'kickRequest', @id
+
 	_observeDataChannel: (channel) =>
 		channel.onclose = @emit.bind(@, 'channelClose', channel)
 		channel.onerror = @emit.bind(@, 'channelError', channel)
@@ -425,6 +428,11 @@ class RoomController extends WildEmitter
 
 		@connection.on 'remove', (data) =>
 			@getPeer(data.id).end()
+
+
+		@connection.on 'kick', (details) =>
+			@logger.info "User kicked - disconnecting."
+			alert 'You were kicked from the room!'
 
 		@connection.on 'announce', (data) =>
 			@logger.l('announce').info(data)

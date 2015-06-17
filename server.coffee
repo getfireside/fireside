@@ -37,10 +37,14 @@ class RoomController
 		console.log "checking if", @prefix + roomId, 'exists...'
 		@client.exists @prefix + roomId, cb
 
-	createRoom: (cb) =>
+	createRoom: (owner=null, cb) =>
 		key = randomstring.generate 9
-		@client.set @prefix + key, 1, (err, res) ->
-			cb(err, key, res)
+		@client.set @prefix + key, 1, (err, res) =>
+			if not owner
+				cb(err, key, res)
+			else
+				@setHost key, owner, (err, res) ->
+					cb(err, key, res)
 
 	addToLog: (roomId, evt, cb) =>
 		@client.rpush(@prefix + roomId + '/logs', JSON.stringify evt, cb)
@@ -73,53 +77,20 @@ class RoomController
 	setHost: (roomId, clientId, cb) => @client.set @prefix + roomId + '/host', clientId, cb
 
 	getInterviewees: (roomId, cb) => @client.smembers @prefix + roomId + '/interviewees', cb
+	isInterviewee: (roomId, clientId, cb) => @client.sismember @prefix + roomId + '/interviewees', cb
 	addInterviewee: (roomId, clientId, cb) => @client.sadd @prefix + roomId + '/interviewees', clientId, cb
 
 	determineRole: (roomId, clientId, cb) =>
-		console.log 'determining role for', clientId, 'in', roomId, '...'
-		errorIfRoomNotExists = (cb) => async.waterfall [
-			((cb) => @roomExists roomId, cb),
-			((exists, cb) => 
-				if not exists
-					cb('Room does not exist.')
-				else
-					cb(null)
-			)
-		], cb
-
-		checkIfHost = (cb) => async.waterfall [
-			((cb) => errorIfRoomNotExists cb)
-			((cb) => @getHost roomId, cb)
-			((result, cb) => 
-				console.log('host:', result)
-				if result == null
-					@setHost roomId, clientId, cb
-				else
-					cb(null, null)
-			),
-			((result, cb) => @getHost(roomId, cb)),
-			((hostId, cb) => cb(null, hostId == clientId))
-		], cb
-
-		checkIfInterviewee = (cb) => async.waterfall [
-			(cb) => errorIfRoomNotExists cb
-			(cb) => @getInterviewees roomId, cb
-			(interviewees, cb) =>
-				if interviewees.length == 0
-					@addInterviewee roomId, clientId, cb
-				else
-					cb(null, null)
-			(result, cb) => @getInterviewees roomId, cb
-			(interviewees, cb) => 
-				cb(null, _.contains interviewees, clientId)
-		], cb
-
-		checkIfHost (err, isHost) ->
-			if isHost
-				cb(null, 'host')
-				return
-			checkIfInterviewee (err, isInterviewee) ->
-				cb(null, if isInterviewee then 'interviewee' else 'peer')
+		roomController.getHost roomId, (err, hostId) ->
+			if hostId == clientId
+				cb(err, 'host')
+			else
+				roomController.isInterviewee roomId, clientId, (err, isInterviewee) ->
+					if isInterviewee
+						cb(err, 'interviewee')
+					else
+						roomController.addInterviewee roomId, clientId, (err, res) ->
+							cb(err, 'interviewee')
 
 	getRoomInfo: (roomId, cb) =>
 		@roomExists roomId, (err, exists) =>
@@ -148,7 +119,7 @@ app.use cookieParser
 sessionStore = session 
 	store: new RedisSessionStore 
 	resave: false
-	secret: 'NASTY PRECIOUS SECRET'
+	secret: config.sessionSecret
 	key: 'express.sid'
 	cookie: 
 		maxAge: 60*24*60*60*1000 # 60 days
@@ -169,7 +140,7 @@ app.set('views', __dirname + '/views')
 app.get '/', (req, res) -> res.render('index') 
 
 app.post '/rooms/new', (req, res) -> 
-	roomController.createRoom (err, id) ->
+	roomController.createRoom req.session.id, (err, id) ->
 		res.redirect('/rooms/' + id)
 
 doIfRoomExists = (id, req, res, cbIfExists) ->
@@ -394,6 +365,25 @@ io.sockets.on 'connection', (client) ->
 
 	client.on 'startRecordingRequest', generateIntervieweeCommand 'startRecordingRequest'
 	client.on 'stopRecordingRequest', generateIntervieweeCommand 'stopRecordingRequest'
+	client.on 'kickRequest', (peerId) ->
+		if client.room and client.role == 'host'
+			details = 
+				host: client.id
+			peer = io.sockets.in(client.room).connected[peerId]
+			peer.emit 'kick', details
+			peer.leave(peer.room)
+			roomController.addToLog client.room, 
+				type: 'kick'
+				from: peer.id
+				data: {}
+				timestamp: new Date()
+			peer.room = undefined
+			io.to(client.room).emit 'remove', 
+				id: peer.id
+			console.log peer.id, 'was kicked'
+
+
+
 
 	client.on 'updateResources', (newResources) ->
 		client.resources = newResources
@@ -423,40 +413,48 @@ io.sockets.on 'connection', (client) ->
 
 	join = (data, cb) ->
 		roomId = data?.room
-		console.log "join", roomId
 		if typeof roomId != 'string'
 			return
 		roomController.getRoomInfo roomId, (err, roomInfo) ->
-			console.log 'got room info', roomInfo
 			if err
 				cb(err)
 			else
-				roomController.determineRole roomId, client.sid, (err, role) ->
-					console.log err, role
+				console.log 'got room info', roomInfo
+				# check existing clients. is SID already present? if so, kick.
+				roomController.getClients roomId, (err, clients) ->
 					if err
 						cb(err)
-					roomInfo.role = role
-					safeCb(cb)(null, roomInfo)
-					console.log 'client', client.id, 'got info', roomInfo
-					client.role = role
-					client.join(roomId)
-					client.room = roomId
-					client.info = data?.info
-					roomController.setClientInfo roomId, client.id, client.info
-					client.resources = data.resources
+					else
+						if _.some(clients, (c) -> c.sid == client.sid)
+							console.log "Not allowing a new connection from", client.sid
+							cb({message: "Already connected!", type: 'already-connected'}, null)
+						# now determine role.
+						roomController.determineRole roomId, client.sid, (err, role) ->
+							console.log err, role
+							if err
+								cb(err)
+							roomInfo.role = role
+							safeCb(cb)(null, roomInfo)
+							console.log 'client', client.id, 'got info', roomInfo
+							client.role = role
+							client.join(roomId)
+							client.room = roomId
+							client.info = data?.info
+							roomController.setClientInfo roomId, client.id, client.info
+							client.resources = data.resources
 
-					roomController.addToLog client.room, 
-						type: 'announce'
-						from: client.id
-						data: {}
-						timestamp: new Date()
+							roomController.addToLog client.room, 
+								type: 'announce'
+								from: client.id
+								data: {}
+								timestamp: new Date()
 
-					client.broadcast.to(client.room).emit 'announce', 
-						id: client.id
-						sid: client.sid
-						info: client.info
-						resources: client.resources
-						role: client.role
+							client.broadcast.to(client.room).emit 'announce', 
+								id: client.id
+								sid: client.sid
+								info: client.info
+								resources: client.resources
+								role: client.role
 
 
 	client.on 'join', join

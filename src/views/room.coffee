@@ -77,7 +77,10 @@ class RoomView extends Marionette.LayoutView
 		join = (n) =>
 			@model.roomController.setLocalName(n)
 			@model.self.set 'name', n
-			@model.roomController.joinRoom()
+			p = @model.roomController.joinRoom()
+			p.catch (err) ->
+				if err.type == 'already-connected'
+					alert "You're already connected in another tab/window! Please close that one before opening a separate one."
 
 		if not cookies.get 'name'
 			@$('#nameModal').modal 'show'

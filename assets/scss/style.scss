@@ -225,6 +225,13 @@ div#mainArea {
 					margin: 0 auto;
 					text-align: center;
 					font-size: 20px;
+					ul.dropdown-menu {
+						right: 0;
+						left: 0;
+						width: 50%;
+						min-width: 120px;
+						margin: 0 auto;
+					}
 				}
 			}
 		}

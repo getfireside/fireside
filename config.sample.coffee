@@ -9,4 +9,5 @@ module.exports =
 	# uploadsBucketName: 'the AWS bucket to use'
 	# reportEmailFrom: 'where error emails will be marked as from'
 	# reportEmailTo: 'an email to send errors to'
+	# sessionSecret: 'randomly generated secret'
 

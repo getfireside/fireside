@@ -25,8 +25,8 @@ class Room extends Backbone.Model
 			logger: @logger.l('conn')
 
 		@self = new User
-		@userCollection = new UserCollection([])
-		@logCollection = new LogCollection([])
+		@userCollection = new UserCollection([], {room: @})
+		@logCollection = new LogCollection([], {room: @})
 
 		$.getJSON "/rooms/#{roomID}/clients/", (res) =>
 			@logger.l('setup').info 'Received clients list from server'
