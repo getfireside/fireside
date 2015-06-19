@@ -16,7 +16,9 @@ class Recording extends Backbone.Model
 		@getBlob (err, blob) ->
 			cb(err, URL.createObjectURL blob)
 
-	duration: -> (new Date(@get('stopped')) - new Date(@get('started'))) / 1000
+	duration: =>
+		s = @get 'stopped'
+		return ((if s then new Date(s) else new Date()) - new Date(@get('started'))) / 1000
 
 	appendBlob: (blob, cb) ->
 		yakk.fs.getFile(@getFilename()).then (f) =>

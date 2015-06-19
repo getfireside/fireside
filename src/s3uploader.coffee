@@ -1,43 +1,54 @@
 LoggingController = require './logger.coffee'
+moment = require 'moment'
 
-putBlob = (url, blob, progressFn=$.noop) ->
-	# xhr = new XMLHttpRequest
+putBlob = (url, blob, progressFn=$.noop, cb) ->
+	blob = new Blob([blob])
+	xhr = new XMLHttpRequest
+	xhr.open "PUT", url, true
+	lastProg = [moment(), 0] 
+	expMovingAverage = null
+	onprogress = (prog) ->
+		d = moment()
+		currentSpeed = (prog.loaded - lastProg[1]) / (d.diff(lastProg[0]) / 1000)
+		console.log "current speed:", currentSpeed, 'bytes / sec'
+		if not expMovingAverage?
+			expMovingAverage = currentSpeed
+		lastProg = [d, prog.loaded]
+		expMovingAverage = 0.005 * currentSpeed + (0.995) * expMovingAverage
+		console.log "av speed:", expMovingAverage, 'bytes / sec'
+		eta = moment().add((prog.total - prog.loaded) / expMovingAverage, 'seconds')
+		console.log "eta:", eta.fromNow()
+		progressFn 
+			loaded: prog.loaded
+			total: prog.total
+			speed: currentSpeed
+			avSpeed: expMovingAverage
+			percent: (prog.loaded / prog.total)
+			eta: eta
+		return true
+	xhr.upload.onprogress = onprogress
 
-	# xhr.addEventListener 'progress', ((prog) ->
-	# 	value = (prog.loaded / prog.total)
-	# 	progressFn(value)
-	# ), false
-	# xhr.addEventListener 'error', ((e)-> cb(e, null))
-	# xhr.addEventListener 'load', ((e)-> cb(null, e))
+	xhr.addEventListener 'error', ((e)-> cb(e, null))
+	xhr.addEventListener 'load', ((e)-> 
+		if e.target.status != 200
+			cb(e)
+		else
+			cb(null, e)
+	)
 	
-	# xhr.open "PUT", url, true
-	# xhr.send blob
-
-	$.ajax
-		type: 'PUT'
-		url: url
-		data: blob.slice(0, blob.size) # ff cors workaround
-		processData: false
-		contentType: false
-		cache: false
-		xhr: ->
-			x = $.ajaxSettings.xhr()
-			if x.upload and progressFn
-				x.upload.addEventListener 'progress', ((prog) ->
-					value = (prog.loaded / prog.total)
-					progressFn(value)
-				), false
-			return x
+	xhr.send blob
 
 $.postJSON = (url, data, success, error) -> 
 	$.ajax
-	    type: 'POST',
-	    url: url,
-	    data: JSON.stringify data
-	    success: success
-	    error: error
-	    contentType: "application/json",
-	    dataType: 'json'
+		async: true
+		processData: false
+		type: 'POST'
+		url: url
+		data: JSON.stringify data
+		success: success
+		error: error
+		contentType: "application/json"
+		dataType: 'json'
 
 class S3UploadSession
 	constructor: (@uploader, opts) ->
@@ -55,7 +66,13 @@ class S3UploadSession
 			else
 				@parts[n] = {size: @uploader.config.partSize}
 
-		completedParts = _.mapObject opts.completedParts ? {}, (data, partNo) -> _.extend {}, data, {progress: 1}
+		completedParts = _.mapObject opts.completedParts ? {}, (data, partNo) -> _.extend {}, data, 
+			progress: 
+				loaded: 0
+				total: data.size
+				speed: 0
+				avSpeed: 0
+				eta: null
 		# sum up all the completed bytes...
 		_.extend @parts, completedParts
 
@@ -65,20 +82,35 @@ class S3UploadSession
 
 	getUploadProgress: ->
 		# slightly silly and inefficient, fix later
-		total = 0
+		loaded = 0
+		speed = 0
+		avSpeed = 0 
 		for partNo, info of @parts
-			total += ((info.progress ? 0) * info.size)
-		return (total / @blob.size)
+			loaded += info.progress?.loaded ? 0
+			speed += info.progress?.speed ? 0
+			avSpeed += info.progress?.avSpeed ? 0
+
+		console.log 'avspeed: ', avSpeed
+
+		eta = moment().add((@blob.size - loaded) / avSpeed)
+
+		return {
+			loaded: loaded
+			total: @blob.size
+			eta: eta
+			speed: speed
+		}
 
 	uploadPart: (number, blob, cb, progressCb) ->
 		@logger.log "Attempting to upload part #{number}..."
 		# first sign the req.
+		size = blob.size
 		data = 
 			awsUploadId: @awsUploadId
 			partNumber: number
 
-		onProgress = (v) =>
-			@parts[number].progress = v
+		onProgress = (prog) =>
+			@parts[number].progress = prog
 			progressCb(@getUploadProgress())
 
 		req = $.postJSON(@uploader.config.signUploadUrl.replace(':recId', @recId), data)
@@ -87,16 +119,21 @@ class S3UploadSession
 			# do a put request to the URL.
 			# cb = (err, data) ->
 			# 	debugger	
-			putReq = putBlob(data.url, blob, onProgress)
-			putReq.done (data, status, xhr) => 
-				@logger.log "#{number} uploaded."
-				# add the resulting part, etag and size to our @parts hash.
-				@parts[number] = 
-					etag: xhr.getResponseHeader('ETag')
-					size: blob.size
-					progress: 1
-				cb(null, number)
-			putReq.fail (xhr, status, error) -> cb(error, xhr)
+			putReq = putBlob data.url, blob, onProgress, (err, evt) =>
+				if err
+					cb(err, number)
+				else
+					@logger.log "#{number} uploaded."
+					# add the resulting part, etag and size to our @parts hash.
+					@parts[number] = 
+						etag: evt.target.getResponseHeader('ETag')
+						size: size
+						progress: 
+							loaded: size
+							total: size
+							eta: null
+							speed: 0
+					cb(null, number)
 
 		req.fail (xhr, status, error) ->
 			cb(error, xhr)

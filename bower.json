@@ -23,7 +23,6 @@
     "bootstrap": "~3.3.2",
     "bootstrap-sass": "~3.3.3",
     "backbone": "~1.1.2",
-    "thorax": "~2.3.2",
     "handlebars": "~3.0.0",
     "fontawesome": "~4.3.0",
     "backbone.localstorage": "~1.1.16",

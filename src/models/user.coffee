@@ -1,7 +1,5 @@
-philosophers = require "../../assets/philosophers.js"
-
 class User extends Backbone.Model
-	@getRandomName: -> _.sample philosophers
+	@getRandomName: -> 
 	constructor: (attributes, options) ->
 		@peer = options?.peer
 		if @peer?

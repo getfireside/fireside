@@ -40,6 +40,10 @@ class RecordingController extends WildEmitter
 		@currentRecording.set 'started', new Date
 		@logger.info 'Recording started.'
 		@emit 'started', @currentRecording
+		@_int = setInterval @onTick, 1000
+
+	onTick: =>
+		@emit 'tick', @currentRecording
 
 	onDataAvailable: (e) =>
 		console.log "got blob,", e.data.size
@@ -49,6 +53,7 @@ class RecordingController extends WildEmitter
 				console.error(err)
 
 	onStop: (e) =>
+		clearInterval @_int
 		if @mediaRecorder instanceof WAVAudioRecorder
 			@mediaRecorder.fixWaveFile @currentRecording, (err) =>
 				if not err

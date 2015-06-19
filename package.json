@@ -22,6 +22,7 @@
     "debowerify": "^1.3.1",
     "express": "^4.12.4",
     "express-session": "^1.11.2",
+    "filesize": "^3.1.2",
     "gulp": "^3.9.0",
     "gulp-concat": "^2.5.2",
     "gulp-declare": "^0.3.0",
@@ -32,6 +33,7 @@
     "gulp-watch": "^4.2.4",
     "gulp-wrap": "^0.11.0",
     "handlebars": "^3.0.3",
+    "handlebars-brunch": "^1.9.1",
     "hiredis": "^0.4.0",
     "localmedia": "^1.0.5",
     "lodash": "^3.9.3",
@@ -58,7 +60,13 @@
     "wildemitter": "^1.1.0"
   },
   "devDependencies": {
+    "browserify-brunch": "^1.7.2",
+    "brunch": "^1.8.3",
+    "coffee-script-brunch": "^1.8.2",
     "gulp": "^3.9.0",
+    "handlebars-brunch": "git://github.com/donaldharvey/handlebars-brunch",
+    "javascript-brunch": "^1.7.1",
+    "sass-brunch": "^1.8.10",
     "wildemitter": "^1.1.0"
   },
   "browser": {

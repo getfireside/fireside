@@ -70,7 +70,11 @@ div#mainArea, div#sidebarArea {
 div#statusArea {
 	position: absolute;
 	width: 100%;
-	div.status {
+	ul {
+		padding: 0; margin: 0;
+	}
+	li.status {
+		list-style-type: none;
 		a {
 			color: white;
 			text-decoration: underline;
@@ -88,6 +92,26 @@ div#statusArea {
 		}
 		&.success {
 			background: rgba(#66A655, 0.67);
+		}
+		&.recording {
+			background: rgba(#D15809, 0.8);
+		}
+		&.upload {
+			background: rgba(#9455A6, 0.33);
+			span.rec-progress {
+				width: 50%;
+				position: absolute;
+				left: 0;
+				top: 0;
+				bottom: 0;
+				background-color: rgba(#9455A6, 0.45);
+				z-index: 0;
+				transition: width 0.5s ease;
+			}
+			div.content {
+				position: relative;
+				z-index: 2;
+			}
 		}
 	}
 }

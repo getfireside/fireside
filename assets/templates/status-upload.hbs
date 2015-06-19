@@ -1,0 +1,8 @@
+{{#if complete}}<span class="rec-progress" style="width:100%;"></span>{{else}}<span class="rec-progress" style="width:{{progress}}"></span>{{/if}}
+<div class="content">
+{{#if complete}}
+Upload complete!
+{{else}}
+Uploading your recording... keep this tab open! <span class="speed">{{formatRate speed}}</span>, ETA <span class="eta">{{timeUntil eta}}
+{{/if}}
+</div>

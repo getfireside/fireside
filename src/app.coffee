@@ -25,7 +25,11 @@ class App extends Marionette.Application
 			@logger.l('app').error(e)
 
 $(document).ready ->
+	filesize = require 'filesize'
+	Handlebars.registerHelper 'formatBytes', (b) -> filesize(b or 0)
+	Handlebars.registerHelper 'formatRate', (b) -> filesize(b or 0) + '/s'
 	Handlebars.registerHelper 'formatTime', (m, s) -> m.format s
+	Handlebars.registerHelper 'timeUntil', (m) -> m and m.fromNow()
 	Handlebars.registerHelper 'equals', (a, b) -> a == b
 	Handlebars.registerHelper 'percent', (v) -> v * 100
 	Handlebars.registerHelper 'nicePercentage', (v) -> ~~(v*100) + '%'
