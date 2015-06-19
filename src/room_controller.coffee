@@ -310,7 +310,7 @@ class RoomController extends WildEmitter
 					{url: "stun:stun4.l.google.com:19302"},
 					{url: "stun:stunserver.org"},
 					{url: "stun:stun.services.mozilla.com"},
-					{url: 'turn:test.yakk.io:3478', credential: 'yakk', username: 'yakk'}
+					{url: 'turn:test.getfireside.co:3478', credential: 'fireside', username: 'fireside'}
 				]
 
 			peerConnectionConstraints: 

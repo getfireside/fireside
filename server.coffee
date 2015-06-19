@@ -31,7 +31,7 @@ s3UploadsBucket = new AWS.S3
 class RoomController
 	constructor: ->
 		@client = redis.createClient()
-		@prefix = '/yakk/rooms/'
+		@prefix = '/fireside/rooms/'
 
 	roomExists: (roomId, cb) => 
 		console.log "checking if", @prefix + roomId, 'exists...'
