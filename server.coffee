@@ -217,7 +217,7 @@ app.post '/rooms/:roomID/uploads/', jsonParser, (req, res, next) ->
 			Key: key
 			ACL: 'public-read'
 			ContentType: req.body.type or 'video/webm'
-			ContentDisposition: "attachment;filename=recording.#{ext}"
+			ContentDisposition: "attachment; filename=recording.#{ext}"
 		s3UploadsBucket.createMultipartUpload params, (err, data) ->
 			if err
 				return next(err)

@@ -32,9 +32,10 @@ class RecordingController extends WildEmitter
 			@emit 'ready'
 			@logger.info 'Stream added- ready to record!'
 
-		p.catch =>
+		p.catch (error) =>
 			@logger.l('fs').error 'Failed to open FS!'
-			@logger.l('fs').error arguments
+			@logger.l('fs').error error.target.error.message
+			alert('An error occurred when preparing to record to disk: ' + error.target.error.message)
 
 	onStart: (e) =>
 		@currentRecording.set 'started', new Date
