@@ -27,10 +27,6 @@ class RecordingLogView extends DefaultLogView
 	modelEvents:
 		change: 'render'
 
-	onRender: ->
-		#debugger
-		#super()
-
 class LogCollectionView extends Marionette.CollectionView
 	tagName: 'ul'
 	id: 'logsList'

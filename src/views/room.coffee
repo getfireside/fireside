@@ -63,7 +63,6 @@ class RoomView extends Marionette.LayoutView
 		@model.recordingCollection.on 'uploadStarted', (rec) => 
 			@statusManager.setStatus 'upload', {complete:false, progress: '0%'}
 		@model.recordingCollection.on 'uploadProgress', (rec, prog) => 
-			console.log(prog)	
 			@statusManager.setStatus 'upload', {complete:false, progress: (prog.loaded / prog.total)*100 + '%', eta: prog.eta, speed: prog.speed}
 		@model.recordingCollection.on 'uploadComplete', (rec, url) => 
 			@statusManager.setStatus 'upload', {complete:true, progress: '100%'}

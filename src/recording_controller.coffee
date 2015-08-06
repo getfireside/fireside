@@ -78,8 +78,8 @@ class RecordingController extends WildEmitter
 			@status = 'started'
 
 	stop: ->
-		@mediaRecorder.stop()
 		@status = 'stopping'
+		@mediaRecorder.stop()
 
 
 module.exports = RecordingController

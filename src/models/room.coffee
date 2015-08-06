@@ -60,6 +60,8 @@ class Room extends Backbone.Model
 
 
 		@recordingController.on 'stopped', (rec) =>
+			debugger
+
 			rec.upload()
 			log = null
 
@@ -79,7 +81,7 @@ class Room extends Backbone.Model
 			rec.on 'uploadProgress', (rec, v) =>
 				# doing this isn't very nice, need to change later.
 				data = _.clone log.get 'data'
-				data.progress = v 
+				data.progress = v.loaded / v.total 
 				log.set 'data', data
 
 				@roomController.sendEvent
