@@ -57,7 +57,7 @@ class RoomController
 			cb err, _.map(data, (i) -> JSON.parse(i))
 
 	getLogs: (roomId, cb) =>
-		@client.lrange @prefix + roomId + '/log', 0, -1, (err, data) =>
+		@client.lrange @prefix + roomId + '/logs', 0, -1, (err, data) =>
 			cb err, _.map(data, (i) -> JSON.parse(i))
 
 	setClientInfo: (roomId, clientId, data, cb) => 
