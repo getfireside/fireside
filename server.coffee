@@ -49,8 +49,15 @@ class RoomController
 	addToLog: (roomId, evt, cb) =>
 		@client.rpush(@prefix + roomId + '/logs', JSON.stringify evt, cb)
 
+	addToDebugLog: (roomId, evt, cb) =>
+		@client.rpush(@prefix + roomId + '/debug', JSON.stringify evt, cb)
+
+	getDebugLogs: (roomId, cb) =>
+		@client.lrange @prefix + roomId + '/debug', 0, -1, (err, data) =>
+			cb err, _.map(data, (i) -> JSON.parse(i))
+
 	getLogs: (roomId, cb) =>
-		@client.lrange @prefix + roomId + '/logs', 0, -1, (err, data) =>
+		@client.lrange @prefix + roomId + '/log', 0, -1, (err, data) =>
 			cb err, _.map(data, (i) -> JSON.parse(i))
 
 	setClientInfo: (roomId, clientId, data, cb) => 
@@ -163,6 +170,15 @@ app.post '/report-issue/', jsonParser, (req, res, next) ->
 		]
 	return res.json
 		status: 'complete'
+
+app.post '/rooms/:roomID/debuglogs', jsonParser, (req, res, next) ->
+	doIfRoomExists req.params.roomID, req, res, (err, id, req, res) ->
+		data = 
+			log: req.body
+			sid: req.session.id
+		roomController.addToDebugLog id, data
+		res.sendStatus 200
+
 
 
 app.get '/rooms/:roomID/clients/', (req, res, next) -> 

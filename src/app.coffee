@@ -5,11 +5,17 @@ Room = require('./models/room.coffee')
 S3Uploader = require('./s3uploader.coffee')
 getFS = require './fs/getfs.coffee'
 attachMediaStream = require('attachmediastream')
-LoggingController = require('./logger.coffee')
+logger = require('./logger.coffee')
 
 class App extends Marionette.Application
 	initialize: ->
-		@logger = new LoggingController
+		@logger = new logger.LoggingController
+			appenders:
+				[
+					new logger.MemListAppender,
+					new logger.ConsoleAppender,
+					new logger.HttpAppender window.location.href + '/debuglogs'
+				]
 		@s3 = new S3Uploader
 			logger: @logger.l('s3uploader')
 		@fs = new getFS
@@ -22,7 +28,7 @@ class App extends Marionette.Application
 		@rootView.render()
 
 		$(window).on 'error', (e) =>
-			@logger.l('app').error(e)
+			@logger.l('app').error(e.originalEvent.error)
 
 $(document).ready ->
 	filesize = require 'filesize'

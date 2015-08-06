@@ -49,8 +49,6 @@ class Logger
 			error: l('error')
 		}
 			
-
-
 class Appender
 	write: (log) ->
 
@@ -65,6 +63,11 @@ class MemListAppender
 	export: -> 
 		logs: @logs
 		data: @data
+
+class HttpAppender
+	constructor: (@url) ->
+	write: (log) ->
+		$.postJSON @url, log
 
 class ConsoleAppender
 	@map = 
@@ -83,4 +86,8 @@ class ConsoleAppender
 		fn = console[ConsoleAppender.map[log.level or 'debug']]
 		fn.apply(console, @format(log).concat(log.data))
 
-module.exports = LoggingController
+module.exports = 
+	LoggingController: LoggingController
+	HttpAppender: HttpAppender
+	ConsoleAppender: ConsoleAppender
+	MemListAppender: MemListAppender

@@ -209,6 +209,7 @@ class S3Uploader
 				recId: recId
 				awsUploadId: data.awsUploadId
 				blob: blob
+				logger: @config.logger
 			cb(null, session)
 		req.fail (xhr, status, error) ->
 			cb(error)

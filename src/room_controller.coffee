@@ -5,7 +5,7 @@ io = require('socket.io-client')
 util = require('util')
 LocalMedia = require('localmedia')
 PeerConnection = require 'rtcpeerconnection'
-LoggingController = require './logger.coffee'
+logger = require './logger.coffee'
 
 # class FileReceiveSession extends WildEmitter
 # 	constructor: (@peer, @fileID) ->
@@ -330,7 +330,7 @@ class RoomController extends WildEmitter
 
 		@capabilities = webrtcSupport
 		@peers = {}
-		@logger = @config.logger ? new LoggingController
+		@logger = @config.logger ? new logger.LoggingController
 
 		lmConf = _.extend {}, @config, {logger: @logger.l('localmedia').adapt()}
 		@localMedia = new LocalMedia lmConf
