@@ -60,7 +60,6 @@ class Room extends Backbone.Model
 
 
 		@recordingController.on 'stopped', (rec) =>
-			debugger
 
 			rec.upload()
 			log = null
