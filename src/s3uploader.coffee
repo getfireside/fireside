@@ -1,30 +1,22 @@
 LoggingController = require './logger.coffee'
 moment = require 'moment'
+EtaTracker = require('./utils.coffee').EtaTracker
 
 putBlob = (url, blob, progressFn=$.noop, cb) ->
 	blob = new Blob([blob])
 	xhr = new XMLHttpRequest
 	xhr.open "PUT", url, true
 	lastProg = [moment(), 0] 
-	expMovingAverage = null
+	tracker = new EtaTracker(0, blob.size)
+	
 	onprogress = (prog) ->
-		d = moment()
-		currentSpeed = (prog.loaded - lastProg[1]) / (d.diff(lastProg[0]) / 1000)
-		console.log "current speed:", currentSpeed, 'bytes / sec'
-		if not expMovingAverage?
-			expMovingAverage = currentSpeed
-		lastProg = [d, prog.loaded]
-		expMovingAverage = 0.005 * currentSpeed + (0.995) * expMovingAverage
-		console.log "av speed:", expMovingAverage, 'bytes / sec'
-		eta = moment().add((prog.total - prog.loaded) / expMovingAverage, 'seconds')
-		console.log "eta:", eta.fromNow()
+		tracker.update(prog.loaded, prog.total)
 		progressFn 
 			loaded: prog.loaded
 			total: prog.total
-			speed: currentSpeed
-			avSpeed: expMovingAverage
+			speed: tracker.currentSpeed
+			avSpeed: tracker.averageSpeed
 			percent: (prog.loaded / prog.total)
-			eta: eta
 		return true
 	xhr.upload.onprogress = onprogress
 
@@ -66,6 +58,8 @@ class S3UploadSession
 			else
 				@parts[n] = {size: @uploader.config.partSize}
 
+		@etaTracker = new EtaTracker(0, opts.blob.size)
+
 		completedParts = _.mapObject opts.completedParts ? {}, (data, partNo) -> _.extend {}, data, 
 			progress: 
 				loaded: 0
@@ -90,15 +84,14 @@ class S3UploadSession
 			speed += info.progress?.speed ? 0
 			avSpeed += info.progress?.avSpeed ? 0
 
-		console.log 'avspeed: ', avSpeed
-
-		eta = moment().add((@blob.size - loaded) / avSpeed)
+		eta = @etaTracker.update(loaded)
 
 		return {
 			loaded: loaded
 			total: @blob.size
 			eta: eta
 			speed: speed
+			avSpeed: @etaTracker.averageSpeed
 		}
 
 	uploadPart: (number, blob, cb, progressCb) ->

@@ -59,11 +59,10 @@ class RoomView extends Marionette.LayoutView
 		@model.recordingController.on 'started', (rec) => @statusManager.setStatus 'recording', {duration:0, size:0}
 		@model.recordingController.on 'tick', (rec) => @statusManager.setStatus 'recording', {duration: rec.duration, size: rec.get 'filesize'}
 		@model.recordingController.on 'stopped', (rec) => @statusManager.removeStatus 'recording'
-
 		@model.recordingCollection.on 'uploadStarted', (rec) => 
 			@statusManager.setStatus 'upload', {complete:false, progress: '0%'}
 		@model.recordingCollection.on 'uploadProgress', (rec, prog) => 
-			@statusManager.setStatus 'upload', {complete:false, progress: (prog.loaded / prog.total)*100 + '%', eta: prog.eta, speed: prog.speed}
+			@statusManager.setStatus 'upload', {complete:false, progress: (prog.loaded / prog.total)*100 + '%', eta: prog.eta, speed: prog.avSpeed}
 		@model.recordingCollection.on 'uploadComplete', (rec, url) => 
 			@statusManager.setStatus 'upload', {complete:true, progress: '100%'}
 			@statusManager.queueRemove 'upload', 2500
