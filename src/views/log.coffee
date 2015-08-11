@@ -18,9 +18,11 @@ class DefaultLogView extends Marionette.ItemView
 		if not data.from 
 			data.from = 'self'
 			data.fromName = @options.parent.roomView.model.self.get('name')
+			data.isSelf = true
 		else
 			firstAttempt = @options.parent.roomView.getUserCollection().get(data.from)?.get('name')
 			data.fromName = firstAttempt ? @options.parent.roomView.model.historicalClients[data.from].name
+			data.isSelf = data.from == @options.parent.roomView.model.self.id
 		return data
 
 class RecordingLogView extends DefaultLogView

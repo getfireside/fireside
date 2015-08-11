@@ -290,6 +290,9 @@ class Peer extends WildEmitter
 		@resources = resources
 		@emit "peerResourcesUpdated", @
 
+	toJSON: =>
+		{@resources, @info, @id, @sid, @enableDataChannels, @receiveMedia, @role, @recordingStatus, @channels, @pc, @closed, @streamClosed}
+
 
 
 class RoomController extends WildEmitter

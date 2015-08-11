@@ -17,8 +17,11 @@ class StatusManager extends Marionette.CollectionView
 	getChildView: (item) -> statusViews.getFromType(item.id)
 
 	setStatus: (type, data) ->
+		# dobn't overwrite errors.
 		data.id = type
-		@currentStatuses.set [data]
+		@currentStatuses.add [data], {merge: true}
+
+	getStatus: (type) -> @currentStatuses.get type
 
 	removeStatus: (type) -> @currentStatuses.remove type
 	queueRemove: (type, time) -> setTimeout((=> @removeStatus(type)), time)
@@ -46,26 +49,53 @@ class RoomView extends Marionette.LayoutView
 		# @model.roomController.on 'streamAdded', @callView.handleRemoteStreamStart
 		# @model.roomController.on 'streamRemoved', @callView.handleRemoteStreamEnd
 
+
+		# connectivity.
+
 		@model.roomController.connection.on 'disconnect', =>
 			@statusManager.setStatus 'connection', {error:true}
 		@statusManager.on 'childview:retryConnection', => @model.roomController.connection.socket.reconnect()
 
 		@model.roomController.connection.on 'reconnect_failed', => @statusManager.setStatus 'connection', {error:true, reconnecting: false}
 		@model.roomController.connection.on 'reconnecting', => @statusManager.setStatus 'connection', {reconnecting: true}
+
+
+		# remote errors.
+
+		@model.roomController.on 'event', (evt) =>
+			ctx = {error:evt.data, from: evt.from}
+			if evt.type == 'error'
+				@statusManager.setStatus 'remote-error', ctx
+
+		# local errors.
+
+		@model.on 'error', (error) =>
+			debugger
+			@statusManager.setStatus 'error', {error}
+
 		@model.roomController.connection.on 'reconnect', =>
 			@statusManager.setStatus 'connection', {error:false}
 			@statusManager.queueRemove 'connection', 2500
 
+
+		# recording status
+
 		@model.recordingController.on 'started', (rec) => @statusManager.setStatus 'recording', {duration:0, size:0}
 		@model.recordingController.on 'tick', (rec) => @statusManager.setStatus 'recording', {duration: rec.duration, size: rec.get 'filesize'}
 		@model.recordingController.on 'stopped', (rec) => @statusManager.removeStatus 'recording'
+
+
+		# upload status
+
 		@model.recordingCollection.on 'uploadStarted', (rec) => 
-			@statusManager.setStatus 'upload', {complete:false, progress: '0%'}
+			@statusManager.setStatus 'upload', {uploading:true, progress: '0%'}
 		@model.recordingCollection.on 'uploadProgress', (rec, prog) => 
-			@statusManager.setStatus 'upload', {complete:false, progress: (prog.loaded / prog.total)*100 + '%', eta: prog.eta, speed: prog.avSpeed}
+			@statusManager.setStatus 'upload', {uploading:true, progress: (prog.loaded / prog.total)*100 + '%', eta: prog.eta, speed: prog.avSpeed}
 		@model.recordingCollection.on 'uploadComplete', (rec, url) => 
-			@statusManager.setStatus 'upload', {complete:true, progress: '100%'}
+			@statusManager.setStatus 'upload', {uploading:false, progress: '100%'}
 			@statusManager.queueRemove 'upload', 2500
+
+
 
 		is_firefox = navigator.userAgent.toLowerCase().indexOf('firefox') > -1;
 

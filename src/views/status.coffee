@@ -5,22 +5,32 @@ class StatusView extends Marionette.ItemView
 		change: 'render'
 	onRender: ->
 		@el.className = @className()
+	className: -> @getClassNames().join(' ')
+	getClassNames: -> ['status'].concat(if @model.get 'error' then 'error' else [])
 
 class ConnectionStatusView extends StatusView
 	template: Handlebars.templates['status-connection']
-	className: -> 'status connection' + (if @model.get 'error' then ' error' else ' success')
+	getClassNames: -> super().concat('connection')
 	triggers: ->
 		"click .retry": "retry"
 
 class RecordingStatusView extends StatusView
 	template: Handlebars.templates['status-recording']
-	className: -> 'status recording'
+	getClassNames: -> super().concat('recording')
+
+class ErrorStatusView extends StatusView
+	template: Handlebars.templates['status-error']
+	getClassNames: -> super().concat('error')
+
+class RemoteErrorStatusView extends StatusView
+	template: Handlebars.templates['status-remote-error']
+	getClassNames: -> super().concat('error remote')
 
 class UploadStatusView extends StatusView
 	template: Handlebars.templates['status-upload']
-	className: -> 'status upload'
+	getClassNames: -> super().concat('upload')
 	initialize: (options) ->
-		if not @model.get 'complete'
+		if not @model.get 'uploading'
 			@_timer = setInterval(@render, 1000)
 
 	render: ->
@@ -36,14 +46,18 @@ class UploadStatusView extends StatusView
 		return @
 
 	onRender: ->
-		if @model.get 'complete'
+		if not @model.get 'uploading'
 			clearInterval @_timer
+
+
 		
 
 _types = 
 	connection: ConnectionStatusView
 	recording: RecordingStatusView
 	upload: UploadStatusView
+	error: ErrorStatusView
+	'remote-error': RemoteErrorStatusView
 
 getFromType = (type) -> return _types[type]
 

@@ -33,9 +33,10 @@ class RecordingController extends WildEmitter
 			@logger.info 'Stream added- ready to record!'
 
 		p.catch (error) =>
+			# let's let everyone know this happened.
 			@logger.l('fs').error 'Failed to open FS!'
-			@logger.l('fs').error error.target.error.message
-			alert('An error occurred when preparing to record to disk: ' + error.target.error.message)
+			@logger.l('fs').error error.message
+			@emit 'error', {message: error.userMessage or "Couldn't open filesystem to write to disk", details: error.message, err: error}
 
 	onStart: (e) =>
 		@currentRecording.set 'started', new Date
@@ -51,7 +52,8 @@ class RecordingController extends WildEmitter
 		@logger.info "Wrote #{e.data.size} bytes."
 		@currentRecording.appendBlob e.data, (err) ->
 			if err
-				console.error(err)
+				@logger.err err
+				@emit 'error', {message: err.userMessage or err.name, details: err.message, err: err}
 
 	onStop: (e) =>
 		clearInterval @_int
@@ -61,7 +63,8 @@ class RecordingController extends WildEmitter
 					@logger.log "fixed wave file!"
 					@emit 'stopped', @currentRecording
 				else
-					@logger.error ["error with wave file", err]
+					@logger.error "problem writing wavefile header"
+					@emit 'error', {message: "Problem writing wavefile header", details: err.message, err: err}
 					@emit 'stopped', @currentRecording
 		else
 			@emit 'stopped', @currentRecording

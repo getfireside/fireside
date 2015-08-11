@@ -175,6 +175,14 @@ class Room extends Backbone.Model
 		@roomController.on 'joinedRoom', (role) =>
 			@roomController.startLocalMedia(@get('mode'), (err, stream) => @trigger 'localStreamUpdated', @get('mode'), stream)
 
+		@recordingController.on 'error', (err) => @trigger 'error', err
+		@on 'error', (error) ->
+			@sendEvent
+				type: 'error'
+				data: error
+
+
+
 	getUserCollection: -> @userCollection 
 	getLogCollection: -> @logCollection
 	sendMsg: (msg) -> 
@@ -185,6 +193,10 @@ class Room extends Backbone.Model
 	sendEvent: (evt) ->
 		@roomController.sendEvent evt
 		@logCollection.add new LogEvent evt
+
+
+
+
 
 
 

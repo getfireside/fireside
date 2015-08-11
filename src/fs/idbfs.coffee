@@ -1,4 +1,16 @@
-class IDBFile
+{FSError, LookupError, DiskSpaceError, FSFile, FS} = require './fs.coffee'
+
+translateError = (err) ->
+    return switch err.name
+        when 'QuotaExceededError'
+            new DiskSpaceError().wrap(err)
+        when 'NotFoundError'
+            new LookupError().wrap(err)
+        else
+            new FSError().wrap(err)
+
+
+class IDBFile extends FSFile
     constructor: (@path, @writer) ->
 
     append: (blob) ->
@@ -10,8 +22,7 @@ class IDBFile
                 result = e.target.result
                 fulfil(result)
             req.onerror = (e) ->
-                console.log 'error adding', e 
-                reject(e)
+                reject(translateError(e.target))
 
     write: (blob, pos) ->
         # IMPLEMENT ME PROPERLY!
@@ -31,10 +42,10 @@ class IDBFile
                         cur.update(o)
                         fulfil()
                     else
-                        reject("Cursor is false.")
+                        reject(new FSError(("Cursor is false.")))
 
             else
-                reject(new Error("Not implemented yet!"))
+                reject(new FSError("Not implemented yet!"))
 
     readEach: (f, done, onerror) ->
         @_getCursor true, (e) ->
@@ -60,10 +71,10 @@ class IDBFile
             index = @writer._getObjectStore(ro).index("filename")
             curReq = index.openCursor(IDBKeyRange.only(@path))
             curReq.onsuccess = onsuccess
-            curReq.onerror = onerr
+            curReq.onerror = (e) -> onerr(translateError(e.target))
 
 
-class IDBFS
+class IDBFS extends FS
     constructor: (opts) ->
         @dbname = opts.dbname
         @logger = opts.logger
@@ -90,7 +101,7 @@ class IDBFS
                 @db = event.target.result
                 fulfil(@)
 
-            openRequest.onerror = reject
+            openRequest.onerror = (evt) -> reject(translateError(e.target))
 
     _getObjectStore: (ro=false) -> 
         transaction = @db.transaction ["chunks"], (if ro then "readonly" else "readwrite")

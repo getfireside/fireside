@@ -43,7 +43,7 @@ class Logger
 		l = (level) =>
 			return =>
 				@log arguments,
-					level: name
+					level: level
 		return {
 			log: l('debug')
 			error: l('error')

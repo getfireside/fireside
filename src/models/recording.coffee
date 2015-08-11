@@ -21,14 +21,18 @@ class Recording extends Backbone.Model
 		return ((if s then new Date(s) else new Date()) - new Date(@get('started'))) / 1000
 
 	appendBlob: (blob, cb) ->
-		fireside.fs.getFile(@getFilename()).then (f) =>
-			p = f.append(blob)
-			p.then (e) => 
-				@set 'filesize', (@get('filesize') or 0) + blob.size
-				@save() 
-				cb(null, e)
-			p.catch (e) =>
-				cb(e)
+		fireside.fs.getFile(@getFilename())
+			.then (f) =>
+				f.append(blob)
+					.then (e) => 
+						@set 'filesize', (@get('filesize') or 0) + blob.size
+						@save() 
+						cb(null, e)
+					.catch (e) =>
+						console.error(e)
+						cb(e)
+			.catch (e) ->
+				throw e
 
 	overwriteHeader: (blob, cb) ->
 		fireside.fs.getFile(@getFilename()).then (f) ->
