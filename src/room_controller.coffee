@@ -306,6 +306,8 @@ class RoomController extends WildEmitter
 			enableDataChannels: true
 			peerConnectionConfig:
 				iceServers: [
+					{url: 'turn:fr.sd:3478'},
+					{url: 'turn:numb.viagenie.ca', credential: 'muazkh', username: 'webrtc@live.com'},
 					{url: "stun:stun.l.google.com:19302"},
 					{url: "stun:stun1.l.google.com:19302"},
 					{url: "stun:stun2.l.google.com:19302"},
@@ -313,8 +315,6 @@ class RoomController extends WildEmitter
 					{url: "stun:stun4.l.google.com:19302"},
 					{url: "stun:stunserver.org"},
 					{url: "stun:stun.services.mozilla.com"},
-					{url: 'turn:fr.sd:3478'},
-					{url: 'turn:numb.viagenie.ca', credential: 'muazkh', username: 'webrtc@live.com'},
 				]
 
 			peerConnectionConstraints: 
