@@ -307,13 +307,7 @@ class RoomController extends WildEmitter
 			peerConnectionConfig:
 				iceServers: [
 					{url: 'turn:fr.sd:3478'},
-					{url: 'turn:numb.viagenie.ca', credential: 'muazkh', username: 'webrtc@live.com'},
 					{url: "stun:stun.l.google.com:19302"},
-					{url: "stun:stun1.l.google.com:19302"},
-					{url: "stun:stun2.l.google.com:19302"},
-					{url: "stun:stun3.l.google.com:19302"},
-					{url: "stun:stun4.l.google.com:19302"},
-					{url: "stun:stunserver.org"},
 					{url: "stun:stun.services.mozilla.com"},
 				]
 
