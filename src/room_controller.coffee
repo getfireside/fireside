@@ -313,7 +313,7 @@ class RoomController extends WildEmitter
 					{url: "stun:stun4.l.google.com:19302"},
 					{url: "stun:stunserver.org"},
 					{url: "stun:stun.services.mozilla.com"},
-					{url: 'turn:test.getfireside.co:3478', credential: 'fireside', username: 'fireside'}
+					{url: 'turn:fr.sd:3478', credential: 'yakk', username: 'yakk'}
 				]
 
 			peerConnectionConstraints: 
@@ -324,7 +324,7 @@ class RoomController extends WildEmitter
 			receiveMedia: 
 				mandatory:
 					OfferToReceiveAudio: true
-					OfferToReceiveVideo: true
+					OfferToReceiveVideo: false
 
 
 		@config = _.extend {}, @defaults, config 

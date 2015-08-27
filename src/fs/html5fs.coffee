@@ -2,9 +2,9 @@
 
 translateError = (err) ->
     return switch err.name
-        when 'QuotaExceededError'
+        when 'QUOTA_EXCEEDED_ERR'
             DiskSpaceError.wrap(err)
-        when 'NotFoundError'
+        when 'NOT_FOUND_ERR'
             LookupError.wrap(err)
         else
             FSError.wrap(err)
@@ -87,7 +87,7 @@ class HTML5FS extends FS
 
     write: (path, blob, opts={}) ->
         return new Promise (fulfil, reject) =>
-            handleErr = (err) -> reject(translateError(err))
+            handleErr = (err) -> reject(translateError(if err instanceof ProgressEvent then err.currentTarget.error else err))
             _write = (entry) ->
                 entry.createWriter (writer) ->
                     writer.onerror = handleErr

@@ -6,7 +6,7 @@ S3Uploader = require('./s3uploader.coffee')
 getFS = require './fs/getfs.coffee'
 attachMediaStream = require('attachmediastream')
 logger = require('./logger.coffee')
-formatLength = require('./utils.coffee').formatLength
+{formatLength, formatDuration} = require('./utils.coffee')
 moment = require 'moment'
 
 class App extends Marionette.Application
@@ -37,6 +37,7 @@ $(document).ready ->
 	Handlebars.registerHelper 'formatBytes', (b) -> filesize(b or 0)
 	Handlebars.registerHelper 'formatRate', (b) -> filesize(b or 0) + '/s'
 	Handlebars.registerHelper 'formatTime', (m, s) -> m.format s
+	Handlebars.registerHelper 'formatDuration', (t) -> formatDuration t
 	Handlebars.registerHelper 'timeUntil', (m) -> m and formatLength(m.diff(moment(), 'seconds'))
 	Handlebars.registerHelper 'equals', (a, b) -> a == b
 	Handlebars.registerHelper 'percent', (v) -> v * 100

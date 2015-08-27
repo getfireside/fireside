@@ -48,6 +48,7 @@
     "signal-master": "^0.2.2",
     "socket.io": "^1.3.5",
     "socket.io-client": "^1.3.5",
+    "tocktimer": "^1.0.7",
     "underscore": "^1.8.3",
     "util": "^0.10.3",
     "vinyl-buffer": "^1.0.0",

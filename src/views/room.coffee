@@ -70,7 +70,6 @@ class RoomView extends Marionette.LayoutView
 		# local errors.
 
 		@model.on 'error', (error) =>
-			debugger
 			@statusManager.setStatus 'error', {error}
 
 		@model.roomController.connection.on 'reconnect', =>
@@ -81,7 +80,7 @@ class RoomView extends Marionette.LayoutView
 		# recording status
 
 		@model.recordingController.on 'started', (rec) => @statusManager.setStatus 'recording', {duration:0, size:0}
-		@model.recordingController.on 'tick', (rec) => @statusManager.setStatus 'recording', {duration: rec.duration, size: rec.get 'filesize'}
+		@model.recordingController.on 'tick', (rec, duration) => @statusManager.setStatus 'recording', {duration: duration, size: rec.get 'filesize'}
 		@model.recordingController.on 'stopped', (rec) => @statusManager.removeStatus 'recording'
 
 

@@ -1,8 +1,18 @@
 moment = require 'moment'
 attachMediaStream = require 'attachmediastream'
+pad = (num, size) ->
+    s = num + ""
+    while (s.length < size) 
+        s = "0" + s
+    return s
 #View = require '../view.coffee'
 
 formatDiff = (a, b) -> moment.utc(b - a).format("HH:mm:ss")
+formatDuration = (totalsecs) ->
+	hours = Math.floor(totalsecs / 3600)
+	mins = Math.floor(Math.floor(totalsecs % 3600) / 60)
+	secs = Math.floor(totalsecs % 60)
+	return [pad(hours, 2), pad(mins, 2), pad(secs, 2)].join(':')
 
 
 class ControlsPane extends Marionette.LayoutView
@@ -65,17 +75,25 @@ class ControlsView extends Marionette.ItemView
 
 		@recordingController.on 'ready', =>
 			@$('button.recorder').removeAttr 'disabled'
+			@$('button.recorder').removeClass 'stop'
+			@$('button.recorder span.text').text('Record')
+			@$('button.recorder time').html('')
+
+		@recordingController.on 'stopping', =>
+			@$('button.recorder').attr 'disabled', 'disabled'
+			@$('button.recorder span.text').text('Stopping...')
 
 		@recordingController.on 'started', (recording) =>
 			@$('button.recorder span.text').text('Stop')
 			@$('button.recorder').addClass 'stop'
-			timer = setInterval((=> @$('button.recorder time').html(formatDiff(new Date(recording.get('started')), new Date()))), 1000)
+			# timer = setInterval((=> @$('button.recorder time').html(formatDiff(new Date(recording.get('started')), new Date()))), 1000) replace with tick!
+
+		@recordingController.on 'tick', (recording, duration) =>
+			@$('button.recorder time').html(formatDuration(duration))
+
 
 		@recordingController.on 'stopped', =>
-			clearInterval timer
-			@$('button.recorder').removeClass 'stop'
-			@$('button.recorder span.text').text('Record')
-			@$('button.recorder time').html('')
+			# nothing to do here
 
 		@roomView.model.self.on 'change:role', => 
 			@render()

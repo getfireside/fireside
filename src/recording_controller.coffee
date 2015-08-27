@@ -2,6 +2,7 @@ WildEmitter = require 'wildemitter'
 moment = require 'moment'
 WAVAudioRecorder = require './recorders/wav/recorder.coffee'
 LoggingController = require './logger.coffee'
+Tock = require 'tocktimer'
 
 class RecordingController extends WildEmitter
 	constructor: (@room, @collection, config={}) ->
@@ -13,6 +14,9 @@ class RecordingController extends WildEmitter
 		@fs = @room.app.fs
 
 	addStream: (stream, type) -> 
+		# for now just prevent stream from being added after we already have one.
+		if @mediaRecorder?
+			throw new Error("Already have a stream.")
 		p = @fs.open()
 		p.then =>
 			@logger.l('fs').log('Opened filesystem successfully.')
@@ -41,22 +45,23 @@ class RecordingController extends WildEmitter
 	onStart: (e) =>
 		@currentRecording.set 'started', new Date
 		@logger.info 'Recording started.'
+		@timer.start()
 		@emit 'started', @currentRecording
-		@_int = setInterval @onTick, 1000
 
 	onTick: =>
-		@emit 'tick', @currentRecording
+		@emit 'tick', @currentRecording, @currentRecording.duration()
 
 	onDataAvailable: (e) =>
 		console.log "got blob,", e.data.size
 		@logger.info "Wrote #{e.data.size} bytes."
-		@currentRecording.appendBlob e.data, (err) ->
+		@currentRecording.appendBlob e.data, (err) =>
 			if err
-				@logger.err err
+				@logger.error err
 				@emit 'error', {message: err.userMessage or err.name, details: err.message, err: err}
+				@stop()
 
 	onStop: (e) =>
-		clearInterval @_int
+		@timer.stop()
 		if @mediaRecorder instanceof WAVAudioRecorder
 			@mediaRecorder.fixWaveFile @currentRecording, (err) =>
 				if not err
@@ -71,18 +76,28 @@ class RecordingController extends WildEmitter
 		@currentRecording.set 'stopped', new Date
 		@logger.info "Recording completed - length: #{@currentRecording.duration()} secs; size: #{@currentRecording.get 'filesize'} bytes"
 		@status = 'ready'
+		@emit 'ready'
 
 	start: ->
-		if @status != 'started'
+		if @status == 'ready'
+			@timer = new Tock
+				callback: @onTick
+				interval: 10
 			@currentRecording = @collection.create
 				roomId: @room.id
 				type: if @mediaRecorder instanceof WAVAudioRecorder then 'audio/wav' else 'video/webm'
 			@mediaRecorder.start(@config.recordingPeriod)
 			@status = 'started'
+		else
+			@logger.warn "Not ready to start."
 
 	stop: ->
-		@status = 'stopping'
-		@mediaRecorder.stop()
+		if @status == 'started'
+			@emit 'stopping'
+			@status = 'stopping'
+			@mediaRecorder.stop()
+		else
+			@logger.warn "Not started!"
 
 
 module.exports = RecordingController

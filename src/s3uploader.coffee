@@ -156,6 +156,7 @@ class S3UploadSession
 				# retry
 				@logger.log ["Error uploading blob ##{num}:", err]
 				@logger.log "Retrying..."
+				blob = @getNthBlob(num)
 				@uploadPart(num, blob, onBlobUpload, progressCb)
 				return
 

@@ -10,6 +10,12 @@ sum = (arr) -> arr.reduce (a, b) -> a + b
 
 formatLength = (difference) -> pad(Math.floor(difference / 60), 2) + ':' + pad(Math.round(difference % 60), 2)
 
+formatDuration = (totalsecs) ->
+	hours = Math.floor(totalsecs / 3600)
+	mins = Math.floor(Math.floor(totalsecs % 3600) / 60)
+	secs = Math.floor(totalsecs % 60)
+	return [pad(hours, 2), pad(mins, 2), pad(secs, 2)].join(':')
+
 class EtaTracker
 	constructor: (@progress=0, @total=0, @currentSpeed=0) ->
 		@averageSpeed = @currentSpeed or null
@@ -54,4 +60,4 @@ class EtaTracker
 		eta.add(timeLeft, 'seconds')
 		return eta
 
-module.exports = {pad, formatLength, EtaTracker}
+module.exports = {pad, formatLength, formatDuration, EtaTracker}

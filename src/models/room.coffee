@@ -150,11 +150,10 @@ class Room extends Backbone.Model
 					if evt.data.subtype == 'stopped'
 						lastStoppedLog = log
 				if evt.data.subtype == 'upload-progress' or evt.data.subtype == 'upload-complete'
-					console.log lastStoppedLog
 					# attempt to find the correct log event and update it
 					if lastStoppedLog
 						if evt.data.subtype == 'upload-progress'
-							lastStoppedLog.set 'data', _.extend {}, lastStoppedLog.get('data'), {progress:evt.data.progress}
+							lastStoppedLog.set 'data', _.extend {}, lastStoppedLog.get('data'), {progress: evt.data.progress.loaded / evt.data.progress.total}
 						if evt.data.subtype == 'upload-complete'
 							lastStoppedLog.set 'data', _.extend {}, lastStoppedLog.get('data'), {url: evt.data.url}
 

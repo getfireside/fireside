@@ -29,7 +29,6 @@ class Recording extends Backbone.Model
 						@save() 
 						cb(null, e)
 					.catch (e) =>
-						console.error(e)
 						cb(e)
 			.catch (e) ->
 				throw e

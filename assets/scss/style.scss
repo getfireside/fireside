@@ -86,6 +86,7 @@ div#statusArea {
 		text-align: center;
 		font-weight: bold;
 		color: white;
+		position: relative;
 		background: rgba(#9455A6, 0.67);
 		&.error {
 			background: rgba(#C62F2F, 0.67);

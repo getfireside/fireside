@@ -1,5 +1,5 @@
 {{#if complete}}
-Recording complete! {{duration}} | {{formatBytes size}}. Getting ready to upload...
+Recording complete! {{formatDuration duration}} | {{formatBytes size}}. Getting ready to upload...
 {{else}}
-Recording in progress... {{duration}} | {{formatBytes size}}
+Recording in progress... {{formatDuration duration}} | {{formatBytes size}}
 {{/if}}
