@@ -22,7 +22,7 @@ class App extends Marionette.Application
 			logger: @logger.l('s3uploader')
 		@fs = new getFS
 			logger: @logger.l 'recordingcontroller:fs'
-		@room = new Room $('body').attr('data-room-id'), @
+		@room = new Room $('body').attr('data-room-id'), $('body').attr('data-room-mode'), @
 
 		@rootView = new RoomView
 			model: @room

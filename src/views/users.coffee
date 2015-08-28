@@ -32,6 +32,7 @@ class UserItemView extends Marionette.ItemView
 		if @model.peer.resources.video
 			el = @$('video')[0]
 			@$('video').show()
+			@$('img').hide()
 		else
 			el = @$('audio')[0]
 		attachMediaStream @model.peer.stream, el

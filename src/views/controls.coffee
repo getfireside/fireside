@@ -1,5 +1,6 @@
 moment = require 'moment'
 attachMediaStream = require 'attachmediastream'
+formatDuration = (require '../utils.coffee').formatDuration
 pad = (num, size) ->
     s = num + ""
     while (s.length < size) 
@@ -8,11 +9,6 @@ pad = (num, size) ->
 #View = require '../view.coffee'
 
 formatDiff = (a, b) -> moment.utc(b - a).format("HH:mm:ss")
-formatDuration = (totalsecs) ->
-	hours = Math.floor(totalsecs / 3600)
-	mins = Math.floor(Math.floor(totalsecs % 3600) / 60)
-	secs = Math.floor(totalsecs % 60)
-	return [pad(hours, 2), pad(mins, 2), pad(secs, 2)].join(':')
 
 
 class ControlsPane extends Marionette.LayoutView
@@ -37,8 +33,10 @@ class SelfView extends Marionette.ItemView
 	constructor: (@roomView, opts) ->
 		super opts
 		@roomView.model.on 'localStreamUpdated', (type, stream) =>
-			if type.video
+			if type == 'video'
 				el = @$('video')[0]
+				@$('video').show()
+				@$('img').hide()
 			else
 				el = @$('audio')[0]
 			attachMediaStream stream, el, 

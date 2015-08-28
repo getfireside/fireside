@@ -37,14 +37,21 @@ class RoomController
 		console.log "checking if", @prefix + roomId, 'exists...'
 		@client.exists @prefix + roomId, cb
 
-	createRoom: (owner=null, cb) =>
+	createRoom: (owner=null, info, cb) =>
 		key = randomstring.generate 9
-		@client.set @prefix + key, 1, (err, res) =>
+		@client.set @prefix + key, JSON.stringify(info), (err, res) =>
 			if not owner
 				cb(err, key, res)
 			else
 				@setHost key, owner, (err, res) ->
 					cb(err, key, res)
+
+	getInfo: (roomId, cb) =>
+		@client.get @prefix + roomId, (err, res) ->
+			if err
+				cb(err)
+			else
+				cb(null, JSON.parse(res))
 
 	addToLog: (roomId, evt, cb) =>
 		@client.rpush(@prefix + roomId + '/logs', JSON.stringify evt, cb)
@@ -112,7 +119,8 @@ class RoomController
 						(cb) => @getHost roomId, cb
 						(cb) => @getInterviewees roomId, cb
 						(cb) => @getClients roomId, cb
-					], (err, results) -> cb(null, {host: results[0], interviewees: results[1], clients: results[2]})
+						(cb) => @getInfo roomId, cb
+					], (err, results) -> cb(null, {host: results[0], interviewees: results[1], clients: results[2], info: results[3]})
 
 
 
@@ -147,7 +155,8 @@ app.set('views', __dirname + '/views')
 app.get '/', (req, res) -> res.render('index') 
 
 app.post '/rooms/new', (req, res) -> 
-	roomController.createRoom req.session.id, (err, id) ->
+	mode = req.query.mode or 'audio'
+	roomController.createRoom req.session.id, {mode: mode}, (err, id) ->
 		res.redirect('/rooms/' + id)
 
 doIfRoomExists = (id, req, res, cbIfExists) ->
@@ -199,8 +208,10 @@ app.get '/rooms/:roomID/logs/', (req, res, next) ->
 
 app.get '/rooms/:roomID', (req, res) -> 
 	doIfRoomExists req.params.roomID, req, res, (err, id, req, res) ->
-		res.render 'room', 
-			roomID: id
+		roomController.getInfo id, (err, info) -> 
+			res.render 'room', 
+				roomID: id
+				mode: info.mode
 
 doIfHasRole = (id, allowedRoles, req, res, next, cb) ->
 	sid = req.session.id

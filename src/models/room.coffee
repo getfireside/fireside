@@ -11,15 +11,13 @@ lastStoppedLog = null
 
 class Room extends Backbone.Model
 	defaults = {}
-	constructor: (roomID, app) ->
+	constructor: (roomID, mode, app) ->
 		super {id: roomID, randomName: User.getRandomName()}
 		@app = app
 		@logger = app.logger
 		@logger.l('setup').info("Initializing room #{@id}")
 
-		@set 'mode', 
-			stream: 'audio'
-			record: 'audio'
+		@set 'mode', mode
 
 		@roomController = new RoomController @id, 
 			logger: @logger.l('conn')
@@ -122,7 +120,7 @@ class Room extends Backbone.Model
 			@userCollection.add {}, {peer: peer}
 
 		@roomController.on 'localStream', (stream) =>
-			@recordingController.addStream stream
+			@recordingController.addStream stream, @get 'mode'
 			@self.set 'status', 'streaming'
 
 		@roomController.on "peerRemoved", (peer) =>

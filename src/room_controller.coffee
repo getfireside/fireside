@@ -306,7 +306,7 @@ class RoomController extends WildEmitter
 			enableDataChannels: true
 			peerConnectionConfig:
 				iceServers: [
-					{url: 'turn:fr.sd:3478'},
+					{url: 'turn:fr.sd:3478', username: 'fireside', credential: 'fireside'},
 					{url: "stun:stun.l.google.com:19302"},
 					{url: "stun:stun.services.mozilla.com"},
 				]
@@ -320,7 +320,7 @@ class RoomController extends WildEmitter
 			receiveMedia: 
 				mandatory:
 					OfferToReceiveAudio: true
-					OfferToReceiveVideo: false
+					OfferToReceiveVideo: true
 
 
 		@config = _.extend {}, @defaults, config 
@@ -381,7 +381,7 @@ class RoomController extends WildEmitter
 				peer.sendDirectly channel, message, payload
 
 
-	startLocalMedia: (type='video', el, cb) ->
+	startLocalMedia: (type='video', cb) ->
 		if not @localMedia.localStreams.length
 			@emit 'requestLocalMedia'
 			@localMedia.start {video: (type == 'video'), audio: true}, (err, stream) =>
