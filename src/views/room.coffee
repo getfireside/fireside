@@ -4,6 +4,7 @@ LogView = require './log.coffee'
 statusViews = require './status.coffee'
 ControlsPane = require './controls.coffee'
 cookies = require 'cookies-js'
+{playAudio} = require '../utils.coffee'
 
 class StatusManager extends Marionette.CollectionView
 	# one status allowed per type...
@@ -93,6 +94,13 @@ class RoomView extends Marionette.LayoutView
 		@model.recordingCollection.on 'uploadComplete', (rec, url) => 
 			@statusManager.setStatus 'upload', {uploading:false, progress: '100%'}
 			@statusManager.queueRemove 'upload', 2500
+
+		@model.roomController.on 'announcePeer', =>
+			playAudio('/dist/sounds/announce.ogg')
+
+		@model.roomController.on 'event', =>
+			if document.hidden
+				playAudio('/dist/sounds/event.ogg')
 
 
 

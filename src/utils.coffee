@@ -16,6 +16,10 @@ formatDuration = (totalsecs) ->
 	secs = Math.floor(totalsecs % 60)
 	return [pad(hours, 2), pad(mins, 2), pad(secs, 2)].join(':')
 
+playAudio = (f) -> 
+	new Audio(f).play()
+	return
+
 class EtaTracker
 	constructor: (@progress=0, @total=0, @currentSpeed=0) ->
 		@averageSpeed = @currentSpeed or null
@@ -60,4 +64,4 @@ class EtaTracker
 		eta.add(timeLeft, 'seconds')
 		return eta
 
-module.exports = {pad, formatLength, formatDuration, EtaTracker}
+module.exports = {pad, formatLength, formatDuration, EtaTracker, playAudio}
