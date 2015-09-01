@@ -65,11 +65,22 @@ class ControlsView extends Marionette.ItemView
 			return Handlebars.templates['host-controls']
 		else
 			return Handlebars.templates['nonhost-controls']
+
+	updateStreamStatus: =>
+		isStarted = @roomView.model.roomController.localMediaStatus == 'started'
+		type = @roomView.model.get 'mode'
+		@$('button.stream').toggleClass('start', isStarted)
+		@$('button.stream span.toggle').html(if isStarted then 'off' else 'on')
+		@$('button.stream span.type').html(type)
+
 	constructor: (@roomView, opts) ->
 		super opts
 		timer = null
 		@recordingController = @roomView.model.recordingController
 		@roomController = @roomView.model.roomController
+
+		@roomController.localMedia.on ev, @updateStreamStatus for ev in ['audioOn', 'audioOff', 'videoOn', 'videoOff', 'localStreamStopped']
+		@roomController.on 'requestLocalMediaAccepted', @updateStreamStatus
 
 		@recordingController.on 'ready', =>
 			@$('button.recorder').removeAttr 'disabled'
@@ -96,8 +107,11 @@ class ControlsView extends Marionette.ItemView
 		@roomView.model.self.on 'change:role', => 
 			@render()
 
+		@onRender = @updateStreamStatus
+		
 
-	onButtonClick: ->
+
+	onRecordButtonClick: ->
 		if @recordingController.status == 'ready'
 			@recordingController.start()
 			@roomController.startIntervieweeRecording()
@@ -105,7 +119,17 @@ class ControlsView extends Marionette.ItemView
 			@recordingController.stop()
 			@roomController.stopIntervieweeRecording()
 
+	onStreamButtonClick: ->
+		if @roomController.localMediaStatus != 'started'
+			@roomController.startLocalMedia()
+			@roomController.changeRoomStatus 'live'
+		else
+			@roomController.stopLocalMedia()
+			@roomController.changeRoomStatus 'waiting'
+
 	events:
-		'click button.recorder': 'onButtonClick'
+		'click button.recorder': 'onRecordButtonClick'
+		'click button.stream': 'onStreamButtonClick'
+
 
 module.exports = ControlsPane

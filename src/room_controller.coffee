@@ -183,6 +183,12 @@ class Peer extends WildEmitter
 	requestRecordingStop: =>
 		@controller.connection.emit 'stopRecordingRequest', @id
 
+	requestStreamStart: =>
+		@controller.connection.emit 'startStreamRequest', @id
+
+	requestStreamStop: =>
+		@controller.connection.emit 'stopStreamRequest', @id
+
 	requestKick: =>
 		@controller.connection.emit 'kickRequest', @id
 
@@ -330,8 +336,10 @@ class RoomController extends WildEmitter
 		@capabilities = webrtcSupport
 		@peers = {}
 		@logger = @config.logger ? new logger.LoggingController
+		@mode = 'video'
 
 		lmConf = _.extend {}, @config, {logger: @logger.l('localmedia').adapt()}
+		@localMediaStatus = 'stopped'
 		@localMedia = new LocalMedia lmConf
 		@localMedia.on 'localStream', (stream) => 
 			@emit 'localStream', stream
@@ -368,6 +376,9 @@ class RoomController extends WildEmitter
 		for peer in @getInterviewees()
 			peer.requestRecordingStop()
 
+	changeRoomStatus: (status) ->
+		@connection.emit 'changeRoomStatus', status
+
 	sendToAll: (message, payload) ->
 		for peer of @peers
 			peer.send message, payload
@@ -381,7 +392,7 @@ class RoomController extends WildEmitter
 				peer.sendDirectly channel, message, payload
 
 
-	startLocalMedia: (type='video', cb) ->
+	startLocalMedia: (type=@mode, cb) ->
 		if not @localMedia.localStreams.length
 			@emit 'requestLocalMedia'
 			@localMedia.start {video: (type == 'video'), audio: true}, (err, stream) =>
@@ -390,6 +401,7 @@ class RoomController extends WildEmitter
 					@logger.error err
 					@emit 'requestLocalMediaFailed'
 				else
+					@localMediaStatus = 'started'
 					@logger.log "emitting updateResources!"
 					@connection.emit "updateResources", 
 						id: @connection.io.engine.id
@@ -397,11 +409,17 @@ class RoomController extends WildEmitter
 						video: type == 'video'
 					if cb?
 						cb(null, stream)
-					@emit 'requestLocalMediaAccepted'
+					@emit 'requestLocalMediaAccepted', @localMedia.localStreams[0]
 		else
+			@localMedia.resume()
 			# TODO: properly handle case where e.g. audio is started and video is requested
 			if cb?
 				cb(@localMedia.localStreams[0])
+
+	stopLocalMedia: ->
+		if @localMediaStatus == 'started'
+			@localMediaStatus = 'stopped' # this isn't very nice.
+			@localMedia.stop()
 
 
 	setupConnection: ->
@@ -449,17 +467,27 @@ class RoomController extends WildEmitter
 			@emit 'createdPeer', peer
 			@emit 'announcePeer', peer
 
-		@connection.on 'startRecordingRequest', (data) =>
+		checkIfHost = (data) =>
 			if @getPeer(data.host).role != 'host'
 				@logger.warn "according to local data the startRecording message didn't come from a host."
-				return
-			@emit 'startRecordingRequest'
+				return false
+			return true
+
+		@connection.on 'startRecordingRequest', (data) =>
+			checkIfHost(data) and @emit 'startRecordingRequest'
 
 		@connection.on 'stopRecordingRequest', (data) =>
-			if @getPeer(data.host).role != 'host'
-				@logger.warn "according to local data the stopRecording message didn't come from a host."
-				return
-			@emit 'stopRecordingRequest'
+			checkIfHost(data) and @emit 'stopRecordingRequest'
+
+		@connection.on 'startStreamRequest', (data) =>
+			if checkIfHost(data)
+				@startLocalMedia()
+				@emit 'startStreamRequest'
+
+		@connection.on 'stopStreamRequest', (data) =>
+			if checkIfHost(data)
+				@stopLocalMedia()
+				@emit 'stopStreamRequest'		
 
 
 		@connection.on 'updateResources', (data) =>
@@ -475,6 +503,8 @@ class RoomController extends WildEmitter
 					reject(err)
 				else
 					@role = roomData.role
+					if roomData.info.status == 'live'
+						@startLocalMedia()
 					@logger.log ["people in room", roomData.clients]
 					for id, data of roomData.clients
 						peer = @createPeer
@@ -487,7 +517,7 @@ class RoomController extends WildEmitter
 							recordingStatus: data.recordingStatus
 
 						@emit 'createdPeer', peer
-						if peer.resources.video and @getInterviewees().length <= 1
+						if peer.resources and @getInterviewees().length <= 1
 							peer.start()
 
 					fulfil(roomData)

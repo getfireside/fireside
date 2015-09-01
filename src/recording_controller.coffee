@@ -13,28 +13,36 @@ class RecordingController extends WildEmitter
 		@logger = config.logger ? new LoggingController
 		@fs = @room.app.fs
 
-	addStream: (stream, type) -> 
-		# for now just prevent stream from being added after we already have one.
-		if @mediaRecorder?
-			throw new Error("Already have a stream.")
+	setupMediaRecorder: (stream, type) ->
+		@logger.l('fs').log('Opened filesystem successfully.')
+		if @fs.getSpaceInfo?
+			@fs.getSpaceInfo().then (res) =>
+				@logger.l('fs').info("Disk usage: #{res.used} used, #{res.free} free, #{res.total} total")
+		if type == 'video' and MediaRecorder?
+			@mediaRecorder = new MediaRecorder stream
+		else
+			@mediaRecorder = new WAVAudioRecorder stream,
+				logger: @logger
+
+		@mediaRecorder.ondataavailable = @onDataAvailable
+		@mediaRecorder.onstart = @onStart
+		@mediaRecorder.onstop = @onStop
+		@status = 'ready'
+		@emit 'ready'
+		@logger.info 'Stream added- ready to record!'
+
+	addStream: (stream, type) =>
+		if @mediaRecorder? and @status == 'recording' or @status == 'stopping'
+			# tear down
+			@mediaRecorder.stop()
+			@once 'stopped', ->
+				@status = null
+				@setupMediaRecorder(stream, type)
+
 		p = @fs.open()
 		p.then =>
-			@logger.l('fs').log('Opened filesystem successfully.')
-			if @fs.getSpaceInfo?
-				@fs.getSpaceInfo().then (res) =>
-					@logger.l('fs').info("Disk usage: #{res.used} used, #{res.free} free, #{res.total} total")
-			if type == 'video' and MediaRecorder?
-				@mediaRecorder = new MediaRecorder stream
-			else
-				@mediaRecorder = new WAVAudioRecorder stream,
-					logger: @logger
-
-			@mediaRecorder.ondataavailable = @onDataAvailable
-			@mediaRecorder.onstart = @onStart
-			@mediaRecorder.onstop = @onStop
-			@status = 'ready'
-			@emit 'ready'
-			@logger.info 'Stream added- ready to record!'
+			@setupMediaRecorder(stream, type)
+			
 
 		p.catch (error) =>
 			# let's let everyone know this happened.

@@ -27,6 +27,8 @@ s3UploadsBucket = new AWS.S3
 	params: 
 		Bucket: config.uploadsBucketName
 
+# urgh so hackish, fixme.
+roomStatuses = {}
 
 class RoomController
 	constructor: ->
@@ -120,7 +122,15 @@ class RoomController
 						(cb) => @getInterviewees roomId, cb
 						(cb) => @getClients roomId, cb
 						(cb) => @getInfo roomId, cb
-					], (err, results) -> cb(null, {host: results[0], interviewees: results[1], clients: results[2], info: results[3]})
+					], (err, results) -> 
+						info = results[3]
+						info.status = roomStatuses[roomId] or 'waiting'
+						cb null, 
+							host: results[0]
+							interviewees: results[1]
+							clients: results[2]
+							info: results[3]
+
 
 
 
@@ -392,6 +402,17 @@ io.sockets.on 'connection', (client) ->
 
 	client.on 'startRecordingRequest', generateIntervieweeCommand 'startRecordingRequest'
 	client.on 'stopRecordingRequest', generateIntervieweeCommand 'stopRecordingRequest'
+	client.on 'changeRoomStatus', (status) ->
+		if client.room and client.role == 'host'
+			console.log 'CHANGING STATUS', status
+			details = {'host': client.id}
+			roomStatuses[client.room] = status
+			console.log details
+			if status == 'live'
+				client.broadcast.to(client.room).emit 'startStreamRequest', details
+			else
+				client.broadcast.to(client.room).emit 'stopStreamRequest', details
+
 	client.on 'kickRequest', (peerId) ->
 		if client.room and client.role == 'host'
 			details = 

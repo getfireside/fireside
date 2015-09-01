@@ -22,6 +22,8 @@ class Room extends Backbone.Model
 		@roomController = new RoomController @id, 
 			logger: @logger.l('conn')
 
+		@roomController.mode = mode
+
 		@self = new User
 		@userCollection = new UserCollection([], {room: @})
 		@logCollection = new LogCollection([], {room: @})
@@ -169,8 +171,11 @@ class Room extends Backbone.Model
 				type: 'announce'
 				data: @userCollection.get peer.id
 
-		@roomController.on 'joinedRoom', (role) =>
-			@roomController.startLocalMedia(@get('mode'), (err, stream) => @trigger 'localStreamUpdated', @get('mode'), stream)
+		@roomController.on 'requestLocalMediaAccepted', (stream) => 
+			@trigger 'localStreamUpdated', @get('mode'), stream
+
+		# @roomController.on 'joinedRoom', (role) =>
+		# 	@roomController.startLocalMedia(@get('mode'), (err, stream) => @trigger 'localStreamUpdated', @get('mode'), stream)
 
 		@recordingController.on 'error', (err) => @trigger 'error', err
 		@on 'error', (error) ->
