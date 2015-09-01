@@ -47,6 +47,18 @@ class IDBFile extends FSFile
             else
                 reject(new FSError("Not implemented yet!"))
 
+    remove: ->
+        return new Promise (fulfil, reject) =>
+            @_getCursor false, (e) =>
+                cur = e.target.result
+                if cur 
+                    cur.delete()
+                    cur.continue()
+                else
+                    @writer.logger.info('Deleted recording!')
+                    fulfil()
+            , reject
+
     readEach: (f, done, onerror) ->
         @_getCursor true, (e) ->
             cur = e.target.result
@@ -55,6 +67,7 @@ class IDBFile extends FSFile
                 cur.continue()
             else
                 done()
+        , onerror
 
     read: ->
         blobs = []

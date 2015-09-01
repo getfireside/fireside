@@ -48,6 +48,8 @@ class HTML5FSFile extends FSFile
                 reject
             )
 
+    remove: -> @fs.removeFile @path
+
 
 class HTML5FS extends FS
     constructor: (opts) ->
@@ -84,6 +86,15 @@ class HTML5FS extends FS
                     fulfil()
             , (err) ->
                 reject(translateError(err))
+
+    removeFile: (path) ->
+        return new Promise (fulfil, reject) =>
+            handleErr = (err) -> reject(translateError(err))
+            done = =>
+                @logger.info('Deleted recording!')
+                fulfil()
+            @fs.root.getFile path, null, (entry) ->
+                entry.remove(done, handleErr)
 
     write: (path, blob, opts={}) ->
         return new Promise (fulfil, reject) =>

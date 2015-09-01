@@ -12,6 +12,13 @@ class Recording extends Backbone.Model
 			p.then (blob) -> cb(null, blob)
 			p.catch (err) -> cb(err)
 
+	deleteBlob: (cb) ->
+		fireside.fs.getFile(@getFilename()).then (f) ->
+			p = f.remove()
+			p.then -> cb(null)
+			p.catch (err) -> cb(err)
+
+
 	getBlobUrl: (cb) ->
 		@getBlob (err, blob) ->
 			cb(err, URL.createObjectURL blob)
@@ -47,7 +54,7 @@ class Recording extends Backbone.Model
 
 	getNiceFilename: -> "Recording of #{@get username} on #{@get started}"
 
-	upload: (cb=$.noop, progressCb=$.noop) ->
+	upload: (cb=$.noop, progressCb=$.noop, deleteOnUpload=true) ->
 		if @uploadSession != undefined
 			return
 
@@ -64,6 +71,14 @@ class Recording extends Backbone.Model
 				onComplete = (err, url) =>
 					if not err
 						@trigger 'uploadComplete', @, url
+					if deleteOnUpload
+						@deleteBlob (err) =>
+							if err
+								console.error err
+								throw err
+							else
+								console.log "DELETED LOCAL COPY!"
+
 					cb(err, url)
 
 				if err
