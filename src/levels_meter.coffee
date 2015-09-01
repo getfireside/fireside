@@ -42,7 +42,7 @@ class LevelsMeter extends EventEmitter
 		@processor.connect @context.destination
 
 	onAudioProcess: (evt) =>
-		buf = event.inputBuffer.getChannelData(0)
+		buf = evt.inputBuffer.getChannelData(0)
 		sum = 0
 
 		for x in buf
