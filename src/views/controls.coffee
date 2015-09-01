@@ -42,7 +42,15 @@ class SelfView extends Marionette.ItemView
 			attachMediaStream stream, el, 
 				muted: true
 				mirror: true
+
+		@updateMeterLoop()
+
 		opts.model.on 'change', => @render()
+
+	updateMeterLoop: =>
+		v = @roomView.model.roomController?.meter?.volume or 0
+		@$('div.meter span.percent').width(v*100 + '%')
+		@rafID = window.requestAnimationFrame @updateMeterLoop
 
 	render: ->
 		if not @isRendered

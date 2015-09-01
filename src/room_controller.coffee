@@ -6,6 +6,7 @@ util = require('util')
 LocalMedia = require('localmedia')
 PeerConnection = require 'rtcpeerconnection'
 logger = require './logger.coffee'
+LevelsMeter = require './levels_meter.coffee'
 
 # class FileReceiveSession extends WildEmitter
 # 	constructor: (@peer, @fileID) ->
@@ -48,6 +49,7 @@ class Peer extends WildEmitter
 		@sid = opts.sid
 		@info = opts.info
 		@role = opts.role
+		@volume = 0
 		@recordingStatus = opts.recordingStatus ? null
 
 		@logger = @controller.logger.l('peer').l(@id)
@@ -277,6 +279,7 @@ class Peer extends WildEmitter
 		@emit 'peerStreamAdded'
 		@controller.emit('peerStreamAdded', @)
 		@logger.log "GOT STREAM!"
+		@meter = new LevelsMeter(@stream)
 
 	handleStreamRemoved: =>
 		@streamClosed = true
@@ -353,6 +356,9 @@ class RoomController extends WildEmitter
 			@logger.log 'requesting peer start following peerResourcesUpdated...'
 			peer.start()
 
+		@localMedia.on 'localStream', @setupMeter
+		@localMedia.on 'localStreamStopped', @teardownMeter
+
 		# @mainPeer = null
 
 	createPeer: (opts) ->
@@ -421,6 +427,15 @@ class RoomController extends WildEmitter
 			@localMediaStatus = 'stopped' # this isn't very nice.
 			@localMedia.stop()
 
+	setupMeter: =>
+		@meter = new LevelsMeter(@localMedia.localStreams[0])
+		@_meterUpdateInt = setInterval(@meterInfoUpdate, 1000/30)
+
+	meterInfoUpdate: =>
+		@connection.emit 'meter', @meter.volume
+
+	teardownMeter: =>
+		@meter.stop()
 
 	setupConnection: ->
 		@connection = io.connect(@config.url, @config.socketio)
@@ -434,6 +449,10 @@ class RoomController extends WildEmitter
 			@logger.l('signalling').log ['received', message]
 			peer = @getPeer(message.from)
 			peer.handleMessage(message)
+
+		@connection.on 'meter', ({id, volume}) =>
+			peer = @getPeer id
+			peer.volume = volume
 
 		@connection.on 'event', (data) => @emit "event", data
 

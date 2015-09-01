@@ -18,6 +18,7 @@ class UserItemView extends Marionette.ItemView
 			data = @serializeData()
 			@$('div.name em').text(data.name)
 			@triggerMethod 'render', @
+		@meter = @$('div.meter span.percent')
 		return @
 
 	onRender: => 
@@ -27,6 +28,7 @@ class UserItemView extends Marionette.ItemView
 	
 	modelEvents:
 		'streamAdded': 'onStreamAdded'
+		'streamRemoved': 'onStreamRemoved'
 
 	onStreamAdded: =>		
 		if @model.peer.resources.video
@@ -36,6 +38,18 @@ class UserItemView extends Marionette.ItemView
 		else
 			el = @$('audio')[0]
 		attachMediaStream @model.peer.stream, el
+		@updateMeterLoop()
+
+	updateMeterLoop: =>
+		v = @model.peer.volume or 0
+		@meter.width(v*100 + '%')
+		@rafID = window.requestAnimationFrame @updateMeterLoop
+
+	onStreamRemoved: =>
+		window.cancelAnimationFrame @rafID
+
+
+
 
 class EmptyView extends Marionette.ItemView
 	template: Handlebars.templates['no-users']

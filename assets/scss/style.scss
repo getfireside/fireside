@@ -87,6 +87,7 @@ div#statusArea {
 		font-weight: bold;
 		color: white;
 		position: relative;
+		
 		background: rgba(#9455A6, 0.67);
 		&.error {
 			background: rgba(#C62F2F, 0.67);
@@ -148,8 +149,10 @@ div#sidebarArea {
 			}
 			div.meter {
 				background: rgba(white,0.2);
-				> span.meter {
+				> span.percent {
 					background: white;
+					display: block;
+					width: 100%;
 				}
 				margin-top: 5px;
 				margin-bottom: 10px;
@@ -296,6 +299,8 @@ div.pane {
 		background: rgba(0,0,0,0.2);
 		> span.percent {
 			background: black;
+			display: block;
+			height: 100%;
 		}
 	}
 }

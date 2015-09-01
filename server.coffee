@@ -430,7 +430,8 @@ io.sockets.on 'connection', (client) ->
 				id: peer.id
 			console.log peer.id, 'was kicked'
 
-
+	client.on 'meter', (volume) ->
+		client.broadcast.to(client.room).emit('meter', {id: client.id, volume: volume})
 
 
 	client.on 'updateResources', (newResources) ->
