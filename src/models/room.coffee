@@ -60,8 +60,10 @@ class Room extends Backbone.Model
 
 
 		@recordingController.on 'stopped', (rec) =>
-
-			rec.upload()
+			rec.upload (err, url) =>
+				if err
+					debugger
+					@logger.l('upload').error(err)
 			log = null
 
 			@roomController.sendEvent

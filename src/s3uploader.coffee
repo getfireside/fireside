@@ -205,8 +205,8 @@ class S3Uploader
 				blob: blob
 				logger: @config.logger
 			cb(null, session)
-		req.fail (xhr, status, error) ->
-			cb(error)
+		req.fail (xhr, status, statusText) ->
+			cb(new Error(statusText)) # TODO better error objects? this will just give the status text.
 		#TODO: if it already exists, check its status.
 
 	continueUploadSession: (recId, awsUploadId, blob, cb) ->

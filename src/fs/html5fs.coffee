@@ -64,7 +64,7 @@ class HTML5FS extends FS
             handleErr = (e) -> reject(translateError(e))
 
             if not @fs
-                size = 5*1024*1024
+                size = 1000*1024*1024
                 navigator.persistentStorage.requestQuota size, (grantedBytes) ->
                     requestFileSystem PERSISTENT, grantedBytes, init, handleErr
                 , handleErr
