@@ -49,15 +49,54 @@
     <!-- Main jumbotron for a primary marketing message or call to action -->
       <div class="jumbotron">
         <div class="container">
-          <h1>Fireside</h1>
-          <h2>High-quality interviews, like you're in the same room.</h2>
-          <p>A great quality interview relies on great production values. It's easy to record high-quality material when your interviewee's in the same room, but how about online?</p>
+        <h1>Fireside</h1>
+            <div class="row">
+              <div class="col-md-7">
+            <h2>High-quality interviews, like you're in the same room.</h2>
+                <p>A great quality interview relies on great production values. It's easy to record high-quality material when your interviewee's in the same room, but how about online?</p>
 
-          <p>We've all heard podcasts where the sound is distant, compressed, and suffers from dropouts. Fireside is your one-stop tool to solve this problem. </p>
-          <p>
-            <form action="/rooms/new?mode=audio" method="POST"><button class="btn btn-primary btn-lg" type="submit">Host an audio interview &raquo;</button></form> <br />
-            <form action="/rooms/new?mode=video" method="POST"><button class="btn btn-primary btn-lg" type="submit">Host a video interview &raquo;</button></form>
-          </p>
+                <p>We've all heard podcasts where the sound is distant, compressed, and suffers from dropouts. Fireside is your one-stop tool to solve this problem. </p>
+                <p>
+                  <form action="/rooms/new?mode=audio" method="POST"><button class="btn btn-primary btn-lg" type="submit">Host an audio interview &raquo;</button></form> <br />
+                  <form action="/rooms/new?mode=video" method="POST"><button class="btn btn-primary btn-lg" type="submit">Host a video interview &raquo;</button></form>
+                </p>
+              </div>
+              <div class="col-md-5">
+                <div class="panel panel-default">
+                  <div class="panel-body">
+                    <p>Fireside is alpha-quality at the moment. Here's our to-do list for the first release.</p>
+                    <h4>Minor</h4>
+                    <ul>
+                      <li>Create documentation</li>
+                      <li>Create ‘end-session’ option</li>
+                      <li>Warn users when diskspace is low</li>
+                      <li>Enable Codec settings (audio & video)</li>
+                      <li>Pre-interview 'test sequence' for all parties</li>
+                      <li>Noise cancellation improvement</li>
+                    </ul>
+                    <h4>Medium</h4>
+                    <ul>
+                      <li>Enable Multiparty audio & video</li>
+                      <li>Create accounts for users (w/ backup of files)</li>
+                      <li>Create support system</li>
+                      <li>Implement Bitrate & Resolution settings</li>
+                      <li>Fix WebM video metadata issues</li>
+                      <li>Enable video recording in Chrome browsers</li>
+                      <li>Where bandwidth permits, start background upload of files</li>
+                    </ul>
+                    <h4>Major</h4>
+                    <ul>
+                      <li>Stabilise file upload</li>
+                      <li>Stabilise and provide UI for backup file retrieval</li>
+                      <li>UI revamp for Website & Mobile</li>
+                      <li>Security provisions (end-to-end encryption)</li>
+                      <li>Serverless file transfer</li>
+                    </ul>
+                  </div>
+                </div>  
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </body>
