@@ -5,4 +5,4 @@ Fireside is a video interviewing webapp that allows recording and transmission o
 
 *recording is firefox-only currently - chrome support coming soon...
 
-
+Fireside is free software and licensed under the GPL v3. Copyright 2015-2016, Fireside contributors.
