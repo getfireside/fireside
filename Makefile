@@ -1,7 +1,7 @@
 .ONESHELL:
 all:
 	cd client/
-	yarn
+	npm install -C .
 	node_modules/.bin/webpack
 	cd ..
 test:
