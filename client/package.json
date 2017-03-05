@@ -60,5 +60,5 @@
     "webrtcsupport": "^2.2.0",
     "wildemitter": "^1.2.0"
   },
-  "scripts": {"test": "karma start"}
+  "scripts": {"test": "karma start --single-run"}
 }
