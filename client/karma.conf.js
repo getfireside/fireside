@@ -113,6 +113,14 @@ module.exports = function(config) {
                 base: "Chrome",
                 flags: ["--enable-experimental-web-platform-features"]
             }
+            Chrome_travis_ci: {
+                base: 'Chrome',
+                flags: ['--no-sandbox', '--enable-experimental-web-platform-features']
+            }
         }
     })
 }
+
+if (process.env.TRAVIS) {
+    configuration.browsers = ['Chrome_travis_ci', 'FirefoxNightly'];
+})
