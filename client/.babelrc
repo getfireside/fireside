@@ -1,0 +1,17 @@
+{
+  "presets": [
+    'react',
+    ["env", {
+      "targets": {
+        "chrome": 55,
+        "firefox": 52
+      },
+      "debug": true,
+      "exclude": ["transform-regenerator"]
+    }]
+  ],
+  "plugins": [
+    "transform-class-properties",
+    "transform-decorators-legacy",
+  ],
+}

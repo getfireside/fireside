@@ -1,13 +1,28 @@
-path = require('path');
+var path = require('path');
 
 module.exports = {
-  entry: './index.js',
-  output: {
-    filename: 'bundle.js'
+  context: path.resolve(__dirname),
+  entry: {
+    main: './index.js',
+    "wav-recorder-worker": './lib/wavrecorder/worker.js'
   },
-  resolve: {
-    modules: [
-      path.resolve('.')
+  output: {
+    filename: '[name].js',
+    path: './dist',
+  },
+  module: {
+    rules: [
+      {
+        test: /\.(js|jsx)$/,
+        exclude: /node_modules/,
+        use: [
+          'babel-loader',
+        ],
+      }
     ]
+  },
+  devtool: 'source-map',
+  resolve: {
+    extensions: ['.js', '.jsx']
   }
 }

@@ -1,3 +1,3 @@
-class User extends Model {
-    
+export default class User {
+
 }

@@ -41,6 +41,18 @@ class Socket extends WildEmitter {
     }
 }
 
+const MESSAGE_TYPE_MAP = {
+    s: 'signalling',
+    a: 'authentication',
+    m: 'message',
+    l: 'leave',
+    j: 'joinRoom',
+    A: 'announce',
+    e: 'event'
+}
+
+const MESSAGE_REVERSED_TYPE_MAP = _.invert(MESSAGE_TYPE_MAP)
+
 class RoomConnection extends WildEmitter {
     /**
      * Handles the connection to the signalling server, and to the RTC peers.
@@ -58,15 +70,14 @@ class RoomConnection extends WildEmitter {
 
         this.messageActions = {
             signalling: (message) => {
-                message.type = message.type.split(':', 1)[1]
                 let peer = this.getPeer(message.id);
                 if (peer) {
                     peer.receiveSignallingMessage(message)
                 }
             },
-            authenticate: (message) => {
+            authentication: (message) => {
                 if (message.payload == 'OK') {
-                    this.status = 'connected'
+                    this.onConnect()
                 }
             },
             announce: (message) => {
@@ -84,15 +95,29 @@ class RoomConnection extends WildEmitter {
                 this.removePeer(message.payload.peerId)
             }
         }
+        this.connectActions()
+    }
+
+    connectActions() {
+        _.forIn(this.messageActions, (v, k) => {
+            this.on(`event:${k}`, v);
+        })
+    }
+
+    onConnect() {
+        this.status = 'connected'
+        this.emit('connect')
     }
 
     async connect() {
         /**
          * Open the websocket and connect
          */
-        if (this.status != 'connected') {
+        if (this.status == 'disconnected') {
+            this.status = 'connecting'
             this.socket.open()
             this.socket.on('open', this.doHandshake.bind(this))
+            this.emit('connecting')
         }
     }
 
@@ -100,7 +125,7 @@ class RoomConnection extends WildEmitter {
         /**
          * Perform the authentication handshake
          */
-        this.socket.send('authenticate', this.authToken)
+        this.send('authenticate', {t: this.authToken})
     }
 
     handleSocketMessage(message) {
@@ -109,8 +134,9 @@ class RoomConnection extends WildEmitter {
          * @private
          * @param {obj} message: the received message
          */
-        let [type, subtype] = message.type.split(':', 1);
-        this.messageActions[root](message)
+        this.emit(`event:${MESSAGE_TYPE_MAP[message.t]}`, message.p)
+        // let [type, subtype] = message.type.split(':', 1);
+        // this.messageActions[root](message)
     }
 
     addPeer(data) {
@@ -130,6 +156,17 @@ class RoomConnection extends WildEmitter {
             peer.addLocalStream()
         }
         this.emit('peerAdded', peer)
+    }
+
+    send(name, data) {
+        this.ws.send({
+            t: MESSAGE_REVERSED_TYPE_MAP[name],
+            p: data
+        })
+    }
+
+    sendEvent(name, data) {
+        this.send('event', {name: name, data: data})
     }
 
     connectStream(stream) {

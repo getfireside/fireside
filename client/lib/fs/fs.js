@@ -11,8 +11,8 @@ class FSError extends Error {
     }
 }
 
-class DiskSpaceError extends FSError;
-class LookupError extends FSError;
+class DiskSpaceError extends FSError {}
+class LookupError extends FSError {}
 
 class FSFile {
     constructor(path, fs) {
@@ -30,7 +30,7 @@ class FSFile {
 }
 
 
-class FS { 
+class FS {
     constructor(opts) {}
 
     getFile(path, opts) {}
