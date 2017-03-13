@@ -3,15 +3,15 @@
     'react',
     ["env", {
       "targets": {
-        "chrome": 55,
-        "firefox": 52
+        "chrome": 56,
+        "firefox": 54
       },
       "debug": true,
-      "exclude": ["transform-regenerator"]
+      "exclude": ["transform-regenerator"],
     }]
   ],
   "plugins": [
     "transform-class-properties",
-    "transform-decorators-legacy",
-  ],
+    "transform-decorators-legacy"
+  ]
 }

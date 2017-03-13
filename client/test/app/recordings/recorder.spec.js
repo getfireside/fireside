@@ -2,24 +2,8 @@ import Recorder from 'app/recordings/recorder';
 import WAVRecorder from 'lib/wavrecorder/recorder';
 import MemFS from 'lib/fs/memfs';
 import {eventListenerToPromise, eventToPromise} from 'lib/util';
-import sinon from 'sinon';
-import chai from 'chai';
-import sinonChai from "sinon-chai";
 import uuid from "node-uuid";
-sinon.behavior = require('sinon/lib/sinon/behavior');
-sinon.defaultConfig = {
-    injectInto: null,
-    properties: ['spy', 'stub', 'mock', 'clock', 'server', 'requests'],
-    useFakeTimers: true,
-    useFakeServer: true
-};
-require('sinon-as-promised');
 import {Recording} from 'app/recordings/store';
-
-chai.use(sinonChai);
-
-let expect = chai.expect;
-let should = chai.should;
 
 window.fs = new MemFS();
 

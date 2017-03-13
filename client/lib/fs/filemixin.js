@@ -6,7 +6,6 @@ export default class FileMixin {
     @observable filesize;
 
     constructor(attrs, opts) {
-        _.extend(this, attrs);
         this.fs = opts && opts.fs;
     }
 
@@ -40,5 +39,6 @@ export default class FileMixin {
         // for now only pos = 0 supported, for rewriting wav headers
         let f = await this.fs.getFile(this.filename);
         await f.write(blob, pos);
+        return;
     }
 }

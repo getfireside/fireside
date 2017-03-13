@@ -1,6 +1,7 @@
-import { FSError, LookupError, DiskSpaceError, FSFile, FS } from './fs.coffee';
+import { FSError, LookupError, DiskSpaceError, FSFile, FS } from './fs';
+import { Logger } from 'lib/logger';
 
-function translateError(err) =>
+function translateError(err) {
     switch (err.name) {
         case 'QuotaExceededError':
             return new DiskSpaceError().wrap(err);
@@ -9,17 +10,13 @@ function translateError(err) =>
         default:
             return new FSError().wrap(err);
     };
+}
 
 
 class IDBFile extends FSFile {
-    constructor(path, writer) {
-        this.path = path;
-        this.writer = writer;
-    }
-
     append(blob) {
         return new Promise((fulfil, reject) => {
-            let req = this.writer._getObjectStore().add({
+            let req = this.fs._getObjectStore().add({
                 filename: this.path,
                 blob: blob
             });
@@ -37,7 +34,7 @@ class IDBFile extends FSFile {
         // _OBVIOUSLY_ need to fix for other use-cases.
         return new Promise((fulfil, reject) => {
             if (pos === 0) {
-                let index = this.writer._getObjectStore(true).index('filename');
+                let index = this.fs._getObjectStore(true).index('filename');
                 this._getCursor(false, (evt) => {
                     let cur = evt.target.result;
                     if (cur) {
@@ -64,7 +61,7 @@ class IDBFile extends FSFile {
         return new Promise((fulfil, reject) => {
             let onSuccess = (e) => {
                 let cur = e.target.result;
-                if (cur) { 
+                if (cur) {
                     cur.delete();
                     return cur.continue();
                 } else {
@@ -82,7 +79,7 @@ class IDBFile extends FSFile {
             if (cur) {
                 f(cur.value.blob);
                 cur.continue();
-            } 
+            }
             else {
                 done();
             }
@@ -93,7 +90,7 @@ class IDBFile extends FSFile {
         let blobs = [];
         return new Promise((fulfil, reject) => {
             this.readEach(
-                (b) => blobs.push(b), 
+                (b) => blobs.push(b),
                 () => fulfil(new Blob(blobs, {type: blobs[0].type})),
                 reject
             );
@@ -103,7 +100,7 @@ class IDBFile extends FSFile {
     _getCursor(ro = false, onsuccess, onerr) {
         console.log('Getting cursor', ro);
         return new Promise((fulfil, reject) => {
-            let index = this.writer._getObjectStore(ro).index("filename");
+            let index = this.fs._getObjectStore(ro).index("filename");
             let curReq = index.openCursor(IDBKeyRange.only(this.path));
             curReq.onsuccess = onsuccess;
             curReq.onerror = (e) => onerr(translateError(e.target));
@@ -112,10 +109,11 @@ class IDBFile extends FSFile {
 }
 
 
-class IDBFS extends FS {
+export default class IDBFS extends FS {
     constructor(opts) {
+        super()
         this.dbname = opts.dbname;
-        this.logger = opts.logger;
+        this.logger = opts.logger != null ? opts.logger : new Logger(null, 'IDBFS');
     }
     open() {
         return new Promise((fulfil, reject) => {
@@ -145,20 +143,18 @@ class IDBFS extends FS {
                 fulfil(this);
             };
 
-            return openRequest.onerror = evt => reject(translateError(e.target));
+            openRequest.onerror = evt => reject(translateError(e.target));
         });
     }
 
-    _getObjectStore(ro = false) { 
+    _getObjectStore(ro = false) {
         let transaction = this.db.transaction(["chunks"], (ro ? "readonly" : "readwrite"));
         return transaction.objectStore("chunks");
     }
 
-    getFile(path, opts) { 
-        return new Promise((fulfil, reject) => { 
+    getFile(path, opts) {
+        return new Promise((fulfil, reject) => {
             fulfil(new IDBFile(path, this));
         });
     }
 }
-
-export default IDBFS;

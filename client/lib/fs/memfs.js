@@ -18,7 +18,7 @@ class MemFile extends FSFile {
     }
 
     remove() {
-        return this.fs.removeFile(this.path, pos);
+        return this.fs.removeFile(this.path);
     }
 
     readEach(f) {
@@ -75,9 +75,10 @@ class MemFS extends FS {
                 }
                 let bytesToOverwrite = Math.min(blob.size, new Blob(this.db[path]).size);
                 console.info("Attempting to overwrite", bytesToOverwrite, "bytes")
+                debugger;
                 while (bytesToOverwrite > 0) {
-                    if (bytesToOverwrite >= new Blob(this.db[path].slice(1)).size) {
-                        console.info("First blob has size", new Blob(this.db[path].slice(1)).size, "bytes, so deleting")
+                    if (bytesToOverwrite >= new Blob(this.db[path].slice(0, 1)).size) {
+                        console.info("First blob has size", new Blob(this.db[path].slice(0, 1)).size, "bytes, so deleting")
                         let deleted = this.db[path].shift();
                         bytesToOverwrite -= deleted.size;
                         console.info(bytesToOverwrite, "bytes left to overwrite")
@@ -121,6 +122,10 @@ class MemFS extends FS {
         return new Promise((fulfil, reject) => {
             fulfil(new MemFile(path, this));
         });
+    }
+
+    clear() {
+        this.db = {};
     }
 }
 

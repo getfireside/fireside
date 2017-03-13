@@ -4,9 +4,9 @@ path = require('path')
 module.exports = function(config) {
     let configuration = {
         colors: true,
-        browsers: ["chrome_webplatform", "FirefoxNightly"],
+        browsers: ["chrome_webplatform"],
         frameworks: ['mocha'],
-        reporters: ['progress', 'mocha', 'coverage-istanbul'],
+        reporters: ['mocha', 'coverage-istanbul'],
         logLevel: config.LOG_WARN,
         browserConsoleLogOptions: {terminal: false},
         // client: {
@@ -117,6 +117,10 @@ module.exports = function(config) {
                 base: 'Chrome',
                 flags: ['--no-sandbox', '--enable-experimental-web-platform-features']
             }
+        },
+
+        mochaReporter: {
+            showDiff: true,
         }
     }
     if (process.env.TRAVIS) {
