@@ -16,15 +16,17 @@ function translateError(err) {
 class IDBFile extends FSFile {
     append(blob) {
         return new Promise((fulfil, reject) => {
-            let req = this.fs._getObjectStore().add({
+            let store = this.fs._getObjectStore();
+
+            let req = store.add({
                 filename: this.path,
                 blob: blob
             });
-            req.onsuccess = (e) => {
-                let result = e.target.result;
-                fulfil(result);
-            };
+            store.transaction.oncomplete = (e) => {
+                fulfil();
+            }
             req.onerror = (e) => reject(translateError(e.target));
+            store.transaction.onerror = (e) => reject(translateError(store.transaction.error));
         });
     }
 
@@ -115,6 +117,16 @@ export default class IDBFS extends FS {
         this.dbname = opts.dbname;
         this.logger = opts.logger != null ? opts.logger : new Logger(null, 'IDBFS');
     }
+    clear() {
+        return new Promise((fulfil, reject) => {
+            let req = this._getObjectStore().clear();
+            req.onsuccess = () => {
+                this.logger.log("Cleared chunks store");
+                fulfil();
+            }
+            req.onerror = (err) => translateError(err);
+        });
+    }
     open() {
         return new Promise((fulfil, reject) => {
             if (this.db) {
@@ -140,11 +152,19 @@ export default class IDBFS extends FS {
 
             openRequest.onsuccess = event => {
                 this.db = event.target.result;
+                this.logger.info('FS opened.')
                 fulfil(this);
             };
 
             openRequest.onerror = evt => reject(translateError(e.target));
         });
+    }
+
+    close() {
+        if (this.db) {
+            this.db.close();
+        }
+        this.db = null;
     }
 
     _getObjectStore(ro = false) {
