@@ -9,6 +9,7 @@ module.exports = function(config) {
         reporters: ['mocha', 'coverage-istanbul'],
         logLevel: config.LOG_WARN,
         browserConsoleLogOptions: {terminal: false},
+        browserNoActivityTimeout: 120000,
         // client: {
         //     mocha: {
         //         require: [require.resolve('babel-polyfill')],

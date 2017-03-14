@@ -1,12 +1,20 @@
-class FSError extends Error {
+import {ExtendableError} from 'lib/util';
+
+class FSError extends ExtendableError {
     constructor(message) {
         super(message);
         this.name = 'FSError'
     }
 
-    static wrap(err) {
-        let e = new this(err.message, err.stack);
-        e.wrapped = err;
+    static wrap(err, message) {
+        if (message != null) {
+            message = message + ': ' + err.message;
+        }
+        else {
+            message = err.message;
+        }
+        let e = new this(message, err.stack);
+        e.cause = err;
         return e;
     }
 }

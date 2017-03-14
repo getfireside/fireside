@@ -4,11 +4,13 @@ import { Logger } from 'lib/logger';
 function translateError(err) {
     switch (err.name) {
         case 'QuotaExceededError':
-            return new DiskSpaceError().wrap(err);
+            return DiskSpaceError.wrap(err);
         case 'NotFoundError':
-            return new LookupError().wrap(err);
+            return LookupError.wrap(err);
+        case 'DiskSpaceError':
+            return DiskSpaceError.wrap(err);
         default:
-            return new FSError().wrap(err);
+            return FSError.wrap(err);
     };
 }
 
@@ -27,13 +29,13 @@ class IDBFile extends FSFile {
             }
             req.onerror = (e) => reject(translateError(e.target));
             store.transaction.onerror = (e) => reject(translateError(store.transaction.error));
+            store.transaction.onabort = (e) => reject(translateError(store.transaction.error));
         });
     }
 
-    write(blob, pos) {
+    write(blob, pos=0) {
         // IMPLEMENT ME PROPERLY!
         // for now, this only works for pos=0 and we assume that we're just replacing the header blob.
-        // _OBVIOUSLY_ need to fix for other use-cases.
         return new Promise((fulfil, reject) => {
             if (pos === 0) {
                 let index = this.fs._getObjectStore(true).index('filename');
@@ -46,10 +48,11 @@ class IDBFile extends FSFile {
                             return;
                         }
                         o.blob = new Blob([blob, o.blob.slice(blob.size)], {type: blob.type});
-                        cur.update(o);
-                        fulfil();
+                        let req = cur.update(o);
+                        req.onsuccess = () => fulfil();
+                        req.onerror = (e) => reject(translateError(e.target));
                     } else {
-                        reject(new FSError(("Cursor is false.")));
+                        reject(new LookupError("No chunk exists here to write to."));
                     }
                 });
 
@@ -61,52 +64,61 @@ class IDBFile extends FSFile {
 
     remove() {
         return new Promise((fulfil, reject) => {
+            let deletedCount = 0;
             let onSuccess = (e) => {
                 let cur = e.target.result;
                 if (cur) {
                     cur.delete();
-                    return cur.continue();
+                    deletedCount++;
+                    cur.continue();
                 } else {
-                    this.writer.logger.info('Deleted recording!');
-                    return fulfil();
+                    if (deletedCount) {
+                        this.fs.logger.info(`Deleted recording! (chunk count: ${deletedCount})`);
+                        fulfil();
+                    }
+                    else {
+                        reject(new LookupError(`No chunks exist for ${this.path}.`));
+                    }
                 }
             };
             this._getCursor(false, onSuccess, reject);
         });
     }
 
-    readEach(f, done, onerror) {
-        return this._getCursor(true, function(e) {
-            let cur = e.target.result;
-            if (cur) {
-                f(cur.value.blob);
-                cur.continue();
-            }
-            else {
-                done();
-            }
-        }, onerror);
+    readEach(f) {
+        return new Promise((fulfil, reject) => {
+            let called = false;
+            this._getCursor(true, function(e) {
+                let cur = e.target.result;
+                if (cur) {
+                    called = true;
+                    f(cur.value.blob);
+                    cur.continue();
+                }
+                else {
+                    if (called) {
+                        fulfil();
+                    }
+                    else {
+                        reject(new LookupError(`No chunks exist for ${this.path}.`));
+                    }
+                }
+            }, reject);
+        });
     }
 
-    read() {
+    async read() {
         let blobs = [];
-        return new Promise((fulfil, reject) => {
-            this.readEach(
-                (b) => blobs.push(b),
-                () => fulfil(new Blob(blobs, {type: blobs[0].type})),
-                reject
-            );
-        });
+        await this.readEach(b => blobs.push(b));
+        return new Blob(blobs, {type: blobs[0].type});
     }
 
     _getCursor(ro = false, onsuccess, onerr) {
-        console.log('Getting cursor', ro);
-        return new Promise((fulfil, reject) => {
-            let index = this.fs._getObjectStore(ro).index("filename");
-            let curReq = index.openCursor(IDBKeyRange.only(this.path));
-            curReq.onsuccess = onsuccess;
-            curReq.onerror = (e) => onerr(translateError(e.target));
-        });
+        this.fs.logger.log(`Getting cursor (readonly = ${ro})`);
+        let index = this.fs._getObjectStore(ro).index("filename");
+        let curReq = index.openCursor(IDBKeyRange.only(this.path));
+        curReq.onsuccess = onsuccess;
+        curReq.onerror = (e) => onerr(translateError(e.target));
     }
 }
 
@@ -119,12 +131,11 @@ export default class IDBFS extends FS {
     }
     clear() {
         return new Promise((fulfil, reject) => {
-            let req = this._getObjectStore().clear();
-            req.onsuccess = () => {
-                this.logger.log("Cleared chunks store");
-                fulfil();
-            }
-            req.onerror = (err) => translateError(err);
+            this.close();
+            let req = indexedDB.deleteDatabase(this.dbname);
+            req.onblocked = () => reject(new Error("DB couldn't be deleted as it's blocked"));
+            req.onerror = (e) => reject(e.target);
+            req.onsuccess = () => fulfil();
         });
     }
     open() {
@@ -178,3 +189,5 @@ export default class IDBFS extends FS {
         });
     }
 }
+
+export {IDBFS, FSError, LookupError, DiskSpaceError};
