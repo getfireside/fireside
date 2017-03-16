@@ -1,27 +1,78 @@
-import {IDBFS, DiskSpaceError, LookupError, FSError} from 'lib/fs/idbfs';
+import {IDBFS, IDBFile, DiskSpaceError, LookupError, FSError} from 'lib/fs/idbfs';
 import {blobToString} from 'lib/util';
-
-let test64string = "Here's a test 64-byte string to ensure IDBFS works correctly. :)"
 
 const generateHugeBlob = (mb=1000) => new Blob([new Uint8Array(mb*1024*1024)]);
 
 describe('IDBFS', () => {
     context('#open', () => {
-        it('Opens the DB');
-        it('Fulfils immediately if already open');
-        it('Works after the DB has been closed');
+        it('Opens the DB and creates stores and indices as necessary', async () => {
+            let fs = new IDBFS({dbname: 'testdb'});
+            await fs.open();
+            expect(fs).to.have.property('db');
+            let sto = fs.db.transaction(['chunks']).objectStore('chunks');
+            expect(sto.indexNames.contains('filename'));
+        });
+        it('Fulfils immediately if already open', async () => {
+            let fs = new IDBFS({dbname: 'testdb'});
+            await fs.open();
+            let open = false;
+            fs.open().then(() => {
+                open = true
+            })
+            await (new Promise((fulfil, reject) => {
+                setTimeout(() => {
+                    if (open) {
+                        fulfil()
+                    }
+                    else {
+                        reject(new Error('Promise did not resolve quickly enough'))
+                    }
+                }, 10)
+            }));
+        });
+        it('Works after the DB has been closed', async () => {
+            let fs = new IDBFS({dbname: 'testdb'});
+            await fs.open();
+            fs.close();
+            await fs.open();
+        });
     })
-    it('Has a close method that runs without error');
+    it('Has a close method that runs without error', async () => {
+        let fs = new IDBFS({dbname: 'testdb'});
+        await fs.open();
+        fs.close();
+    });
     context('#getFile', () => {
-        it('Returns a promise that fulfils to an IDBFile instance');
+        it('Returns a promise that fulfils to an IDBFile instance', async () => {
+            let fs = new IDBFS({dbname: 'testdb'});
+            await fs.open();
+            let file = await fs.getFile('/test/2222');
+            expect(file).to.be.an.instanceOf(IDBFile)
+        });
     })
 })
 
-describe('IDBFile', () => {
+describe('IDBFile', function() {
+    // in firefox sometimes it can take a while to open the DB,
+    // so increase the timeout a bit
+    this.timeout(15000)
     let fs;
     beforeEach( async function() {
         fs = new IDBFS({dbname: 'testdb'})
-        await fs.clear();
+        let attempts = 0;
+        while (true) {
+            try {
+                await fs.clear();
+                break;
+            }
+            catch (e) {
+                if (e.message.indexOf('blocked') != -1) {
+                    if (attempts == 10) {
+                        throw(e);
+                    }
+                }
+            }
+        }
         await fs.open();
     });
 
@@ -50,6 +101,15 @@ describe('IDBFile', () => {
 
         it("Throws an error if there's not enough space", async function() {
             this.timeout(0);
+            // this is hideous:
+            // in Firefox, IDB seems to also unavoidably throw a QuotaExceededError on window
+            // this fucks Mocha/Karma up because it catches that first,
+            // and then the promise resolves, making it think the test has passed...
+            // so the cleanup runs while the next test is in progress and everything
+            // goes to shit.
+            // therefore, we'll temporarily monkeypatch window.onerror to avoid this.
+            let oldOnError = window.onerror;
+            window.onerror = (...args) => { console.error.apply(args) }
             let file = await fs.getFile('/test/file2');
             console.log("Writing a series of large blobs...")
             let writes = 0;
@@ -61,6 +121,7 @@ describe('IDBFile', () => {
                     console.log(writes*50, 'MB written');
                 }
                 catch (e) {
+                    window.onerror = oldOnError;
                     expect(e).to.be.an.instanceOf(DiskSpaceError);
                     return;
                 }

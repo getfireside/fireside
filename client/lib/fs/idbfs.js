@@ -15,7 +15,7 @@ function translateError(err) {
 }
 
 
-class IDBFile extends FSFile {
+export class IDBFile extends FSFile {
     append(blob) {
         return new Promise((fulfil, reject) => {
             let store = this.fs._getObjectStore();
@@ -27,9 +27,12 @@ class IDBFile extends FSFile {
             store.transaction.oncomplete = (e) => {
                 fulfil();
             }
-            req.onerror = (e) => reject(translateError(e.target));
-            store.transaction.onerror = (e) => reject(translateError(store.transaction.error));
-            store.transaction.onabort = (e) => reject(translateError(store.transaction.error));
+            store.transaction.onerror = (e) => {
+                reject(translateError(e.target.error));
+            }
+            store.transaction.onabort = (e) => {
+                reject(translateError(e.target.error));
+            };
         });
     }
 
@@ -50,7 +53,7 @@ class IDBFile extends FSFile {
                         o.blob = new Blob([blob, o.blob.slice(blob.size)], {type: blob.type});
                         let req = cur.update(o);
                         req.onsuccess = () => fulfil();
-                        req.onerror = (e) => reject(translateError(e.target));
+                        req.onerror = (e) => reject(translateError(e.target.error));
                     } else {
                         reject(new LookupError("No chunk exists here to write to."));
                     }
@@ -118,7 +121,7 @@ class IDBFile extends FSFile {
         let index = this.fs._getObjectStore(ro).index("filename");
         let curReq = index.openCursor(IDBKeyRange.only(this.path));
         curReq.onsuccess = onsuccess;
-        curReq.onerror = (e) => onerr(translateError(e.target));
+        curReq.onerror = (e) => onerr(translateError(e.target.error));
     }
 }
 
@@ -134,7 +137,7 @@ export default class IDBFS extends FS {
             this.close();
             let req = indexedDB.deleteDatabase(this.dbname);
             req.onblocked = () => reject(new Error("DB couldn't be deleted as it's blocked"));
-            req.onerror = (e) => reject(e.target);
+            req.onerror = (e) => reject(e.target.error);
             req.onsuccess = () => fulfil();
         });
     }
@@ -164,10 +167,12 @@ export default class IDBFS extends FS {
             openRequest.onsuccess = event => {
                 this.db = event.target.result;
                 this.logger.info('FS opened.')
+                this.db.onerror = (e) => console.error(e.target.error);
+                this.db.onabort = (e) => console.error(e.target.error);
                 fulfil(this);
             };
 
-            openRequest.onerror = evt => reject(translateError(e.target));
+            openRequest.onerror = evt => reject(translateError(e.target.error));
         });
     }
 

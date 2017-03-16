@@ -15,6 +15,5 @@ chai.use(sinonChai);
 
 window.expect = chai.expect;
 window.should = chai.should;
-
 var context = require.context('.', true, /.spec.js(x?)$/); //make sure you have your directory and regex test set correctly!
 context.keys().forEach(context);

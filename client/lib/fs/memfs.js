@@ -48,9 +48,6 @@ class MemFS extends FS {
     }
 
     appendToFile(path, blob) {
-        if (path == null) {
-            debugger;
-        }
         return new Promise((fulfil, reject) => {
             if (this.db[path] == null) {
                 this.db[path] = [];
@@ -75,7 +72,6 @@ class MemFS extends FS {
                 }
                 let bytesToOverwrite = Math.min(blob.size, new Blob(this.db[path]).size);
                 console.info("Attempting to overwrite", bytesToOverwrite, "bytes")
-                debugger;
                 while (bytesToOverwrite > 0) {
                     if (bytesToOverwrite >= new Blob(this.db[path].slice(0, 1)).size) {
                         console.info("First blob has size", new Blob(this.db[path].slice(0, 1)).size, "bytes, so deleting")
@@ -130,3 +126,4 @@ class MemFS extends FS {
 }
 
 export default MemFS;
+export {LookupError, FSError, DiskSpaceError};

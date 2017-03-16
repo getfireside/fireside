@@ -1,5 +1,5 @@
 import FileMixin from 'lib/fs/filemixin';
-import MemFS from 'lib/fs/memfs';
+import {MemFS, LookupError} from 'lib/fs/memfs';
 import {blobToString} from 'lib/util';
 import _ from 'lodash';
 
@@ -37,9 +37,10 @@ describe('FileMixin', () => {
             let m = genFileMixin('test/file/does/not/exist', 523);
             try {
                 let blob = await m.getFileBlob();
-                throw 'Did not throw';
+                throw new Error('Did not throw');
             }
             catch (e) {
+                expect(e).to.be.an.instanceOf(LookupError);
                 return e;
             }
         })
@@ -101,13 +102,22 @@ describe('FileMixin', () => {
             await m.deleteFile();
             try {
                 let blob = await fs.readFile('test/file');
+                throw new Error('Did not throw correct error');
             }
             catch (err) {
                 return;
             }
-            throw new Error("Did not throw an error when trying to read the non-existent file");
         });
-        it("Throws an error if the file doesn't exist");
+        it("Throws an error if the file doesn't exist", async () => {
+            let m = genFileMixin('test/file22', 8);
+            try {
+                await m.deleteFile();
+                throw new Error('Did not throw correct error');
+            }
+            catch (err) {
+                expect(e).to.be.an.instanceOf(LookupError);
+            }
+        });
         it("Sets the filesize to null");
     })
 })

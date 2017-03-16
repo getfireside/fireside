@@ -10,3 +10,7 @@ export function fileToArrayBuffer(blob) {
         reader.readAsArrayBuffer(blob);
     })
 }
+
+export function estimateFreeSpace() {
+    return navigator.storage.estimate();
+}
