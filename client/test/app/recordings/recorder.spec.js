@@ -86,7 +86,7 @@ describe("Recorder", function() {
     let video, audio;
 
     // set up some AV streams we can use to test the recorder, using MediaSource
-    before(async () => {
+    before(async function() {
         console.info('Loading media...');
         [video, audio] = await Promise.all([
             loadMedia('test.mov', 'video/mp4'),

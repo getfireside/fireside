@@ -1,5 +1,5 @@
 import FileMixin from 'lib/fs/filemixin';
-import {MemFS, LookupError} from 'lib/fs/memfs';
+import MemFS, {LookupError} from 'lib/fs/memfs';
 import {blobToString} from 'lib/util';
 import _ from 'lodash';
 
@@ -115,7 +115,7 @@ describe('FileMixin', () => {
                 throw new Error('Did not throw correct error');
             }
             catch (err) {
-                expect(e).to.be.an.instanceOf(LookupError);
+                expect(err).to.be.an.instanceOf(LookupError);
             }
         });
         it("Sets the filesize to null");

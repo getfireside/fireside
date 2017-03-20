@@ -47,12 +47,12 @@ module.exports = function(config) {
                             'babel-loader',
                         ],
                     },
-                    {
-                        enforce: 'post',
-                        loader: 'istanbul-instrumenter-loader',
-                        test: /\.(js|jsx)$/,
-                        exclude: /(node_modules|test)/
-                    }
+                    // {
+                    //     enforce: 'post',
+                    //     loader: 'istanbul-instrumenter-loader',
+                    //     test: /\.(js|jsx)$/,
+                    //     exclude: /(node_modules|test)/
+                    // }
                 ]
             },
             resolve: {
