@@ -1,11 +1,25 @@
-import User from './model';
+import {observable, computed, action} from 'mobx';
+import {MapStore} from 'lib/store';
 
-class UserManager extends Manager {
-    static get modelClass() { return User; }
-    set self(m) {
-        this.collection.setKey('self', m.id);
+export class User {
+
+}
+
+export default class UserStore extends MapStore {
+    @observable selfId;
+
+    @observable test = [];
+
+    constructor(opts = {}) {
+        super(opts);
+        this.selfId = opts.selfId;
     }
-    get self() {
-        return this.get(this.collection.getKey('self'));
+
+    @computed get self() {
+        return this.get(this.selfId);
+    }
+
+    createItemInstance(data) {
+        return new User({...data, store: this});
     }
 }

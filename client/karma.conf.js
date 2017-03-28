@@ -6,7 +6,7 @@ module.exports = function(config) {
         colors: true,
         browsers: ["chrome_webplatform"],
         frameworks: ['mocha'],
-        reporters: ['mocha', 'coverage-istanbul'],
+        reporters: ['mocha', 'coverage'],
         logLevel: config.LOG_WARN,
         browserConsoleLogOptions: {terminal: false},
         browserNoActivityTimeout: 120000,
@@ -84,23 +84,11 @@ module.exports = function(config) {
             noInfo: true //please don’t spam the console when running in karma!
         },
 
-        coverageIstanbulReporter: {
-            reports: ['html'],
+        coverageReporter: {
+            type: 'html',
 
             // base output directory
-            dir: './coverage',
-
-            // if using webpack and pre-loaders, work around webpack breaking the source path
-            fixWebpackSourcePaths: true,
-
-            // Most reporters accept additional config options. You can pass these through the `report-config` option
-            'report-config': {
-                // all options available at: https://github.com/istanbuljs/istanbul-reports/blob/590e6b0089f67b723a1fdf57bc7ccc080ff189d7/lib/html/index.js#L135-L137
-                html: {
-                    // outputs the report in ./coverage/html
-                    subdir: 'html'
-                }
-            }
+            dir: 'coverage/',
         },
 
         beforeMiddleware: [
@@ -112,7 +100,7 @@ module.exports = function(config) {
         customLaunchers: {
             chrome_webplatform: {
                 base: "Chrome",
-                flags: ["--enable-experimental-web-platform-features"]
+                flags: ["--enable-experimental-web-platform-features", "--enable-logging", "--v=1"]
             },
             Chrome_travis_ci: {
                 base: 'Chrome',

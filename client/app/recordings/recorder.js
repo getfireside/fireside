@@ -2,7 +2,7 @@ import WildEmitter from 'wildemitter';
 import moment from 'moment';
 import WAVAudioRecorder from 'lib/wavrecorder/recorder';
 import { Logger } from 'lib/logger';
-import { observable } from 'mobx';
+import { observable, action } from 'mobx';
 
 function isVideo(stream) {
     return stream.getVideoTracks().length > 0;
@@ -21,6 +21,8 @@ export default class Recorder extends WildEmitter {
 
     @observable status = null;
     @observable currentRecording = null;
+    @observable lastBitrate = null;
+    @observable lastChunkTime = null;
 
     constructor(opts) {
         let defaults =
@@ -32,6 +34,7 @@ export default class Recorder extends WildEmitter {
 
         this.store = opts.store;
         this.recordingPeriod = opts.recordingPeriod;
+        this.extraAttrs = opts.extraAttrs || {};
         // this.roomId = opts.roomId;
 
         this.logger = opts.logger != null ? opts.logger : new Logger(null, 'Recorder');
@@ -97,6 +100,9 @@ export default class Recorder extends WildEmitter {
         this.currentRecording.appendBlobToFile(e.data).then( () => {
             this.emit('blobWritten', e.data.size);
             this.logger.info(`Recorded ${e.data.size} bytes to ${this.currentRecording.filename}`);
+            let now = new Date();
+            this.lastBitrate = e.data.size / ((now - this.lastChunkTime) / 1000);
+            this.lastChunkTime = now;
         }).catch(err => {
             this.logger.error(err);
             this.logger.error(err.stack);
@@ -110,6 +116,9 @@ export default class Recorder extends WildEmitter {
     }
 
     onStop(e) {
+        if (this.currentRecording.stopped == null) {
+            this.currentRecording.stopped = new Date;
+        }
         if (this.mediaRecorder instanceof WAVAudioRecorder && this.currentRecording.filesize) {
             this.mediaRecorder.fixWaveFile(this.currentRecording).then( () => {
                 this.logger.log("fixed wave file!");
@@ -124,15 +133,12 @@ export default class Recorder extends WildEmitter {
                 this.status = 'ready';
                 this.emit('stopped', this.currentRecording);
                 this.emit('ready');
-            })
+            });
         }
         else {
             this.status = 'ready';
             this.emit('stopped', this.currentRecording);
             this.emit('ready');
-        }
-        if (this.currentRecording.stopped == null) {
-            this.currentRecording.stopped = new Date;
         }
         this.logger.info(`Recording ${this.currentRecording.filename} completed\n\tlength: ${this.currentRecording.duration} secs;\n\tsize: ${this.currentRecording.filesize} bytes`);
     }
@@ -141,6 +147,7 @@ export default class Recorder extends WildEmitter {
      * If everything is set up, then start recording.
      * If not, wait and poll until it's ready, and then start.
      */
+    @action
     start() {
         if (this.status === 'ready') {
             this.currentRecording = this.createRecording({
@@ -160,6 +167,7 @@ export default class Recorder extends WildEmitter {
     /**
      * If there's currently a recording, stop.
      */
+    @action
     stop() {
         if (this.status === 'started') {
             this.emit('stopping');
@@ -185,6 +193,6 @@ export default class Recorder extends WildEmitter {
      * Create a new recording instance using the store.
      */
     createRecording(attrs) {
-        return this.store.create(attrs);
+        return this.store.create(_.extend({}, attrs, this.extraAttrs));
     }
 }

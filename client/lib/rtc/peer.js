@@ -2,6 +2,7 @@ import webrtcSupport from 'webrtcSupport';
 import PeerConnection from 'rtcpeerconnection';
 import WildEmitter from 'wildemitter';
 import FileTransfer from 'filetransfer';
+import Logger from 'lib/logger';
 
 import _ from 'lodash';
 
@@ -10,24 +11,25 @@ class Peer extends WildEmitter {
      * Represents a peer connected via WebRTC and manages the connection.
      */
     constructor(opts) {
+        super();
         this.id = opts.id;
         this.uid = opts.uid;
         this.info = opts.info; // info about this peer from the signalling server
 
         this.connection = opts.connection;
-        
+
         // Resources represent connected cameras or mics, according to the signalling server
         this.resources = opts.resources || {};
 
         // WebRTC stuff
-        this.browserPrefix = null; 
+        this.browserPrefix = null;
         this.stream = opts.stream || null;
         this.enableDataChannels = opts.enableDataChannels || true;
         this.receiveMedia = opts.receiveMedia;
 
         this.channels = {};
 
-        this.logger = opts.logger || null //fixme;
+        this.logger = opts.logger != null ? opts.logger : new Logger(null, 'Peer');
 
         this.peerConnectionActions = {
             ice: (candidate) => {
@@ -40,7 +42,7 @@ class Peer extends WildEmitter {
             },
 
             offer: (offer) => { this.sendSignallingMessage('offer', offer) },
-            
+
             answer: (offer) => { this.sendSignallingMessage('answer', offer) },
 
             addStream: (event) => {
@@ -53,7 +55,7 @@ class Peer extends WildEmitter {
                             this.endStream()
                         }
                     })
-                }  
+                }
                 this.emit('streamAdded', event.steam);
             },
 
@@ -87,8 +89,8 @@ class Peer extends WildEmitter {
                 }
             },
 
-            signalingStateChange: () => { 
-                this.emit('signalingStateChange', arguments) 
+            signalingStateChange: () => {
+                this.emit('signalingStateChange', arguments)
             }
         }
 
@@ -120,10 +122,7 @@ class Peer extends WildEmitter {
             }
         }
 
-        this.setupPeerConnection(); 
-
-        // call emitter constructor
-        super();
+        this.setupPeerConnection();
 
         // this.connection.on('localStream', this.addLocalStream);
         // this.on('signalingStateChange', () => this.logger.log(['new signalling state,', this.peerConnection.signalingState]));
@@ -131,7 +130,7 @@ class Peer extends WildEmitter {
 
     setupPeerConnection() {
         /**
-         * Initialise the internal PeerConnection object, hook up all the 
+         * Initialise the internal PeerConnection object, hook up all the
          * methods and get ready to start streaming.
          */
         this.logger.log('setting up new peer connection...');
@@ -214,7 +213,7 @@ class Peer extends WildEmitter {
          * @param {string} type: message type
          * @param {obj} payload: the contents of the message
          */
-        let message = { 
+        let message = {
             to: this.id,
             uid: this.uid,
             type: type,
@@ -231,7 +230,7 @@ class Peer extends WildEmitter {
          * @param {string} type: message type
          * @param {obj} payload: the contents of the message. Must be JSON stringifiable.
          */
-        let message = { 
+        let message = {
             type: type,
             payload: payload
         };
@@ -279,7 +278,7 @@ class Peer extends WildEmitter {
             return;
         }
         this.peerConnection.close();
-        if (restart) { 
+        if (restart) {
             this.sendSignallingMessage('restart');
         }
         this.streamClosed = true;
@@ -297,7 +296,6 @@ class Peer extends WildEmitter {
         this.endStream();
         this.closed = true;
         this.releaseGroup();
-        this.unbindEvents();
     }
 }
 

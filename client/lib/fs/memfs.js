@@ -59,8 +59,13 @@ class MemFS extends FS {
 
     removeFile(path) {
         return new Promise((fulfil, reject) => {
-            delete this.db[path]
-            fulfil()
+            if (this.db[path] != null) {
+                delete this.db[path];
+                fulfil()
+            }
+            else {
+                reject(new LookupError("File does not exist."));
+            }
         })
     }
 
@@ -98,7 +103,7 @@ class MemFS extends FS {
         return new Promise((fulfil, reject) => {
             let blobs = this.db[path];
             if (blobs == null) {
-                reject(new FSError(`File ${path} does not exist!`))
+                reject(new LookupError(`File ${path} does not exist!`))
             }
             _.map(blobs, callback);
             fulfil();

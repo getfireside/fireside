@@ -1,23 +1,36 @@
 import {observable, computed} from "mobx";
 import _ from 'lodash';
 
-export default class FileMixin {
+const fileMixin = Base => class extends Base {
     @observable filename;
-    @observable filesize;
+    @observable filesize = null;
 
-    constructor(attrs, opts) {
-        this.fs = opts && opts.fs;
+    constructor(...args) {
+        super(...args);
+        setTimeout(async() => {
+            try {
+                await this.getFileBlob();
+            }
+            catch (err) {
+
+            }
+        }, 0);
     }
 
     async getFileBlob() {
         let f = await this.fs.getFile(this.filename);
+        this._fileSizeDirty = false;
         let blob = await f.read();
+        if (!this._fileSizeDirty) {
+            this.filesize = blob.size;
+        }
         return blob;
     }
 
     async deleteFile() {
         let f = await this.fs.getFile(this.filename);
         await f.remove();
+        this._fileSizeDirty = true;
         this.filesize = null;
     }
 
@@ -29,6 +42,7 @@ export default class FileMixin {
     async appendBlobToFile(blob) {
         let f = await this.fs.getFile(this.filename);
         await f.append(blob);
+        this._fileSizeDirty = true;
         if (this.filesize == null) {
             this.filesize = 0;
         }
@@ -42,3 +56,5 @@ export default class FileMixin {
         return;
     }
 }
+
+export default fileMixin;

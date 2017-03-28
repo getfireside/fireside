@@ -1,12 +1,13 @@
-import {Recording, RecordingStore} from 'app/recordings/store';
+import RecordingStore, {Recording} from 'app/recordings/store';
 import MemFS from 'lib/fs/memfs';
+import config from 'app/config';
 
 describe("RecordingStore", function() {
     context('#create', () => {
         let store = null;
 
         beforeEach(() => {
-            store = new RecordingStore({fs: new MemFS(), directory: 'test'});
+            store = fixtures.generateRecordingStore(new MemFS());
         });
 
         it('Creates Recordings', () => {
@@ -28,8 +29,8 @@ describe("RecordingStore", function() {
         });
 
         it("Passes through any attrs to the resulting recording", () => {
-            let attrs1 = {type: 'audio/wav'}
-            let attrs2 = {started: new Date(), ended: new Date(), userId: 5}
+            let attrs1 = {type: 'audio/wav'};
+            let attrs2 = {started: new Date(), ended: new Date(), userId: 5};
             let recording1 = store.create(attrs1);
             let recording2 = store.create(attrs2);
             expect(recording1).to.contain(attrs1);
@@ -41,42 +42,42 @@ describe("RecordingStore", function() {
         let store, rec1, rec2;
 
         beforeEach( () => {
-            rec1 = new Recording({id: 'test-id-1', type: 'audio/wav'});
-            rec2 = new Recording({id: 'test-id-2', type: 'video/webm'});
-            store = new RecordingStore({recordings: [
+            rec1 = {id: 'test-id-1', type: 'audio/wav'};
+            rec2 = {id: 'test-id-2', type: 'video/webm'};
+            store = fixtures.generateRecordingStore(new MemFS(), [
                 rec1,
                 rec2,
-            ], fs: new MemFS(), directory: 'test'})
+            ]);
         });
 
         it('Fetches recordings', () => {
-            expect(store.get('test-id-1')).to.deep.equal(rec1);
-            expect(store.get('test-id-2')).to.deep.equal(rec2);
+            expect(store.get('test-id-1')).to.containSubset(rec1);
+            expect(store.get('test-id-2')).to.containSubset(rec2);
         });
 
         it('Returns undefined if the recording does not exist', () => {
-            expect(store.get('fake-id-3')).to.equal(undefined);
+            expect(store.get('fake-id-3')).to.be.undefined;
         });
     });
 
     context('#delete', () => {
         it("Correctly removes recordings", () => {
-            let rec1 = new Recording({id: 'test-id-1', type: 'audio/wav'});
-            let rec2 = new Recording({id: 'test-id-2', type: 'video/webm'});
-            let store = new RecordingStore({recordings: [
+            const rec1 = {id: 'test-id-1', type: 'audio/wav'};
+            const rec2 = {id: 'test-id-2', type: 'video/webm'};
+            const store = fixtures.generateRecordingStore(new MemFS(), [
                 rec1,
                 rec2,
-            ], fs: new MemFS(), directory: 'test'})
+            ]);
             store.delete(rec1.id);
             expect(store.get('test-id-1')).to.equal(undefined);
-            expect(store.get('test-id-2')).to.deep.equal(rec2);
-        })
-    })
+            expect(store.get('test-id-2')).to.containSubset(rec2);
+        });
+    });
 });
 
 describe('Recording', () => {
     it('Has a duration property that returns the length in seconds', () => {
-        let rec = new Recording({
+        const rec = new Recording({
             started: new Date('2017-01-01 00:00:00'),
             stopped: new Date('2017-01-01 00:01:00'),
         });
@@ -84,7 +85,7 @@ describe('Recording', () => {
     });
 
     it('Has a bitrate property that returns the average bitrate', () => {
-        let rec = new Recording({
+        const rec = new Recording({
             started: new Date('2017-01-01 00:00:00'),
             stopped: new Date('2017-01-01 00:01:00'),
             filesize: 5*1024*1024
@@ -93,12 +94,14 @@ describe('Recording', () => {
     });
 
     it('Generates a new filename from the directory and id on instantiation', () => {
+        fixtures.setConfig('recordings.baseDir', 'testdir/');
         let rec = new Recording({
-            id: 'my-id'
-        }, {
-            directory: 'test'
+            id: 'my-id',
+            roomId: 22,
+            type: 'audio/wav'
         });
         expect(rec).to.have.property('filename');
-        expect(rec.directory).to.be.a('string');
+        expect(rec.directory).to.equal('testdir/22');
+        expect(rec.filename).to.equal('testdir/22/my-id.wav');
     });
-})
+});

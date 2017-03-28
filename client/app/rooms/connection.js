@@ -1,45 +1,10 @@
 import WildEmitter from 'wildemitter';
+import _ from 'lodash';
+import {observable} from 'mobx';
+
 import Peer from 'lib/rtc/peer';
+import Socket from 'lib/socket';
 
-class Socket extends WildEmitter {
-    /**
-     * Tiny emitter-based wrapper for web sockets
-     */
-    
-    constructor(opts) {
-        this.status = 'closed';
-        this.url = url
-    }
-
-    open() {
-        this.ws = new WebSocket(this.url)
-        this.status = 'connecting'
-        this.ws.onopen = (event) => {
-            this.status = 'open'
-            this.emit('open', event)
-        }
-
-        this.ws.onmessage = (event) => {
-            var msg = JSON.parse(event.data)
-            this.emit('message', msg)
-        }
-        this.ws.onclose = (event) => {
-            this.status = 'closed'
-            this.emit('close', event)
-        }
-    }
-
-    send(type, payload) {
-        this.ws.send({
-            type, 
-            payload
-        });
-    }
-
-    close() {
-        this.ws.close()
-    }
-}
 
 const MESSAGE_TYPE_MAP = {
     s: 'signalling',
@@ -49,83 +14,74 @@ const MESSAGE_TYPE_MAP = {
     j: 'joinRoom',
     A: 'announce',
     e: 'event'
-}
+};
 
-const MESSAGE_REVERSED_TYPE_MAP = _.invert(MESSAGE_TYPE_MAP)
+const MESSAGE_REVERSED_TYPE_MAP = _.invert(MESSAGE_TYPE_MAP);
 
-class RoomConnection extends WildEmitter {
+export default class RoomConnection extends WildEmitter {
     /**
      * Handles the connection to the signalling server, and to the RTC peers.
      */
-    constructor(opts) {
-        this.wsUrl = opts.wsUrl
+    @observable status = null;
+    @observable.shallow peers = [];
 
-        this.peers = []
+    constructor(opts) {
+        super();
+        this.wsUrl = opts.wsUrl;
+        this.config = {
+            enableDataChannels: opts.enableDataChannels || true,
+        };
+
+        this.peers = [];
         this.localMedia = [];
 
-        this.socket = Socket({wsUrl: this.wsUrl})
-        this.socket.on('message', handleSocketMessage)
+        this.socket = new Socket({url: this.wsUrl});
+        this.socket.on('message', this.handleSocketMessage.bind(this));
 
-        this.status = 'disconnected'
+        this.status = 'disconnected';
 
-        this.messageActions = {
-            signalling: (message) => {
-                let peer = this.getPeer(message.id);
+        this.messageHandlers = {
+            signalling: (data) => {
+                let peer = this.getPeer(data.id);
                 if (peer) {
-                    peer.receiveSignallingMessage(message)
+                    peer.receiveSignallingMessage(data);
                 }
             },
-            authentication: (message) => {
-                if (message.payload == 'OK') {
-                    this.onConnect()
-                }
+            announce: (data) => {
+                let peer = this.addPeer(data.peer);
+                this.emit('announcePeer', peer);
             },
-            announce: (message) => {
-                let peer = this.addPeer(message.payload)
-                this.emit('announcePeer', peer)
-            },
-            joinRoom: (message) => {
+            joinRoom: (data) => {
                 // this event is sent on join
-                this.emit('joinRoom', message.payload)
-                for (peer of message.payload.peers) {
-                    this.addPeer(peer)
+                this.emit('joinRoom', data);
+                for (let peer of data.peers) {
+                    this.addPeer(peer);
                 }
-            }
-            leave: (message) => {
-                this.removePeer(message.payload.peerId)
+            },
+            leave: (data) => {
+                this.removePeer(data.id);
+            },
+            event: (data) => {
+                this.emit(`event.${data.type}`, data.payload);
             }
         }
-        this.connectActions()
-    }
-
-    connectActions() {
-        _.forIn(this.messageActions, (v, k) => {
-            this.on(`event:${k}`, v);
-        })
     }
 
     onConnect() {
-        this.status = 'connected'
-        this.emit('connect')
+        this.status = 'connected';
+        this.emit('connect');
     }
 
-    async connect() {
+    connect() {
         /**
          * Open the websocket and connect
          */
         if (this.status == 'disconnected') {
-            this.status = 'connecting'
-            this.socket.open()
-            this.socket.on('open', this.doHandshake.bind(this))
-            this.emit('connecting')
+            this.status = 'connecting';
+            this.socket.once('open', this.onConnect.bind(this));
+            this.socket.open();
+            this.emit('connecting');
         }
-    }
-
-    doHandshake() {
-        /**
-         * Perform the authentication handshake
-         */
-        this.send('authenticate', {t: this.authToken})
     }
 
     handleSocketMessage(message) {
@@ -134,9 +90,9 @@ class RoomConnection extends WildEmitter {
          * @private
          * @param {obj} message: the received message
          */
-        this.emit(`event:${MESSAGE_TYPE_MAP[message.t]}`, message.p)
+        let [type, payload] = [MESSAGE_TYPE_MAP[message.t], message.p];
         // let [type, subtype] = message.type.split(':', 1);
-        // this.messageActions[root](message)
+        this.messageHandlers[type](payload);
     }
 
     addPeer(data) {
@@ -151,22 +107,34 @@ class RoomConnection extends WildEmitter {
             resources: data.resources,
             enableDataChannels: this.config.enableDataChannels,
             connection: this,
-        })
+        });
         if (this.stream) {
-            peer.addLocalStream()
+            peer.addLocalStream(this.stream);
         }
-        this.emit('peerAdded', peer)
+        let existingPeer = this.getPeer(peer.id);
+        if (existingPeer) {
+            existingPeer = peer;
+        }
+        else {
+            this.peers.push(peer);
+        }
+        this.emit('peerAdded', peer);
+        return peer;
     }
 
     send(name, data) {
-        this.ws.send({
+        this.socket.send({
             t: MESSAGE_REVERSED_TYPE_MAP[name],
             p: data
-        })
+        });
     }
 
     sendEvent(name, data) {
-        this.send('event', {name: name, data: data})
+        this.send('event', {name: name, data: data});
+    }
+
+    sendMessage(name, data) {
+        this.send('message', {type: name, payload: data});
     }
 
     connectStream(stream) {
@@ -174,7 +142,7 @@ class RoomConnection extends WildEmitter {
         for (let peer of this.peers) {
             peer.addLocalStream(this.stream)
         }
-        this.emit('localStreamConnected')
+        this.emit('localStreamConnected');
     }
 
     getPeer(id) {
@@ -183,8 +151,8 @@ class RoomConnection extends WildEmitter {
 
     removePeer(id) {
         let peer = this.getPeer(id);
-        peer.end()
-        this.peers = _.reject(this.peers, p => p.id == id)
-        this.emit('peerRemoved', peer.id)
+        peer.end();
+        this.peers = _.reject(this.peers, p => p.id == id);
+        this.emit('peerRemoved', {peerId: peer.id, userId: peer.uid});
     }
 }

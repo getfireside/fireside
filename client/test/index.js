@@ -1,19 +1,18 @@
 import sinon from 'sinon';
 import chai from 'chai';
 import sinonChai from "sinon-chai";
+import subset from 'chai-subset';
 window.sinon = sinon;
 window.chai = chai;
 
-sinon.behavior = require('sinon/lib/sinon/behavior');
-sinon.defaultConfig = {
-    injectInto: null,
-    properties: ['spy', 'stub', 'mock', 'clock', 'server', 'requests'],
-    useFakeTimers: true,
-    useFakeServer: true
-};
 chai.use(sinonChai);
+chai.use(subset);
 
 window.expect = chai.expect;
 window.should = chai.should;
+
+import * as fixtures from './fixtures.js';
+window.fixtures = fixtures;
+
 var context = require.context('.', true, /.spec.js(x?)$/); //make sure you have your directory and regex test set correctly!
 context.keys().forEach(context);

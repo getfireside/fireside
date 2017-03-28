@@ -1,9 +1,9 @@
-import FileMixin from 'lib/fs/filemixin';
+import fileMixin from 'lib/fs/filemixin';
 import MemFS, {LookupError} from 'lib/fs/memfs';
 import {blobToString} from 'lib/util';
 import _ from 'lodash';
 
-describe('FileMixin', () => {
+describe('fileMixin', () => {
     let fs;
 
     before( async () => {
@@ -12,12 +12,13 @@ describe('FileMixin', () => {
     })
 
     const genFileMixin = (filename, filesize) => {
-        class File extends FileMixin {
+        class File {
             constructor(attrs, opts) {
-                super(attrs, opts);
                 _.extend(this, attrs);
+                this.fs = opts.fs;
             }
         }
+        File = fileMixin(File);
         return new File({filename, filesize}, {fs})
     }
 
@@ -25,6 +26,14 @@ describe('FileMixin', () => {
         fs.clear();
         await fs.appendToFile('test/file', new Blob(['0000test']));
     });
+
+    it('Sets filesize correctly when constructed', (done) => {
+        let m = genFileMixin('test/file', 8);
+        setTimeout(() => {
+            expect(m.filesize).to.equal(8);
+            done();
+        }, 10)
+    })
 
     context('#getFileBlob', () => {
         it('Reads an existing blob correctly', async () => {
@@ -118,6 +127,10 @@ describe('FileMixin', () => {
                 expect(err).to.be.an.instanceOf(LookupError);
             }
         });
-        it("Sets the filesize to null");
+        it("Sets the filesize to null", async () => {
+            let m = genFileMixin('test/file', 8);
+            await m.deleteFile();
+            expect(m.filesize).to.equal(null);
+        });
     })
 })

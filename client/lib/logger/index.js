@@ -11,3 +11,4 @@ export const appenders = {
 }
 
 export {LoggingController, Logger};
+export default Logger;

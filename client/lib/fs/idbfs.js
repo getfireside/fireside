@@ -136,7 +136,7 @@ export default class IDBFS extends FS {
         return new Promise((fulfil, reject) => {
             this.close();
             let req = indexedDB.deleteDatabase(this.dbname);
-            req.onblocked = () => reject(new Error("DB couldn't be deleted as it's blocked"));
+            // req.onblocked = () => reject(new Error("DB couldn't be deleted as it's blocked"));
             req.onerror = (e) => reject(e.target.error);
             req.onsuccess = () => fulfil();
         });
@@ -145,9 +145,11 @@ export default class IDBFS extends FS {
         return new Promise((fulfil, reject) => {
             if (this.db) {
                 fulfil(this);
+                return;
             }
 
             let openRequest = indexedDB.open(this.dbname, 1);
+            window._or = openRequest;
 
             openRequest.onupgradeneeded = function(event) {
                 let db = event.target.result;

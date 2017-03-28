@@ -11,6 +11,7 @@ describe('IDBFS', () => {
             expect(fs).to.have.property('db');
             let sto = fs.db.transaction(['chunks']).objectStore('chunks');
             expect(sto.indexNames.contains('filename'));
+            fs.close()
         });
         it('Fulfils immediately if already open', async () => {
             let fs = new IDBFS({dbname: 'testdb'});
@@ -20,6 +21,7 @@ describe('IDBFS', () => {
                 open = true
             })
             await (new Promise((fulfil, reject) => {
+                fs.close()
                 setTimeout(() => {
                     if (open) {
                         fulfil()
@@ -35,6 +37,7 @@ describe('IDBFS', () => {
             await fs.open();
             fs.close();
             await fs.open();
+            fs.close()
         });
     })
     it('Has a close method that runs without error', async () => {
@@ -47,7 +50,8 @@ describe('IDBFS', () => {
             let fs = new IDBFS({dbname: 'testdb'});
             await fs.open();
             let file = await fs.getFile('/test/2222');
-            expect(file).to.be.an.instanceOf(IDBFile)
+            expect(file).to.be.an.instanceOf(IDBFile);
+            fs.close();
         });
     })
 })
@@ -59,13 +63,16 @@ describe('IDBFile', function() {
     let fs;
     beforeEach( async function() {
         fs = new IDBFS({dbname: 'testdb'})
+
         let attempts = 0;
         while (true) {
             try {
+                attempts++;
                 await fs.clear();
                 break;
             }
             catch (e) {
+                console.log(`IDB open attempt ${attempts} failed... retrying`)
                 if (e.message.indexOf('blocked') != -1) {
                     if (attempts == 10) {
                         throw(e);
@@ -231,4 +238,4 @@ describe('IDBFile', function() {
     })
 
     it('Works reliably for large files'); // TODO: figure out the best tests for really big files
-})
+});
