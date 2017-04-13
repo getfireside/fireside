@@ -1,44 +1,121 @@
 from channels.generic.websockets import JsonWebsocketConsumer
+from channels.generic import BaseConsumer
+from channels import Channel, Group
 from .models import Room, Participant
+import functools
 
 
-class RoomConsumer(JsonWebsocketConsumer):
-    _room_cache = {}
-    _participant_cache = {}
+class RoomSocketConsumer(JsonWebsocketConsumer):
+    http_user = True
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        room_id = self.kwargs['id']
-        self.room = self._room_cache.get(room_id)
-        if self.room is None:
-            self.room = Room.objects.get(id=room_id)
-            self._room_cache[self.room.id] = self.room
-
-    def connection_groups(self, **kwargs):
-        return ['rooms.{}'.format(self.room.id)]
-
-    def get_participant(self, user, session_key):
-        if user:
-            res = self._participant_cache.get((True, user))
-            if res is None:
-                res = Participant.objects.get(user=user)
-                self._participant_cache[(True, user)] = res
+    def get_participant(self, user, session):
+        if user.is_authenticated():
+            return (
+                Participant.objects.filter(user=user)
+            ).values_list('id', flat=True)[0]
         else:
-            res = self._participant_cache.get((False, session_key))
-            if res is None:
-                res = Participant.objects.get(session_key=session_key)
-                self._participant_cache[(False, session_key)] = res
-        return res
+            if session.session_key is None:
+                session.save()
+            participant, _ = Participant.objects.get_or_create(
+                session_key=session.session_key
+            )
+            return participant.id
 
-    def connect(self, message, multiplexer, **kwargs):
-        self.participant = self.get_participant(self.user, self.session_key)
-        self.room.join(
+    def connect(self, message, **kwargs):
+        self.message.channel_session['participant_id'] = self.get_participant(
+            self.message.user, self.message.http_session
+        )
+        self.message.channel_session.save()
+        Channel('room.join').send({
+            'reply_channel': message.content['reply_channel'],
+            'room_id': self.kwargs['id'],
+            'participant_id': self.message.channel_session['participant_id']
+        })
+        message.reply_channel.send({'accept': True})
+
+    def disconnect(self, message, **kwargs):
+        Channel('room.leave').send({
+            'reply_channel': message.content['reply_channel'],
+            'room_id': self.kwargs['id'],
+            'participant_id': self.message.channel_session['participant_id']
+        })
+
+    def receive(self, text, **kwargs):
+        decoded = Room.decode_message(text)
+        decoded['reply_channel'] = self.message.content['reply_channel']
+        decoded['room_id'] = self.kwargs['id']
+        decoded['participant_id'] = \
+            self.message.channel_session['participant_id']
+        Channel('room.receive').send(decoded)
+
+
+class RoomConsumer(BaseConsumer):
+    channel_session = True
+    method_mapping = {
+        'room.join': 'join',
+        'room.leave': 'leave',
+        'room.receive': 'receive'
+    }
+
+    @classmethod
+    @functools.lru_cache(maxsize=None)
+    def get_room(cls, id):
+        return Room.objects.get(id=id)
+
+    @classmethod
+    @functools.lru_cache(maxsize=None)
+    def get_participant(cls, id):
+        return Participant.objects.get(id=id)
+
+    def dispatch(self, message, **kwargs):
+        self.room = self.get_room(message.content['room_id'])
+        self.participant = self.get_participant(
+            message.content['participant_id']
+        )
+        return super().dispatch(message, **kwargs)
+
+    def receive(self, message, **kwargs):
+        if message.content['type'] in self.room.MESSAGE_TYPE_MAP.values():
+            return getattr(self, message.content['type'])(
+                **message.content['payload']
+            )
+
+    def event(self, type, data):
+        self.room.send(self.room.message('event', {
+            'type': type,
+            'data': data,
+            'from': self.message.channel_session['peer_id']
+        }))
+
+    def join(self, message, **kwargs):
+        initial_data = self.room.get_initial_data()
+        self.message.channel_session['peer_id'] = self.room.join(
             self.participant,
             channel_name=self.message.reply_channel.name
         )
+        self.room.send(
+            self.room.message('join', initial_data),
+            to_peer=self.message.channel_session['peer_id']
+        )
+        Group(self.room.group_name).add(self.message.reply_channel)
 
-    def disconnect(self, message, **kwargs):
-        pass
+    def leave(self, message, **kwargs):
+        self.room.leave(self.message.channel_session['peer_id'])
+        Group(self.room.group_name).discard(self.message.reply_channel)
 
-    def receive(self, message, **kwargs):
-        pass
+    def signalling(self, **data):
+        data['from'] = self.message.channel_session['peer_id']
+        self.room.send(self.room.message('signalling', data), data['to'])
+
+    def action(self, name, data):
+        if not self.room.is_admin(self.participant):
+            return None
+
+        if not self.room.is_valid_action(name):
+            return None
+
+        self.room.send(self.room.message('event', {
+            'type': 'request_' + name,
+            'data': data,
+            'from': self.message.channel_session['peer_id']
+        }))

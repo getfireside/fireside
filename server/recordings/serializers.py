@@ -3,11 +3,12 @@ from .models import Recording
 
 
 class RecordingSerializer(serializers.ModelSerializer):
+    uid = serializers.IntegerField(source='participant_id')
     class Meta:
         model = Recording
         fields = (
             'id',
-            'participant_id',
+            'uid',
             'room_id',
             'type',
             'filesize',
