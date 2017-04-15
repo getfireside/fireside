@@ -7,13 +7,14 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.postgres.fields import JSONField
 from django.conf import settings
+from django.core.urlresolvers import reverse
 
 from channels import Group, Channel
 from model_utils import Choices
 
 from fireside import redis_conn
 from accounts.models import User
-
+from recordings.models import Recording
 
 def generate_id():
     return ''.join(random.choice(
@@ -56,7 +57,10 @@ class Room(models.Model):
 
     id = models.CharField(max_length=6, primary_key=True, default=generate_id)
     owner = models.ForeignKey('Participant', related_name='owned_rooms')
-    members = models.ManyToManyField('Participant', through='RoomMembership', related_name='rooms')
+    members = models.ManyToManyField('Participant',
+        through='RoomMembership',
+        related_name='rooms'
+    )
     created = models.DateTimeField(auto_now_add=True)
 
     objects = RoomManager()
@@ -69,17 +73,23 @@ class Room(models.Model):
 
     @classmethod
     def encode_message(cls, message):
-        return json.dumps({
-            't': cls.MESSAGE_TYPE_MAP_INVERSE[message['type']],
-            'p': message['payload']
-        })
+        try:
+            return json.dumps({
+                't': cls.MESSAGE_TYPE_MAP_INVERSE[message['type']],
+                'p': message['payload']
+            })
+        except (KeyError, TypeError):
+            raise ValueError("Invalid message")
 
     @classmethod
     def decode_message(cls, message):
-        return cls.message(
-            type=cls.MESSAGE_TYPE_MAP[message['t']],
-            payload=message['p']
-        )
+        try:
+            return cls.message(
+                type=cls.MESSAGE_TYPE_MAP[message['t']],
+                payload=message['p']
+            )
+        except (KeyError, TypeError):
+            raise ValueError("Invalid message")
 
     @classmethod
     def message(cls, type, payload):
@@ -179,7 +189,8 @@ class Room(models.Model):
                 role = RoomMembership.ROLE.guest
             self.memberships.create(
                 participant=participant,
-                role=role
+                role=role,
+                name=participant.name
             )
 
         peer_id = self.get_peer_id(participant)
@@ -189,6 +200,16 @@ class Room(models.Model):
         self.connect_peer(peer_id, channel_name, participant)
         self.announce(peer_id, participant)
         return peer_id
+
+    def create_recording(self, **kwargs):
+        from recordings.serializers import RecordingSerializer
+        rec = self.recordings.create(**kwargs)
+        rec.peer_id = self.get_peer_id(rec.participant)
+        self.send(self.message('event', {
+            'type': 'start_recording',
+            'data': RecordingSerializer(rec).data,
+        }))
+        return rec
 
     def add_message(self, type, payload, from_participant=None,
                     timestamp=None):
@@ -212,17 +233,31 @@ class Room(models.Model):
                 'meter_update',
             )
 
+    def get_socket_url(self):
+        return self.get_absolute_url() + "socket"
+
+    def get_absolute_url(self):
+        return reverse('rooms:room', kwargs={'room_id': self.id})
+
 
 class RoomMembership(models.Model):
     ROLE = Choices(
         ('g', 'guest', 'Guest'),
         ('o', 'owner', 'Owner'),
     )
+    STATUS = Choices(
+        (0, 'disconnected', 'Disconnected'),
+        (-1, 'connected', 'Connected'),
+    )
     participant = models.ForeignKey('Participant', related_name='memberships')
     room = models.ForeignKey('Room', related_name='memberships')
     name = models.CharField(max_length=64, blank=True, null=True)
     role = models.CharField(max_length=1, choices=ROLE, default=ROLE.guest)
     joined = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def status(self):
+        return self.STATUS.connected if self.peer_id else self.STATUS.disconnected
 
     @property
     def peer_id(self):
@@ -255,11 +290,35 @@ class Message(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
 
+class ParticipantManager(models.Manager):
+    def from_request(self, request):
+        return self.from_user_or_session(request.user, request.session)
+
+    def from_user_or_session(self, user, session):
+        if user.is_authenticated():
+            return self.get(user=user)
+        else:
+            if session.session_key is None:
+                session.save()
+            participant = self.get(
+                session_key=session.session_key
+            )
+            return participant
+
+
 class Participant(models.Model):
     user = models.OneToOneField('accounts.User', blank=True, null=True,
                                 related_name='participant')
     session_key = models.CharField(max_length=32, blank=True, null=True)
     name = models.CharField(max_length=64, blank=True, null=True)
+
+    def get_display_name(self):
+        if self.name is None:
+            if self.user_id:
+                return self.user.name
+        return self.name
+
+    objects = ParticipantManager()
 
 
 @receiver(post_save, sender=User)
@@ -274,5 +333,5 @@ def create_participant_for_user(sender, instance, created, **kwargs):
         instance.participant.save()
 
 
-if settings.DEBUG:
+if settings.DEBUG and not settings.TEST:
     redis_conn.flushdb()

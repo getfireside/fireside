@@ -5,3 +5,5 @@ FIRESIDE_REDIS_CONF = {
     'port': '6819',
     'db': 1,
 }
+
+TEST = True

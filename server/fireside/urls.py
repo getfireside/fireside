@@ -21,7 +21,7 @@ import rooms.urls
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^rooms/', include(rooms.urls))
+    url(r'^rooms/', include(rooms.urls, namespace='rooms'))
 ]
 
 if settings.DEBUG:

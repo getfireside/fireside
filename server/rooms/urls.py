@@ -1,6 +1,11 @@
 from django.conf.urls import url
 from django.conf import settings
 
-urlpatterns = [
+from . import views
 
+urlpatterns = [
+    url(r'^(?P<room_id>\w+)/$', views.RoomView.as_view(), name='room'),
+    url(r'^(?P<room_id>\w+)/messages/$', views.RoomMessagesView.as_view(), name='messages'),
+    url(r'^(?P<room_id>\w+)/participants/$', views.RoomParticipantsView.as_view(), name='users'),
+    url(r'^(?P<room_id>\w+)/actions/(?P<name>\w+)/$', views.RoomActionView.as_view(), name='action'),
 ]

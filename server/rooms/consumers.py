@@ -9,22 +9,12 @@ class RoomSocketConsumer(JsonWebsocketConsumer):
     http_user = True
 
     def get_participant(self, user, session):
-        if user.is_authenticated():
-            return (
-                Participant.objects.filter(user=user)
-            ).values_list('id', flat=True)[0]
-        else:
-            if session.session_key is None:
-                session.save()
-            participant, _ = Participant.objects.get_or_create(
-                session_key=session.session_key
-            )
-            return participant.id
+        return Participant.objects.from_user_or_session(user, session)
 
     def connect(self, message, **kwargs):
         self.message.channel_session['participant_id'] = self.get_participant(
             self.message.user, self.message.http_session
-        )
+        ).id
         self.message.channel_session.save()
         Channel('room.join').send({
             'reply_channel': message.content['reply_channel'],
@@ -106,16 +96,3 @@ class RoomConsumer(BaseConsumer):
     def signalling(self, **data):
         data['from'] = self.message.channel_session['peer_id']
         self.room.send(self.room.message('signalling', data), data['to'])
-
-    def action(self, name, data):
-        if not self.room.is_admin(self.participant):
-            return None
-
-        if not self.room.is_valid_action(name):
-            return None
-
-        self.room.send(self.room.message('event', {
-            'type': 'request_' + name,
-            'data': data,
-            'from': self.message.channel_session['peer_id']
-        }))

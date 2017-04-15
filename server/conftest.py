@@ -1,5 +1,8 @@
-from rest_framework.test import APIClient
 import pytest
+from django.utils.timezone import now
+from datetime import timedelta
+from rest_framework.test import APIClient
+from channels.test import ChannelTestCase
 
 from accounts.models import User
 from rooms.models import Room, Participant
@@ -47,6 +50,7 @@ def room(user, user2):
     room.memberships.create(participant=user2.participant)
     return room
 
+
 @pytest.fixture
 def recording(room, user):
     return Recording.objects.create(
@@ -54,8 +58,10 @@ def recording(room, user):
         room=room,
         type='video/webm',
         filesize=650*1024**2,
-        duration=60*20,
+        started=now() - timedelta(minutes=20),
+        ended=now(),
     )
+
 
 @pytest.fixture
 def recording2(room, user2):
@@ -64,7 +70,8 @@ def recording2(room, user2):
         room=room,
         type='video/webm',
         filesize=648*1024**2,
-        duration=60*19,
+        started=now() - timedelta(minutes=19, seconds=50),
+        ended=now(),
     )
 
 
@@ -72,3 +79,12 @@ def recording2(room, user2):
 def empty_room(user):
     room = Room.objects.create_with_owner(owner=user.participant)
     return room
+
+@pytest.fixture
+def channel_test(request):
+    t = ChannelTestCase()
+    t._pre_setup()
+    if request.cls:
+        request.cls.channel_test = t
+    yield t
+    t._post_teardown()

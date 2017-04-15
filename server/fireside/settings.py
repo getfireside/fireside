@@ -21,6 +21,7 @@ env = environ.Env(
 )
 environ.Env.read_env(str(BASE_DIR.path('.env')))
 
+TEST = False
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 
