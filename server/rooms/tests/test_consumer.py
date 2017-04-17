@@ -7,6 +7,7 @@ from recordings.models import Recording
 from recordings.serializers import RecordingSerializer
 import uuid
 
+
 @pytest.fixture
 def client(user):
     client = HttpClient()
@@ -57,14 +58,19 @@ class TestRoomConsumer:
             return None
 
     def test_join(self, room, client, client2):
-        client.send_and_consume('websocket.connect', path=room.get_socket_url())
+        client.send_and_consume(
+            'websocket.connect',
+            path=room.get_socket_url()
+        )
         client.consume('room.join')
 
         # receives announce message...
         msg = self.get_message(client)
 
         expected_peer = {
-            'uid': room.memberships.get(participant=client.user.participant).id,
+            'uid': room.memberships.get(
+                participant=client.user.participant
+            ).id,
             'status': RoomMembership.STATUS.connected,
             'info': {
                 'current_recording_id': None,
@@ -91,7 +97,7 @@ class TestRoomConsumer:
             participant=client2.user.participant,
             room=room,
             type='video/webm',
-            filesize=648*1024**2,
+            filesize=648 * 1024 ** 2,
             started=now() - timedelta(minutes=30),
             ended=now(),
         )
@@ -108,7 +114,9 @@ class TestRoomConsumer:
         assert msg3['type'] == 'announce'
 
         expected_peer2 = {
-            'uid': room.memberships.get(participant=client2.user.participant).id,
+            'uid': room.memberships.get(
+                participant=client2.user.participant
+            ).id,
             'status': RoomMembership.STATUS.connected,
             'info': {
                 'current_recording_id': None,
@@ -149,7 +157,10 @@ class TestRoomConsumer:
 
     def test_leave(self, room, joined_clients):
         client, client2 = joined_clients
-        client2.send_and_consume('websocket.disconnect', path=room.get_socket_url())
+        client2.send_and_consume(
+            'websocket.disconnect',
+            path=room.get_socket_url()
+        )
         client2.consume('room.leave')
 
         # client should have got a leave message

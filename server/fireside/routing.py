@@ -1,4 +1,3 @@
-from channels.routing import route
 from rooms.consumers import RoomSocketConsumer, RoomConsumer
 
 channel_routing = [

@@ -1,10 +1,8 @@
 from datetime import datetime, timezone
-from django.shortcuts import render
 from django.views.generic import DetailView
 
 from rest_framework.views import APIView
 from rest_framework.generics import ListCreateAPIView, ListAPIView
-from rest_framework.response import Response
 from rest_framework.permissions import BasePermission
 
 from .models import Room, Participant, RoomMembership, Message
@@ -14,11 +12,13 @@ from .serializers import MembershipSerializer, MessageSerializer
 class HasRoomAccess(BasePermission):
     def has_permission(self, request, view):
         try:
-            room = request.room = Room.objects.get(id=view.kwargs.get('room_id'))
+            room = request.room = \
+                Room.objects.get(id=view.kwargs.get('room_id'))
         except Room.DoesNotExist:
             return False
         try:
-            participant = request.participant = Participant.objects.from_request(request)
+            participant = request.participant = \
+                Participant.objects.from_request(request)
         except Participant.DoesNotExist:
             return False
         request.participant = participant
@@ -28,11 +28,13 @@ class HasRoomAccess(BasePermission):
 class IsRoomAdmin(BasePermission):
     def has_permission(self, request, view):
         try:
-            room = request.room = Room.objects.get(id=view.kwargs.get('room_id'))
+            room = request.room = \
+                Room.objects.get(id=view.kwargs.get('room_id'))
         except Room.DoesNotExist:
             return False
         try:
-            participant = request.participant = Participant.objects.from_request(request)
+            participant = request.participant = \
+                Participant.objects.from_request(request)
         except Participant.DoesNotExist:
             return False
         request.participant = participant

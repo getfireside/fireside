@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Participant, RoomMembership, Message
+from .models import RoomMembership, Message
 from recordings.serializers import RecordingSerializer
 
 
@@ -22,8 +22,6 @@ class PeerSerializer(MembershipSerializer):
 
     def connected_status(self, value):
         return RoomMembership.STATUS.connected
-
-
 
 
 class MessageSerializer(serializers.ModelSerializer):

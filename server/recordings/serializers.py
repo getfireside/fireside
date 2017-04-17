@@ -5,6 +5,7 @@ from .models import Recording
 class RecordingSerializer(serializers.ModelSerializer):
     uid = serializers.IntegerField()
     peer_id = serializers.UUIDField(required=False)
+
     class Meta:
         model = Recording
         fields = (

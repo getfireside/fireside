@@ -57,7 +57,7 @@ def recording(room, user):
         participant=user.participant,
         room=room,
         type='video/webm',
-        filesize=650*1024**2,
+        filesize=650 * 1024 ** 2,
         started=now() - timedelta(minutes=20),
         ended=now(),
     )
@@ -69,7 +69,7 @@ def recording2(room, user2):
         participant=user2.participant,
         room=room,
         type='video/webm',
-        filesize=648*1024**2,
+        filesize=648 * 1024 ** 2,
         started=now() - timedelta(minutes=19, seconds=50),
         ended=now(),
     )
@@ -79,6 +79,7 @@ def recording2(room, user2):
 def empty_room(user):
     room = Room.objects.create_with_owner(owner=user.participant)
     return room
+
 
 @pytest.fixture
 def channel_test(request):

@@ -1,9 +1,5 @@
 sudo: required
-language: node_js
-dist: xenial
-
-node_js:
-  - node
+dist: trusty
 
 before_install:
   - sudo sh -c 'echo "deb http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list'

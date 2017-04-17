@@ -1,0 +1,10 @@
+[run]
+branch = true
+source = .
+omit =
+    *migrations*
+    *tests*
+    .tox*
+    manage.py
+    *apps.py
+    conftest.py

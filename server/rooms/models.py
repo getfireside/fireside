@@ -14,7 +14,7 @@ from model_utils import Choices
 
 from fireside import redis_conn
 from accounts.models import User
-from recordings.models import Recording
+
 
 def generate_id():
     return ''.join(random.choice(
@@ -172,7 +172,7 @@ class Room(models.Model):
         from .serializers import PeerSerializer
         mem = self.memberships.get(participant=participant)
         self.send(self.message('announce', {
-           'peer': PeerSerializer(mem).data
+            'peer': PeerSerializer(mem).data
         }))
 
     def leave(self, peer_id):
@@ -257,7 +257,10 @@ class RoomMembership(models.Model):
 
     @property
     def status(self):
-        return self.STATUS.connected if self.peer_id else self.STATUS.disconnected
+        if self.peer_id:
+            return self.STATUS.connected
+        else:
+            return self.STATUS.disconnected
 
     @property
     def peer_id(self):
@@ -266,8 +269,8 @@ class RoomMembership(models.Model):
     @property
     def current_recording_id(self):
         return (
-            self.recordings.latest().values_list('id', flat=True)
-            or [None]
+            self.recordings.latest().values_list('id', flat=True) or
+            [None]
         )[0]
 
     @property

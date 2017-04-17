@@ -1,8 +1,12 @@
 import pytest
 import json
+import uuid
+
+from django.utils.timezone import now
 
 from rooms.models import Room
 from rooms.serializers import PeerSerializer
+from recordings.serializers import RecordingSerializer
 # from channels.test import ChannelTestCase
 from fireside import redis_conn
 
@@ -23,8 +27,8 @@ class TestRoomManager:
 
 class TestRoom:
     def test_is_admin(self, room, user, user2):
-        assert room.is_admin(user2.participant) == False
-        assert room.is_admin(user.participant) == True
+        assert not room.is_admin(user2.participant)
+        assert room.is_admin(user.participant)
 
     def test_is_valid_action(self, room):
         for action in room.ACTION_TYPES:
@@ -64,19 +68,64 @@ class TestRoom:
             'payload': {'foo': 'bar'}
         }
 
+    def test_should_save_message(self, room):
+        for msg_type in ('leave', 'announce'):
+            msg = room.message(type=msg_type, payload={'foo': 'bar'})
+            assert room.should_save_message(msg)
+
+        for msg_type in ('join', 'signalling', 'action'):
+            msg = room.message(type=msg_type, payload={'foo': 'bar'})
+            assert not room.should_save_message(msg)
+
+        for event_type in (
+            'recording_progress',
+            'upload_progress',
+            'meter_update'
+        ):
+            msg = room.message(type='event', payload={
+                'type': event_type,
+                'data': {'foo': 'bar'}
+            })
+            assert not room.should_save_message(msg)
+
+        for event_type in (
+            'request_start_recording',
+            'request_stop_recording',
+            'request_kick',
+            'request_upload',
+            'message',
+        ):
+            msg = room.message(type='event', payload={
+                'type': event_type,
+                'data': {'foo': 'bar'}
+            })
+            assert room.should_save_message(msg)
+
     @pytest.mark.usefixtures('redisdb')
     def test_connected_memberships(self, room, user, user2):
         assert len(room.connected_memberships) == 0
-        redis_conn.hset('rooms:{}:peers'.format(room.id), 'peerid', room.owner.id)
-        assert list(room.connected_memberships) == [room.memberships.get(participant=room.owner)]
-        redis_conn.hset('rooms:{}:peers'.format(room.id), 'peerid2', user2.participant.id)
+        redis_conn.hset(
+            'rooms:{}:peers'.format(room.id),
+            'peerid',
+            room.owner.id
+        )
+        assert list(room.connected_memberships) == \
+            [room.memberships.get(participant=room.owner)]
+        redis_conn.hset(
+            'rooms:{}:peers'.format(room.id),
+            'peerid2',
+            user2.participant.id
+        )
         assert set(room.connected_memberships) == set(room.memberships.all())
 
     @pytest.mark.usefixtures('redisdb')
     def test_join_new_participant(self, empty_room, participant3, mocker):
         m1 = mocker.patch('rooms.models.Room.connect_peer')
         m2 = mocker.patch('rooms.models.Room.announce')
-        peer_id = empty_room.join(participant3, channel_name='test_channel_name')
+        peer_id = empty_room.join(
+            participant3,
+            channel_name='test_channel_name'
+        )
         assert isinstance(peer_id, str)
         assert peer_id == empty_room.get_peer_id(participant3)
         mem = empty_room.memberships.get(
@@ -99,7 +148,11 @@ class TestRoom:
         )
         assert mem.role == mem.ROLE.owner
 
-        m1.assert_called_once_with(peer_id, 'test_channel_name', user.participant)
+        m1.assert_called_once_with(
+            peer_id,
+            'test_channel_name',
+            user.participant
+        )
         m2.assert_called_once_with(peer_id, user.participant)
 
     @pytest.mark.usefixtures('redisdb')
@@ -167,9 +220,23 @@ class TestRoom:
         peer_id = '443ecc03b59f46809854a965defb2d03'
         room.announce(peer_id, room.owner)
         mem = room.memberships.get(participant=room.owner)
-        m.assert_called_with(room.message('announce', {
+        m.assert_called_once_with(room.message('announce', {
             'peer': PeerSerializer(mem).data
         }))
+
+    def test_create_recording(self, room, mocker):
+        m = mocker.patch('rooms.models.Room.send')
+        rec = room.create_recording(
+            started=now(),
+            participant=room.owner,
+            type='audio/wav',
+            id=uuid.uuid4()
+        )
+        m.assert_called_once_with(room.message('event', {
+            'type': 'start_recording',
+            'data': RecordingSerializer(rec).data
+        }))
+
 
 @pytest.mark.usefixtures('redisdb')
 class TestRoomSend:
@@ -230,10 +297,12 @@ class TestRoomSend:
         })
         to_id = '444ecc03b59f46809854a965defb2d03'
         room.send(msg3, to_peer=to_id)
-        assert send_mocks.channel_for_peer.mock_calls[0] == mocker.call(room, to_id)
-        assert send_mocks.channel_for_peer.mock_calls[1] == mocker.call().send({
-            'text': room.encode_message(msg3)
-        })
+        assert send_mocks.channel_for_peer.mock_calls[0] == \
+            mocker.call(room, to_id)
+        assert send_mocks.channel_for_peer.mock_calls[1] == \
+            mocker.call().send({
+                'text': room.encode_message(msg3)
+            })
         assert len(send_mocks.channel_for_peer.mock_calls) == 2
         assert not send_mocks.group_class.called
         assert not send_mocks.should_save_message.called
