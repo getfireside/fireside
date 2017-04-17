@@ -105,14 +105,14 @@ class TestRoom:
     def test_connected_memberships(self, room, user, user2):
         assert len(room.connected_memberships) == 0
         redis_conn.hset(
-            'rooms:{}:peers'.format(room.id),
+            f'rooms:{room.id}:peers',
             'peerid',
             room.owner.id
         )
         assert list(room.connected_memberships) == \
             [room.memberships.get(participant=room.owner)]
         redis_conn.hset(
-            'rooms:{}:peers'.format(room.id),
+            f'rooms:{room.id}:peers',
             'peerid2',
             user2.participant.id
         )
@@ -178,7 +178,7 @@ class TestRoom:
             'peer_channel_name',
         )
         assert redis_conn.hget(
-            'rooms:{}:peers'.format(room.id),
+            f'rooms:{room.id}:peers',
             peer_id
         ) == str(user.participant.id)
 
@@ -192,13 +192,10 @@ class TestRoom:
         )
         room.disconnect_peer(peer_id)
         assert not redis_conn.hexists(
-            'rooms:{}:peers'.format(room.id),
+            f'rooms:{room.id}:peers',
             peer_id
         )
-        assert not redis_conn.exists('rooms:{}:peers:{}'.format(
-            room.id,
-            peer_id
-        ))
+        assert not redis_conn.exists(f'rooms:{room.id}:peers:{peer_id}')
 
     @pytest.mark.usefixtures('redisdb')
     def test_get_and_set_peer_data(self, empty_room):
@@ -206,10 +203,8 @@ class TestRoom:
         peer_id = '443ecc03b59f46809854a965defb2d03'
         empty_room.set_peer_data(peer_id, 'test', testdata)
         assert redis_conn.hget(
-            'rooms:{}:peers:{}'.format(
-                empty_room.id,
-                peer_id
-            ), 'test'
+            f'rooms:{empty_room.id}:peers:{peer_id}',
+            'test'
         ) == json.dumps(testdata)
         assert empty_room.get_peer_data(peer_id, 'test') == testdata
         assert empty_room.get_peer_data(peer_id, 'non-existent') is None
@@ -236,6 +231,18 @@ class TestRoom:
             'type': 'start_recording',
             'data': RecordingSerializer(rec).data
         }))
+
+    @pytest.mark.skip
+    def test_start_recording(self):
+        pass
+
+    @pytest.mark.skip
+    def test_stop_recording(self):
+        pass
+
+    @pytest.mark.skip
+    def test_kick(self):
+        pass
 
 
 @pytest.mark.usefixtures('redisdb')
@@ -289,6 +296,10 @@ class TestRoomSend:
         })]
         assert not send_mocks.should_save_message.called
         send_mocks.add_message.assert_called_once_with(**msg2)
+
+    @pytest.mark.skip
+    def test_send_action(self):
+        pass
 
     def test_send_to_individual(self, room, mocker, send_mocks):
         msg3 = room.message(type='event', payload={

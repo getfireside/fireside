@@ -68,6 +68,9 @@ class Room(models.Model):
     def is_admin(self, participant):
         return participant == self.owner
 
+    def can_access(self, participant):
+        return self.memberships.filter(participant=participant).exists()
+
     def is_valid_action(self, action_name):
         return action_name in self.ACTION_TYPES
 
@@ -104,38 +107,38 @@ class Room(models.Model):
 
     @property
     def connected_memberships(self):
-        participant_ids = redis_conn.hvals('rooms:{}:peers'.format(self.id))
+        participant_ids = redis_conn.hvals(f'rooms:{self.id}:peers')
         return self.memberships.filter(participant__in=participant_ids)
 
     def get_peer_id(self, participant):
-        return redis_conn.get('rooms:{}:participants:{}:peer_id'.format(
-            self.id,
-            participant.id,
-        ))
+        return redis_conn.get(f'rooms:{self.id}:participants:'
+                              f'{participant.id}:peer_id')
 
     def set_peer_id(self, participant):
         peer_id = uuid.uuid4().hex
-        redis_conn.set('rooms:{}:participants:{}:peer_id'.format(
-            self.id,
-            participant.id,
-        ), peer_id)
+        redis_conn.set(
+            f'rooms:{self.id}:participants:{participant.id}:peer_id',
+            peer_id)
         return peer_id
+
+    def get_peer_ids(self):
+        return redis_conn.hkeys(f'rooms:{self.id}:peers')
 
     def connect_peer(self, peer_id, channel_name, participant):
         redis_conn.hset(
-            'rooms:{}:peers'.format(self.id),
+            f'rooms:{self.id}:peers',
             peer_id,
             participant.id
         )
         self.set_peer_data(peer_id, 'channel', channel_name)
 
     def disconnect_peer(self, peer_id):
-        redis_conn.hdel('rooms:{}:peers'.format(self.id), peer_id)
-        redis_conn.delete('rooms:{}:peers:{}'.format(self.id, peer_id))
+        redis_conn.hdel(f'rooms:{self.id}:peers', peer_id)
+        redis_conn.delete(f'rooms:{self.id}:peers:{peer_id}')
 
     def set_peer_data(self, peer_id, key, data):
         redis_conn.hset(
-            'rooms:{}:peers:{}'.format(self.id, peer_id),
+            f'rooms:{self.id}:peers:{peer_id}',
             key,
             json.dumps(data)
         )
@@ -145,7 +148,7 @@ class Room(models.Model):
 
     def get_peer_data(self, peer_id, key):
         res = redis_conn.hget(
-            'rooms:{}:peers:{}'.format(self.id, peer_id),
+            f'rooms:{self.id}:peers:{peer_id}',
             key
         )
         if res is not None:
@@ -167,6 +170,36 @@ class Room(models.Model):
         if save:
             self.add_message(**message)
         to.send({'text': self.encode_message(message)})
+
+    def send_action_event(self, name, target_peer_id, from_peer_id, data=None):
+        if data is None:
+            data = {}
+        self.send(self.message('event', {
+            'type': name,
+            'data': {
+                'from': from_peer_id,
+                'target': target_peer_id,
+                **data
+            },
+        }))
+
+    def start_recording(self, target_peer_id, from_peer_id):
+        # FIXME: probably should check if peer is recording before actually transmitting
+        return self.send_action_event('request_start_recording',
+            target_peer_id=target_peer_id,
+            from_peer_id=from_peer_id
+        )
+
+    def stop_recording(self, target_peer_id, from_peer_id):
+        # FIXME: probably should check if peer is recording before actually transmitting
+        return self.send_action_event('request_stop_recording',
+            target_peer_id=target_peer_id,
+            from_peer_id=from_peer_id
+        )
+
+    def kick(self, peer_id, from_peer_id):
+        # TODO: implement kick
+        raise NotImplementedError
 
     def announce(self, peer_id, participant):
         from .serializers import PeerSerializer
@@ -291,6 +324,9 @@ class Message(models.Model):
     type = models.CharField(max_length=16)
     payload = JSONField()
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
 
 
 class ParticipantManager(models.Manager):

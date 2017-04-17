@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import RoomMembership, Message
 from recordings.serializers import RecordingSerializer
+from fireside.util import TimestampField
 
 
 class PeerInfoSerializer(serializers.Serializer):
@@ -25,10 +26,22 @@ class PeerSerializer(MembershipSerializer):
 
 
 class MessageSerializer(serializers.ModelSerializer):
+    timestamp = TimestampField(read_only=True)
     class Meta:
         model = Message
-        fields = ('id', 'type', 'data', 'timestamp')
+        fields = ('id', 'type', 'payload', 'timestamp')
 
 
 class InitialRoomDataSerializer(serializers.Serializer):
     peers = PeerSerializer(source='connected_memberships', many=True)
+
+
+
+class PeerActionSerializer(serializers.Serializer):
+    peer_id = serializers.UUIDField()
+
+    def validate_peer_id(self, value):
+        if value.hex not in self.context['room'].get_peer_ids():
+            raise serializers.ValidationError('Peer is not connected.')
+        return value
+

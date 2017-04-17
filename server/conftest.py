@@ -33,11 +33,16 @@ def user2():
         last_name='Bowman'
     )
 
+@pytest.fixture
+def participant3_client():
+    c = APIClient()
+    c.session.save()
+    return c
 
 @pytest.fixture
-def participant3():
+def participant3(participant3_client):
     return Participant.objects.create(
-        session_key='woaijdosi2190u3',
+        session_key=participant3_client.session.session_key,
         name='Frank Poole'
     )
 
