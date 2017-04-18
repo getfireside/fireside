@@ -35,7 +35,8 @@ class MessageSerializer(serializers.ModelSerializer):
 class InitialRoomDataSerializer(serializers.Serializer):
     peers = PeerSerializer(source='connected_memberships', many=True)
 
-
+class JoinRoomSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=64, default=None)
 
 class PeerActionSerializer(serializers.Serializer):
     peer_id = serializers.UUIDField()

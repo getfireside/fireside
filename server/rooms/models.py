@@ -215,16 +215,9 @@ class Room(models.Model):
         }))
 
     def join(self, participant, channel_name):
+        # TODO fix tests
         if not self.members.filter(id=participant.id).exists():
-            if participant == self.owner:
-                role = RoomMembership.ROLE.owner
-            else:
-                role = RoomMembership.ROLE.guest
-            self.memberships.create(
-                participant=participant,
-                role=role,
-                name=participant.name
-            )
+            raise RoomMembership.DoesNotExist
 
         peer_id = self.get_peer_id(participant)
         if peer_id is None:
@@ -330,18 +323,21 @@ class Message(models.Model):
 
 
 class ParticipantManager(models.Manager):
-    def from_request(self, request):
-        return self.from_user_or_session(request.user, request.session)
+    def from_request(self, request, create=False):
+        return self.from_user_or_session(request.user, request.session, create=create)
 
-    def from_user_or_session(self, user, session):
+    def from_user_or_session(self, user, session, create=False):
         if user.is_authenticated():
             return self.get(user=user)
         else:
             if session.session_key is None:
                 session.save()
-            participant = self.get(
-                session_key=session.session_key
-            )
+            if create:
+                participant, _ = self.get_or_create(session_key=session.session_key)
+            else:
+                participant = self.get(
+                    session_key=session.session_key
+                )
             return participant
 
 

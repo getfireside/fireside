@@ -2,6 +2,10 @@ import pytest
 from django.urls import reverse
 from rooms.models import Message
 
+@pytest.mark.skip
+class TestRoomJoinView:
+    pass
+
 @pytest.mark.django_db
 class TestRoomMessagesView:
     def test_403_if_non_existent_room(self, api_client):

@@ -20,3 +20,4 @@ pytest-watch==4.1.0
 psycopg2==2.7.1
 django-allauth==0.31.0
 django-channels-panel==0.0.5
+django-extensions==1.7.8

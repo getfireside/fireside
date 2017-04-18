@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from django.views.generic import DetailView
+from django.shortcuts import get_object_or_404
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -11,7 +12,8 @@ from .models import Room, Participant, RoomMembership, Message
 from .serializers import (
     MembershipSerializer,
     MessageSerializer,
-    PeerActionSerializer
+    PeerActionSerializer,
+    JoinRoomSerializer
 )
 
 
@@ -50,6 +52,30 @@ class IsRoomAdmin(BasePermission):
 class RoomView(DetailView):
     model = Room
     template_name = 'rooms/room.html'
+    pk_url_kwarg = 'room_id'
+    context_object_name = 'room'
+
+
+class JoinRoomView(APIView):
+    def post(self, request, room_id):
+        room = get_object_or_404(Room, id=room_id)
+        participant = Participant.objects.from_request(request, create=True)
+        serializer = JoinRoomSerializer(request.data,
+            format='json',
+            context={'participant': participant}
+        )
+        if serializer.is_valid():
+            room.memberships.create(
+                participant=participant,
+                name=serializer.validated_data['name'],
+                role='g',
+            )
+        else:
+            return Response(
+                data=serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(status=status.HTTP_200_OK)
 
 
 class RoomMessagesView(ListCreateAPIView):

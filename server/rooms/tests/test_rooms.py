@@ -122,6 +122,9 @@ class TestRoom:
     def test_join_new_participant(self, empty_room, participant3, mocker):
         m1 = mocker.patch('rooms.models.Room.connect_peer')
         m2 = mocker.patch('rooms.models.Room.announce')
+        empty_room.memberships.create(
+            participant=participant3
+        )
         peer_id = empty_room.join(
             participant3,
             channel_name='test_channel_name'

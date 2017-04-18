@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'channels',
 
+    'django_extensions',
+
     'allauth',
     'allauth.account',
 
