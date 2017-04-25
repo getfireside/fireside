@@ -29,11 +29,8 @@ export default class Socket extends WildEmitter {
         }
     }
 
-    send(type, payload) {
-        this.ws.send({
-            type,
-            payload
-        });
+    send(data) {
+        this.ws.send(JSON.stringify(data));
     }
 
     close() {

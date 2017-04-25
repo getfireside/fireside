@@ -1,5 +1,6 @@
 import { FSError, LookupError, DiskSpaceError, FSFile, FS } from './fs';
 import { Logger } from 'lib/logger';
+import {requestStorageQuota, getStorageUsage} from './quota';
 
 let translateError = err => {
     switch (err.name) {
@@ -78,19 +79,25 @@ export default class HTML5FS extends FS {
         return new Promise((fulfil, reject) => {
             let init = (fs) => {
                 this.fs = fs;
+                this.watchDiskUsage();
                 fulfil(this);
             };
 
             let handleErr = e => reject(translateError(e));
 
             if (!this.fs) {
-                let size = 1000*1024*1024*1024;
-                requestFileSystem(TEMPORARY, size, init, handleErr);
+                requestStorageQuota().then((size) => {
+                    requestFileSystem(window.PERSISTENT, size, init, handleErr);
+                });
             }
             else {
                 fulfil(this);
             }
         });
+    }
+
+    getDiskUsage() {
+        return getStorageUsage();
     }
 
     ensurePath(path) {
@@ -181,16 +188,6 @@ export default class HTML5FS extends FS {
             let res = this.ensurePath(path);
             res.then(() => fulfil(new HTML5FSFile(path, this)));
             res.catch(reject);
-        });
-    }
-
-    getSpaceInfo() {
-        return new Promise((fulfil, reject) => {
-            let f = function(used, total) {
-                let free = total - used;
-                fulfil({used, free, total});
-            };
-            navigator.persistentStorage.queryUsageAndQuota(f, reject);
         });
     }
 

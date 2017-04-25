@@ -1,5 +1,6 @@
 import { FSError, LookupError, DiskSpaceError, FSFile, FS } from './fs';
 import { Logger } from 'lib/logger';
+import { getStorageUsage } from './quota';
 
 function translateError(err) {
     switch (err.name) {
@@ -148,6 +149,8 @@ export default class IDBFS extends FS {
                 return;
             }
 
+            this.watchDiskUsage();
+
             let openRequest = indexedDB.open(this.dbname, 1);
             window._or = openRequest;
 
@@ -194,6 +197,10 @@ export default class IDBFS extends FS {
         return new Promise((fulfil, reject) => {
             fulfil(new IDBFile(path, this));
         });
+    }
+
+    getDiskUsage() {
+        return getStorageUsage();
     }
 }
 

@@ -8,6 +8,7 @@ export class RoomMembership {
     @observable peerId = null;
     @observable name = null;
     @observable.ref peer = null;
+    @observable diskUsage = null;
 
     @computed get isSelf() {
         return this.uid === this.room.memberships.selfId;

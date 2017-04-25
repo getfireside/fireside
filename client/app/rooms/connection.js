@@ -25,6 +25,7 @@ export default class RoomConnection extends WildEmitter {
         };
 
         this.peers = [];
+        this.selfPeerId = null;
         this.localMedia = [];
 
         this.socket = new Socket({url: this.urls.socket});
@@ -45,6 +46,7 @@ export default class RoomConnection extends WildEmitter {
             },
             join: (message) => {
                 // this event is sent on join
+                this.selfPeerId = message.payload.self.peerId;
                 for (let member of message.payload.members) {
                     if (member.peerId) {
                         this.addPeer(member);
@@ -57,7 +59,9 @@ export default class RoomConnection extends WildEmitter {
                 this.emit('peerLeave', peer, message);
             },
             event: (message) => {
-                this.emit(`event.${message.payload.type}`, message.payload.data, message);
+                if (message.peerId != this.selfPeerId) {
+                    this.emit(`event.${message.payload.type}`, message.payload.data, message);
+                }
             }
         };
     }
@@ -100,7 +104,9 @@ export default class RoomConnection extends WildEmitter {
         msgData.room = this.room;
         message = new Message(msgData);
         this.messageHandlers[message.typeName](message);
-        this.emit('message', message);
+        if (this.selfPeerId && message.peerId != this.selfPeerId) {
+            this.emit('message', message);
+        }
     }
 
     addPeer(data) {

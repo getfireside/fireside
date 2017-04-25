@@ -1,6 +1,8 @@
 import React from 'react';
 import {observer} from "mobx-react";
 import _ from 'lodash';
+import {MEMBER_STATUSES} from 'app/rooms/constants';
+import {formatBytes} from '../helpers';
 
 @observer
 export class UserStatusPanelItem extends React.Component {
@@ -14,6 +16,11 @@ export class UserStatusPanelItem extends React.Component {
                 <p>status: <b>{membership.status}</b></p>
                 <p>role: <b>{membership.role}</b></p>
                 <p>has current recording? <b>{(!!membership.currentRecording).toString()}</b></p>
+                {
+                    membership.diskUsage ?
+                    <p>disk space: <b>{formatBytes(membership.diskUsage.usage)} used / {formatBytes(membership.diskUsage.quota)} available</b></p> :
+                    null
+                }
             </div>
         );
     }

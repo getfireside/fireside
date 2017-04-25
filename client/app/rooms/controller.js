@@ -46,6 +46,7 @@ export default class RoomController {
             currentRecordingId: peer.info.currentRecordingId,
             peer: peer,
             name: peer.info.name,
+            diskUsage: peer.info.diskUsage,
         });
     }
 
@@ -100,6 +101,7 @@ export default class RoomController {
                 role: m.info.role,
                 name: m.info.name,
                 uid: m.uid,
+                diskUsage: m.info.diskUsage,
             })
         );
         this.room.updateMembership(this.room.memberships.selfId, {
@@ -111,6 +113,7 @@ export default class RoomController {
         });
         let messagesData = await this.connection.getMessages({until: message.timestamp});
         this.room.updateMessagesFromServer(messagesData);
+        this.openFS();
     }
 
     @on('connection.event.updateRecordingStatus')
@@ -129,11 +132,25 @@ export default class RoomController {
         return this.connection.runAction('stop_recording', {id:user.id});
     }
 
+    @on('fs.diskUsageUpdate')
+    @action.bound
+    handleLocalDiskUsageUpdate(diskUsage) {
+        this.connection.sendEvent('update_disk_usage', diskUsage, {http: false});
+        this.room.memberships.self.diskUsage = diskUsage;
+    }
+
+    @on('connection.event.update_disk_usage')
+    @action.bound
+    handleRemoteDiskUsageUpdate(diskUsage, message) {
+        this.room.updateMembership(message.uid, {diskUsage: diskUsage});
+    }
+
     async openFS() {
         /**
          * Open the filesystem.
          */
-        return await this.fs.open();
+        await this.fs.open();
+
     }
 
     async initialize() {

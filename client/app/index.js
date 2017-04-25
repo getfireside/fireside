@@ -7,7 +7,7 @@ import {LoggingController} from 'lib/logger';
 import {RecordingStore, MessageStore, UserStore} from 'app/stores';
 import Room from 'app/rooms/room';
 import RoomController from 'app/rooms/controller';
-import UIApp from 'app/components/app';
+import UIApp from 'app/ui/components/app';
 import {useStrict} from 'mobx';
 
 useStrict(true);
