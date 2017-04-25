@@ -82,7 +82,7 @@ class RoomConsumer(BaseConsumer):
             )
 
     def event(self, message, **kwargs):
-        self.room.send(message)
+        self.room.receive_event(message)
 
     def join(self, message, **kwargs):
         initial_data = self.room.get_initial_data()

@@ -90,6 +90,13 @@ class Room(models.Model):
     def decode_message(self, message_dict):
         return self.message(**self.decode_message_dict(message_dict))
 
+    def receive_event(self, message):
+        assert message.type == Message.TYPE.event
+        event = message.payload
+        if event['type'] == 'update_disk_usage':
+            self.set_peer_data(message.peer_id, 'disk_usage', message.payload['data'])
+        self.send(message)
+
     @classmethod
     def decode_message_dict(cls, message_dict):
         try:
@@ -284,7 +291,8 @@ class Room(models.Model):
             return event_type not in (
                 'recording_progress',
                 'upload_progress',
-                'meter_update',
+                'update_meter',
+                'update_disk_usage',
             )
 
     def get_socket_url(self):
@@ -345,6 +353,13 @@ class RoomMembership(models.Model):
     @property
     def current_recording(self):
         return self.recordings.latest()
+
+    @property
+    def disk_usage(self):
+        if self.peer_id:
+            return self.room.get_peer_data(self.peer_id, 'disk_usage')
+        else:
+            return None
 
     @property
     def recordings(self):
