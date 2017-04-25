@@ -1,5 +1,5 @@
-HTML5FS = import './html5fs.js';
-IDBFS = import './idbfs.js';
+import HTML5FS from './html5fs.js';
+import IDBFS from './idbfs.js';
 
 export default function initFs(opts) {
     if (window.webkitRequestFileSystem != null) {

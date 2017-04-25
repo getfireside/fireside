@@ -4,19 +4,10 @@ import {observable} from 'mobx';
 
 import Peer from 'lib/rtc/peer';
 import Socket from 'lib/socket';
+import {fetchPost, fetchJSON} from 'lib/util';
+import {Message} from 'app/messages/store';
 
-
-const MESSAGE_TYPE_MAP = {
-    s: 'signalling',
-    a: 'authentication',
-    m: 'message',
-    l: 'leave',
-    j: 'joinRoom',
-    A: 'announce',
-    e: 'event'
-};
-
-const MESSAGE_REVERSED_TYPE_MAP = _.invert(MESSAGE_TYPE_MAP);
+import {MESSAGE_TYPES} from './constants';
 
 export default class RoomConnection extends WildEmitter {
     /**
@@ -27,7 +18,8 @@ export default class RoomConnection extends WildEmitter {
 
     constructor(opts) {
         super();
-        this.wsUrl = opts.wsUrl;
+        this.urls = opts.urls || {};
+        this.room = opts.room;
         this.config = {
             enableDataChannels: opts.enableDataChannels || true,
         };
@@ -35,36 +27,39 @@ export default class RoomConnection extends WildEmitter {
         this.peers = [];
         this.localMedia = [];
 
-        this.socket = new Socket({url: this.wsUrl});
+        this.socket = new Socket({url: this.urls.socket});
         this.socket.on('message', this.handleSocketMessage.bind(this));
 
         this.status = 'disconnected';
 
         this.messageHandlers = {
-            signalling: (data) => {
-                let peer = this.getPeer(data.id);
+            signalling: (message) => {
+                let peer = this.getPeer(message.payload.to);
                 if (peer) {
-                    peer.receiveSignallingMessage(data);
+                    peer.receiveSignallingMessage(message.payload);
                 }
             },
-            announce: (data) => {
-                let peer = this.addPeer(data.peer);
-                this.emit('announcePeer', peer);
+            announce: (message) => {
+                let peer = this.addPeer(message.payload.peer);
+                this.emit('peerAnnounce', peer, message);
             },
-            joinRoom: (data) => {
+            join: (message) => {
                 // this event is sent on join
-                this.emit('joinRoom', data);
-                for (let peer of data.peers) {
-                    this.addPeer(peer);
+                for (let member of message.payload.members) {
+                    if (member.peerId) {
+                        this.addPeer(member);
+                    }
                 }
+                this.emit('join', message.payload, message);
             },
-            leave: (data) => {
-                this.removePeer(data.id);
+            leave: (message) => {
+                let peer = this.removePeer(message.payload.id);
+                this.emit('peerLeave', peer, message);
             },
-            event: (data) => {
-                this.emit(`event.${data.type}`, data.payload);
+            event: (message) => {
+                this.emit(`event.${message.payload.type}`, message.payload.data, message);
             }
-        }
+        };
     }
 
     onConnect() {
@@ -84,15 +79,28 @@ export default class RoomConnection extends WildEmitter {
         }
     }
 
+    getMessages({until}) {
+        let url;
+        if (until) {
+            url = `${this.urls.messages}?until=${until}`;
+        }
+        else {
+            url = this.urls.messages;
+        }
+        return fetchJSON(url);
+    }
+
     handleSocketMessage(message) {
         /**
          * Dispatches a message received from the socket.
          * @private
          * @param {obj} message: the received message
          */
-        let [type, payload] = [MESSAGE_TYPE_MAP[message.t], message.p];
-        // let [type, subtype] = message.type.split(':', 1);
-        this.messageHandlers[type](payload);
+        let msgData = Message.decode(message);
+        msgData.room = this.room;
+        message = new Message(msgData);
+        this.messageHandlers[message.typeName](message);
+        this.emit('message', message);
     }
 
     addPeer(data) {
@@ -101,7 +109,7 @@ export default class RoomConnection extends WildEmitter {
          * @param {obj} peer: Info received from the server about the peer
          */
         let peer = new Peer({
-            id: data.id,
+            id: data.peerId,
             uid: data.uid,
             info: data.info,
             resources: data.resources,
@@ -122,37 +130,54 @@ export default class RoomConnection extends WildEmitter {
         return peer;
     }
 
-    send(name, data) {
-        this.socket.send({
-            t: MESSAGE_REVERSED_TYPE_MAP[name],
-            p: data
-        });
+    initialJoin(data) {
+        return fetchPost(this.urls.join, data);
     }
 
-    sendEvent(name, data) {
-        this.send('event', {name: name, data: data});
+    send({type, payload}, {http = true} = {}) {
+        if (http) {
+            return fetchPost(this.urls.messages, {
+                type: type,
+                payload: payload
+            });
+        }
+        else {
+            this.socket.send({
+                t: type,
+                p: payload
+            });
+        }
     }
 
-    sendMessage(name, data) {
-        this.send('message', {type: name, payload: data});
+    sendEvent(type, data, {http = true} = {}) {
+        let toSend = {type: MESSAGE_TYPES.EVENT, payload: {
+            type: type,
+            data: data
+        }};
+        return this.send(toSend, {http: http});
+    }
+
+    runAction(name, data) {
+        return fetchPost(this.urls.action, data);
     }
 
     connectStream(stream) {
         this.stream = stream;
         for (let peer of this.peers) {
-            peer.addLocalStream(this.stream)
+            peer.addLocalStream(this.stream);
         }
         this.emit('localStreamConnected');
     }
 
     getPeer(id) {
-        return _.find(this.peers, p => p.id == id)
+        return _.find(this.peers, p => p.id == id);
     }
 
     removePeer(id) {
         let peer = this.getPeer(id);
         peer.end();
         this.peers = _.reject(this.peers, p => p.id == id);
-        this.emit('peerRemoved', {peerId: peer.id, userId: peer.uid});
+        this.emit('peerRemoved', {peerId: peer.id, uid: peer.uid});
+        return peer;
     }
 }

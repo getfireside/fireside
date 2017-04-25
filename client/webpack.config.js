@@ -8,7 +8,7 @@ module.exports = {
   },
   output: {
     filename: '[name].js',
-    path: './dist',
+    path: path.resolve(__dirname, 'dist'),
   },
   module: {
     rules: [
@@ -23,6 +23,16 @@ module.exports = {
   },
   devtool: 'source-map',
   resolve: {
-    extensions: ['.js', '.jsx']
+      extensions: ['.js', '.jsx'],
+      modules: [
+          __dirname,
+          "node_modules"
+      ]
+  },
+  resolveLoader: {
+      modules: [
+          __dirname,
+          'node_modules'
+      ]
   }
 }

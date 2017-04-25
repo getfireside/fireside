@@ -1,10 +1,26 @@
 import pytest
 from django.urls import reverse
-from rooms.models import Message
+from rooms.models import Message, Room
+import re
 
 @pytest.mark.skip
 class TestRoomJoinView:
     pass
+
+@pytest.mark.django_db
+class TestCreateRoomView:
+    def test_405_if_get(self, api_client):
+        url = reverse('rooms:create')
+        response = api_client.get(url)
+        assert response.status_code == 405
+
+    def test_redirects_and_creates_room(self, api_client):
+        url = reverse('rooms:create')
+        response = api_client.post(url)
+        assert response.status_code == 302
+        room_id = re.match(r'/rooms/(\w+)/', response.url)[1]
+        room = Room.objects.get(id=room_id)
+        assert room.owner.session_key == api_client.session.session_key
 
 @pytest.mark.django_db
 class TestRoomMessagesView:
@@ -35,11 +51,15 @@ class TestRoomMessagesView:
             'type': 'a',
             'payload': {'foo': 'baz'},
             'timestamp': int(msg2.timestamp.timestamp() * 1000),
+            'uid': None,
+            'peer_id': None,
         }, {
             'id': msg1.id,
             'type': 'e',
             'payload': {'type': 'test', 'data': {'foo': 'bar'}},
             'timestamp': int(msg1.timestamp.timestamp() * 1000),
+            'uid': None,
+            'peer_id': None,
         }]
 
     @pytest.mark.skip
@@ -48,6 +68,10 @@ class TestRoomMessagesView:
 
     @pytest.mark.skip
     def test_until(self):
+        pass
+
+    @pytest.mark.skip
+    def test_create(self):
         pass
 
 
@@ -102,18 +126,17 @@ class TestRoomActionView:
             'name': action_name,
         })
         api_client.force_login(user)
-        mock = mocker.patch('rooms.models.Group', autospec=True)
+        mock_send = mocker.patch('rooms.models.room.Room.send', autospec=True)
         response = api_client.post(url, {
             'peer_id': peer2_id
         }, format='json')
         assert response.status_code == 200
-        expected_message = room.message('event', {
+        msg = mock_send.call_args[0][1]
+
+        assert msg.type == Message.TYPE.event
+        assert msg.payload == {
             'type': f'request_{action_name}',
-            'data': {
-                'from': peer_id,
-                'target': peer2_id
-            }
-        })
-        assert mock.method_calls == [mocker.call().send({
-            'text': room.encode_message(expected_message)
-        })]
+            'data': {'target': peer2_id},
+        }
+        assert msg.peer_id == peer_id
+        assert msg.participant_id == room.owner.id

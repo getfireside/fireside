@@ -2,7 +2,7 @@ import pytest
 from channels.test import HttpClient
 from django.utils.timezone import now
 from datetime import timedelta
-from rooms.models import Room, RoomMembership
+from rooms.models import *
 from recordings.models import Recording
 from recordings.serializers import RecordingSerializer
 import uuid
@@ -28,13 +28,11 @@ def client2(user2):
 def joined_clients(room, client, client2):
     client.send_and_consume('websocket.connect', path=room.get_socket_url())
     client.consume('room.join')
-    client.peer_id = client.receive()['p']['peer']['id']
-    client.receive()
+    client.peer_id = client.receive()['p']['self']['peerId']
     client2.send_and_consume('websocket.connect', path=room.get_socket_url())
     client2.consume('room.join')
-    client2.peer_id = client2.receive()['p']['peer']['id']
+    client2.peer_id = client2.receive()['p']['self']['peerId']
     client.receive()
-    client2.receive()
     return client, client2
 
 
@@ -42,18 +40,19 @@ def joined_clients(room, client, client2):
 @pytest.mark.django_db
 class TestRoomConsumer:
     def send_message(self, client, room, **kwargs):
+        msg = room.message(**kwargs)
         client.send_and_consume('websocket.receive', {
-            'text': Room.encode_message(Room.message(**kwargs)),
+            'text': room.encode_message(msg),
             'path': room.get_socket_url(),
         })
         # just consuming the websocket alone isn't enough
         # have to also consume on the room receive channel
         client.consume('room.receive')
 
-    def get_message(self, client):
+    def get_message(self, client, room):
         res = client.receive()
         if res is not None:
-            return Room.decode_message(res)
+            return room.decode_message(res)
         else:
             return None
 
@@ -64,33 +63,39 @@ class TestRoomConsumer:
         )
         client.consume('room.join')
 
-        # receives announce message...
-        msg = self.get_message(client)
-
-        expected_peer = {
-            'uid': room.memberships.get(
-                participant=client.user.participant
-            ).id,
-            'status': RoomMembership.STATUS.connected,
+        # should receive only a join message
+        # members should contain both disconnected and connected members
+        msg = self.get_message(client, room)
+        assert msg.type == Message.TYPE.join
+        assert msg.payload['members'] == [{
             'info': {
                 'current_recording_id': None,
-                'role': 'o',
                 'name': 'HAL',
-                'recordings': []
-            }
-        }
-        assert msg['type'] == 'announce'
+                'recordings': [],
+                'role': 'o'
+            },
+            'peerId': None,
+            'status': 0,
+            'uid': 1
+        }, {
+            'info': {
+                'current_recording_id': None,
+                'name': 'Dave',
+                'recordings': [],
+                'role': 'g'
+            },
+            'peerId': None,
+            'status': 0,
+            'uid': 2
+        }]
 
-        # test that peer is a superset of expected peer
-        assert msg['payload']['peer'].items() >= expected_peer.items()
 
-        # (we'll need this later)
-        expected_peer['id'] = msg['payload']['peer']['id']
+        joined_peer1 = msg.payload['self']
+        assert 'peerId' in joined_peer1
+        assert joined_peer1['uid'] == room.owner.id
+        assert joined_peer1['info']['name'] == 'HAL'
+        assert joined_peer1['info']['role'] == 'o'
 
-        # next message should be a join message
-        msg2 = self.get_message(client)
-        assert msg2['type'] == 'join'
-        assert msg2['payload']['peers'] == []
 
         # now let's join another client, with a recording
         rec = Recording.objects.create(
@@ -107,16 +112,12 @@ class TestRoomConsumer:
         )
         client2.consume('room.join')
 
-        # firstly, make sure both clients received the same announce messages
-        msg3 = self.get_message(client)
-        msg4 = self.get_message(client2)
-        assert msg3 == msg4
-        assert msg3['type'] == 'announce'
+        # make sure client1 received announce
+        msg2 = self.get_message(client, room)
+        assert msg2.type == Message.TYPE.announce
 
         expected_peer2 = {
-            'uid': room.memberships.get(
-                participant=client2.user.participant
-            ).id,
+            'uid': client2.user.participant.id,
             'status': RoomMembership.STATUS.connected,
             'info': {
                 'current_recording_id': None,
@@ -125,35 +126,39 @@ class TestRoomConsumer:
                 'recordings': [RecordingSerializer(rec).data]
             }
         }
-        assert msg3['payload']['peer'].items() >= expected_peer2.items()
+        assert msg2.payload['peer'].items() >= expected_peer2.items()
 
         # and then that client2 got a proper join message too
-        msg5 = self.get_message(client2)
-        assert msg5['type'] == 'join'
-        assert msg5['payload']['peers'] == [expected_peer]
+        msg3 = self.get_message(client2, room)
+        assert msg3.type == Message.TYPE.join
+        peer1_data = msg3.payload['members'][0]
+
+        assert len(msg3.payload['members']) == 2
+        assert msg3.payload['members'][0]['status'] == RoomMembership.STATUS.connected
+        assert joined_peer1['peerId'] == peer1_data['peerId']
+        assert joined_peer1['uid'] == peer1_data['uid']
+        assert joined_peer1['info'].items() <= peer1_data['info'].items()
 
     def test_signalling(self, room, joined_clients):
         client, client2 = joined_clients
         self.send_message(
             room=room,
             client=client,
-            type='signalling',
+            type=Message.TYPE.signalling,
             payload={'foo': 'bar', 'to': client2.peer_id}
         )
 
-        msg = self.get_message(client2)
-        assert msg == {
-            'type': 'signalling',
-            'payload': {
-                'to': client2.peer_id,
-                'from': client.peer_id,
-                'foo': 'bar',
-            }
+        msg = self.get_message(client2, room)
+        assert msg.type == Message.TYPE.signalling
+        assert msg.payload == {
+            'to': client2.peer_id,
+            'foo': 'bar',
         }
 
-        assert self.get_message(client) is None
-        assert room.messages.count() == 2
+        assert self.get_message(client, room) is None
+
         # the room shouldn't store the signalling message
+        assert room.messages.count() == 2
 
     def test_leave(self, room, joined_clients):
         client, client2 = joined_clients
@@ -164,12 +169,10 @@ class TestRoomConsumer:
         client2.consume('room.leave')
 
         # client should have got a leave message
-        msg = self.get_message(client)
-        assert msg == {
-            'type': 'leave',
-            'payload': {
-                'id': client2.peer_id,
-            }
+        msg = self.get_message(client, room)
+        assert msg.type == Message.TYPE.leave
+        assert msg.payload == {
+            'id': client2.peer_id,
         }
 
     def test_recording_start_event(self, room, joined_clients):
@@ -181,8 +184,8 @@ class TestRoomConsumer:
             id=uuid.uuid4()
         )
 
-        msg = self.get_message(client)
-        assert msg['type'] == 'event'
-        assert msg['payload']['type'] == 'start_recording'
-        assert msg['payload']['data'] == RecordingSerializer(rec).data
-        assert self.get_message(client2) == msg
+        msg = self.get_message(client, room)
+        assert msg.type == Message.TYPE.event
+        assert msg.payload['type'] == 'start_recording'
+        assert msg.payload['data'] == RecordingSerializer(rec).data
+        assert self.get_message(client2, room) == msg

@@ -1,0 +1,29 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Fireside | {{ room.id }}</title>
+        <link href="{% static 'dist/room.css' %}" />
+    </head>
+    <body>
+        <div id="appContainer"></div>
+        <script src="{% static 'dist/main.js' %}"></script>
+        <script>
+            window.initializeApp({
+                element: document.getElementById('appContainer'),
+                roomData: {
+                    id: "{{ room.id }}",
+                    ownerId: {{ room.owner.id }},
+                    selfId: {{ self_uid|default:'null' }},
+                },
+                opts: {
+                    urls: {
+                        socket: "{{ room.get_full_socket_url }}",
+                        join: "{{ room.get_join_url }}",
+                        messages: "{{ room.get_messages_url }}",
+                    },
+                },
+            }).then((fireside) => { window.fireside = fireside });
+        </script>
+    </body>
+</html>

@@ -1,19 +1,34 @@
-import {observable, action, computed} from 'mobx';
+import {observable, action, computed, ObservableMap} from 'mobx';
 import _ from 'lodash';
 
-export class UserRoomConnection {
-    userId = null;
+export class RoomMembership {
     @observable.ref currentRecording = null;
     @observable role = null;
     @observable status = null;
+    @observable peerId = null;
+    @observable name = null;
+    @observable.ref peer = null;
 
-    constructor({room, userId, currentRecordingId, role, status}) {
+    @computed get isSelf() {
+        return this.uid === this.room.memberships.selfId;
+    }
+
+    constructor({uid, room, name, currentRecordingId, role, status, peer, peerId}) {
+        this.uid = uid;
         this.room = room;
-        this.user = this.room.userStore.get(userId);
+        this.name = name;
         this.role = role;
         this.status = status;
-        this.currentRecording = this.room.recordingStore.get(currentRecordingId);
-        this.role = role;
+        if (currentRecordingId != null) {
+            this.currentRecording = this.room.recordingStore.get(currentRecordingId);
+        }
+        if (peer) {
+            this.peer = peer;
+            this.peerId = peer.id;
+        }
+        else {
+            this.peerId = peerId;
+        }
     }
 
     update(data) {
@@ -21,20 +36,32 @@ export class UserRoomConnection {
     }
 }
 
-export default class Room {
-    @observable userConnections = observable.map();
-    userStore = null;
-    messageStore = null;
-    recordingStore = null;
-    id = null;
-    owner = null;
+class RoomMembershipsMap extends ObservableMap {
+    @observable selfId = null;
+    @computed get self() {
+        return this.get(this.selfId);
+    }
+    @computed get others() {
+        return this.values.filter(m => m.id != this.selfId);
+    }
+    constructor(...args) {
+        return super(...args);
+    }
+}
 
-    constructor({userStore, messageStore, recordingStore, id, owner}) {
-        this.userStore = userStore;
+export default class Room {
+    @observable memberships = new RoomMembershipsMap;
+    @observable.ref messageStore = null;
+    @observable.ref recordingStore = null;
+    id = null;
+    ownerId = null;
+
+    constructor({messageStore, recordingStore, id, ownerId, selfId}) {
         this.messageStore = messageStore;
         this.recordingStore = recordingStore;
         this.id = id;
-        this.owner = owner;
+        this.ownerId = ownerId;
+        this.memberships.selfId = selfId;
     }
 
     @computed get recordings() {
@@ -45,14 +72,25 @@ export default class Room {
         return this.messageStore.forRoom(this);
     }
 
-    @action updateUserConnection(userId, data) {
-        const user = this.userStore.get(userId);
-        let userConnection = this.userConnections.get(userId);
-        if (userConnection == null) {
-            this.userConnections.set(userId, new UserRoomConnection({...data, room: this, userId}));
+    updateMessagesFromServer(updates) {
+        this.messageStore.updateFromServer(updates, this);
+    }
+
+    @computed get url() {
+        return `${window.location.origin}/${this.id}/`;
+    }
+
+    @action updateMembership(uid, data) {
+        let membership = this.memberships.get(uid);
+        if (membership == null) {
+            this.memberships.set(uid, new RoomMembership({
+                room: this,
+                uid,
+                ...data,
+            }));
         }
         else {
-            userConnection.update(data);
+            membership.update(data);
         }
     }
 }

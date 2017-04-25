@@ -4,6 +4,7 @@ from django.conf.urls import url
 from . import views
 
 urlpatterns = [
+    url(r'^$', views.CreateRoomView.as_view(), name='create'),
     url(r'^(?P<room_id>\w+)/$', views.RoomView.as_view(), name='room'),
     url(r'^(?P<room_id>\w+)/join/$', views.JoinRoomView.as_view(), name='join'),
     url(r'^(?P<room_id>\w+)/messages/$', views.RoomMessagesView.as_view(), name='messages'),

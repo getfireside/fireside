@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
-from django.views.generic import DetailView
+from django.views.generic import DetailView, View
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 
 from rest_framework import status
@@ -55,17 +56,37 @@ class RoomView(DetailView):
     pk_url_kwarg = 'room_id'
     context_object_name = 'room'
 
+    def get_context_data(self, **ctx):
+        ctx = super().get_context_data(**ctx)
+        # TODO refactor me
+        ctx['self_uid'] = None
+        try:
+            participant = Participant.objects.from_request(self.request)
+        except Participant.DoesNotExist:
+            pass
+        else:
+            if self.object.memberships.filter(participant=participant).exists():
+                ctx['self_uid'] = participant.id
+        return ctx
+
+
+class CreateRoomView(View):
+    def post(self, request):
+        participant = Participant.objects.from_request(request, create=True)
+        room = Room.objects.create_with_owner(participant)
+        return HttpResponseRedirect(room.get_absolute_url())
+
+
 
 class JoinRoomView(APIView):
     def post(self, request, room_id):
         room = get_object_or_404(Room, id=room_id)
         participant = Participant.objects.from_request(request, create=True)
-        serializer = JoinRoomSerializer(request.data,
-            format='json',
+        serializer = JoinRoomSerializer(data=request.data,
             context={'participant': participant}
         )
         if serializer.is_valid():
-            room.memberships.create(
+            mem = room.memberships.create(
                 participant=participant,
                 name=serializer.validated_data['name'],
                 role='g',
@@ -75,7 +96,7 @@ class JoinRoomView(APIView):
                 data=serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST
             )
-        return Response(status=status.HTTP_200_OK)
+        return Response({'uid': mem.id}, status=status.HTTP_200_OK)
 
 
 class RoomMessagesView(ListCreateAPIView):
@@ -87,7 +108,7 @@ class RoomMessagesView(ListCreateAPIView):
         if 'until' in self.request.query_params:
             qs = qs.filter(
                 timestamp__lt=datetime.fromtimestamp(
-                    self.request.query_params['since'],
+                    int(self.request.query_params['until']) / 1000,
                     timezone.utc,
                 ),
             )
@@ -117,7 +138,8 @@ class RoomActionView(APIView):
             target_peer_id=peer_id.hex,
             from_peer_id=self.request.room.get_peer_id(
                 self.request.participant
-            )
+            ),
+            from_participant=self.request.participant
         )
         return Response(status=status.HTTP_200_OK)
 

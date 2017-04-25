@@ -4,8 +4,8 @@ import uuid
 
 from django.utils.timezone import now
 
-from rooms.models import Room
-from rooms.serializers import PeerSerializer
+from rooms.models import *
+from rooms.serializers import MembershipSerializer
 from recordings.serializers import RecordingSerializer
 # from channels.test import ChannelTestCase
 from fireside import redis_conn
@@ -36,44 +36,52 @@ class TestRoom:
         assert not room.is_valid_action('some_invalid_action')
         assert not room.is_valid_action(None)
 
-    def test_encode_message(self):
-        for short_type, type in Room.MESSAGE_TYPE_MAP.items():
-            res = Room.encode_message({
-                'type': type,
-                'payload': {'foo': 'bar'}
-            })
+    def test_encode_message(self, room):
+        for type, type_name in Message.TYPE:
+            res = room.encode_message(room.message(
+                type=type,
+                payload={'foo': 'bar'}
+            ))
             assert isinstance(res, str)
             data = json.loads(res)
-            assert data['t'] == short_type
+            assert data['t'] == type
             assert data['p'] == {'foo': 'bar'}
         with pytest.raises(ValueError, message='Invalid message'):
-            Room.encode_message({'a': 1, 'b': 2})
+            room.encode_message(Message())
         with pytest.raises(ValueError, message='Invalid message'):
-            Room.encode_message(False)
+            room.encode_message(Message(type=type))
+        with pytest.raises(ValueError, message='Invalid message'):
+            room.encode_message(Message(payload={2: 3}))
 
-    def test_decode_message(self):
-        for short_type, type in Room.MESSAGE_TYPE_MAP.items():
-            msg = Room.decode_message({'t': short_type, 'p': {'foo': 'bar'}})
-            assert msg == {'payload': {'foo': 'bar'}, 'type': type}
+    def test_decode_message(self, room):
+        for type, type_name in Message.TYPE:
+            msg = room.decode_message({'t': type, 'p': {'foo': 'bar'}})
+            assert msg.type == type
+            assert msg.payload == {'foo': 'bar'}
+            assert msg.room == room
+
         with pytest.raises(ValueError, message='Invalid message'):
-            Room.decode_message({'t': 'fake', 'p': {'foo': 'bar'}})
+            room.decode_message({'t': 'fake', 'p': {'foo': 'bar'}})
         with pytest.raises(ValueError, message='Invalid message'):
-            Room.decode_message({'a': 'b', 'c': 'd'})
+            room.decode_message({'a': 'b', 'c': 'd'})
         with pytest.raises(ValueError, message='Invalid message'):
-            Room.decode_message(None)
+            room.decode_message(None)
 
     def test_message(self, empty_room):
-        assert empty_room.message(type='t', payload={'foo': 'bar'}) == {
-            'type': 't',
-            'payload': {'foo': 'bar'}
-        }
+        msg = empty_room.message(type='t', payload={'foo': 'bar'})
+        assert msg.type == 't'
+        assert msg.payload == {'foo': 'bar'}
 
     def test_should_save_message(self, room):
-        for msg_type in ('leave', 'announce'):
+        for msg_type in (Message.TYPE.leave, Message.TYPE.announce):
             msg = room.message(type=msg_type, payload={'foo': 'bar'})
             assert room.should_save_message(msg)
 
-        for msg_type in ('join', 'signalling', 'action'):
+        for msg_type in (
+            Message.TYPE.join,
+            Message.TYPE.signalling,
+            Message.TYPE.action
+        ):
             msg = room.message(type=msg_type, payload={'foo': 'bar'})
             assert not room.should_save_message(msg)
 
@@ -82,7 +90,7 @@ class TestRoom:
             'upload_progress',
             'meter_update'
         ):
-            msg = room.message(type='event', payload={
+            msg = room.message(type=Message.TYPE.event, payload={
                 'type': event_type,
                 'data': {'foo': 'bar'}
             })
@@ -95,7 +103,7 @@ class TestRoom:
             'request_upload',
             'message',
         ):
-            msg = room.message(type='event', payload={
+            msg = room.message(type=Message.TYPE.event, payload={
                 'type': event_type,
                 'data': {'foo': 'bar'}
             })
@@ -217,23 +225,35 @@ class TestRoom:
         m = mocker.patch('rooms.models.Room.send')
         peer_id = '443ecc03b59f46809854a965defb2d03'
         room.announce(peer_id, room.owner)
+        assert m.call_count == 1
+        msg = m.call_args[0][0]
+
         mem = room.memberships.get(participant=room.owner)
-        m.assert_called_once_with(room.message('announce', {
-            'peer': PeerSerializer(mem).data
-        }))
+        expected_peer_dict = MembershipSerializer(mem).data
+        expected_peer_dict['peerId'] = peer_id
+        expected_peer_dict['status'] = RoomMembership.STATUS.connected
+
+        assert msg.type == Message.TYPE.announce
+        assert msg.payload == {
+            'peer': expected_peer_dict
+        }
 
     def test_create_recording(self, room, mocker):
-        m = mocker.patch('rooms.models.Room.send')
+        send_mock = mocker.patch('rooms.models.Room.send')
+        peer_id = room.set_peer_id(room.owner)
         rec = room.create_recording(
             started=now(),
             participant=room.owner,
             type='audio/wav',
             id=uuid.uuid4()
         )
-        m.assert_called_once_with(room.message('event', {
-            'type': 'start_recording',
-            'data': RecordingSerializer(rec).data
-        }))
+        assert send_mock.call_count == 1
+        msg = send_mock.call_args[0][0]
+        assert msg.type == Message.TYPE.event
+        assert msg.payload['type'] == 'start_recording'
+        assert msg.participant == room.owner
+        assert msg.peer_id == peer_id
+        assert msg.payload['data'] == RecordingSerializer(rec).data
 
     @pytest.mark.skip
     def test_start_recording(self):
@@ -256,7 +276,7 @@ class TestRoomSend:
             'rooms.models.Room.channel_for_peer',
             autospec=True
         )
-        mocker.group_class = mocker.patch('rooms.models.Group', autospec=True)
+        mocker.group_class = mocker.patch('rooms.models.room.Group', autospec=True)
         mocker.add_message = mocker.patch('rooms.models.Room.add_message')
         mocker.should_save_message = mocker.patch(
             'rooms.models.Room.should_save_message'
@@ -275,8 +295,8 @@ class TestRoomSend:
         send_mocks.group_class.assert_called_once_with(room.group_name)
         assert send_mocks.group_class.method_calls == [mocker.call().send({
             'text': room.encode_message(msg1)
-        })]
-        send_mocks.add_message.assert_called_once_with(**msg1)
+        }, immediately=True)]
+        send_mocks.add_message.assert_called_once_with(msg1)
 
     def test_send_default_no_save(self, room, mocker, send_mocks):
         msg1 = room.message(type='announce', payload={
@@ -296,9 +316,9 @@ class TestRoomSend:
         assert not send_mocks.channel_for_peer.called
         assert send_mocks.group_class.method_calls == [mocker.call().send({
             'text': room.encode_message(msg2)
-        })]
+        }, immediately=True)]
         assert not send_mocks.should_save_message.called
-        send_mocks.add_message.assert_called_once_with(**msg2)
+        send_mocks.add_message.assert_called_once_with(msg2)
 
     @pytest.mark.skip
     def test_send_action(self):
@@ -316,7 +336,7 @@ class TestRoomSend:
         assert send_mocks.channel_for_peer.mock_calls[1] == \
             mocker.call().send({
                 'text': room.encode_message(msg3)
-            })
+            }, immediately=True)
         assert len(send_mocks.channel_for_peer.mock_calls) == 2
         assert not send_mocks.group_class.called
         assert not send_mocks.should_save_message.called

@@ -3,28 +3,27 @@ import json
 import random
 
 from django.db import models
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-from django.contrib.postgres.fields import JSONField
-from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.utils.timezone import now
 
 from channels import Group, Channel
 from model_utils import Choices
 
 from fireside import redis_conn
-from accounts.models import User
 
-
-def generate_id():
-    return ''.join(random.choice(
-        'ABCDEFGHIJKLMNPQRSTUVWXYZ'
-        'abcdefghijkmnopqrstuvwxyz'
-        '0123456789'
-    ) for x in range(6))
-
+from .message import Message
+from .. import serializers
+import recordings.serializers
 
 class RoomManager(models.Manager):
+    @classmethod
+    def generate_id(cls):
+        return ''.join(random.choice(
+            'ABCDEFGHIJKLMNPQRSTUVWXYZ'
+            'abcdefghijkmnopqrstuvwxyz'
+            '0123456789'
+        ) for x in range(6))
+
     def create_with_owner(self, owner):
         room = self.create(owner=owner)
         RoomMembership.objects.create(
@@ -37,25 +36,13 @@ class RoomManager(models.Manager):
 
 
 class Room(models.Model):
-    MESSAGE_TYPE_MAP = {
-        's': 'signalling',
-        'm': 'message',
-        'l': 'leave',
-        'j': 'join',
-        'a': 'announce',
-        'A': 'action',
-        'e': 'event'
-    }
     ACTION_TYPES = [
         'start_recording',
         'stop_recording',
         'kick'
     ]
-    MESSAGE_TYPE_MAP_INVERSE = dict(
-        (v, k) for k, v in MESSAGE_TYPE_MAP.items()
-    )
 
-    id = models.CharField(max_length=6, primary_key=True, default=generate_id)
+    id = models.CharField(max_length=6, primary_key=True, default=RoomManager.generate_id)
     owner = models.ForeignKey('Participant', related_name='owned_rooms')
     members = models.ManyToManyField('Participant',
         through='RoomMembership',
@@ -64,6 +51,10 @@ class Room(models.Model):
     created = models.DateTimeField(auto_now_add=True)
 
     objects = RoomManager()
+
+    @property
+    def owner_membership(self):
+        return self.memberships.get(participant=self.owner)
 
     def is_admin(self, participant):
         return participant == self.owner
@@ -74,32 +65,41 @@ class Room(models.Model):
     def is_valid_action(self, action_name):
         return action_name in self.ACTION_TYPES
 
-    @classmethod
-    def encode_message(cls, message):
-        try:
-            return json.dumps({
-                't': cls.MESSAGE_TYPE_MAP_INVERSE[message['type']],
-                'p': message['payload']
-            })
-        except (KeyError, TypeError):
-            raise ValueError("Invalid message")
+    def message(self, type, payload, timestamp=None, participant_id=None,
+                peer_id=None, id=None):
+        return Message(
+            type=type,
+            payload=payload,
+            timestamp=timestamp or now(),
+            participant_id=participant_id,
+            peer_id=peer_id,
+            id=id,
+            room=self
+        )
 
     @classmethod
-    def decode_message(cls, message):
-        try:
-            return cls.message(
-                type=cls.MESSAGE_TYPE_MAP[message['t']],
-                payload=message['p']
-            )
-        except (KeyError, TypeError):
+    def encode_message_dict(cls, message_dict):
+        out = {k: message_dict[v] for k, v in Message.ENCODING_KEY_MAP.items() if v in message_dict}
+        if not out.get('t') or not out.get('p'):
             raise ValueError("Invalid message")
+        return json.dumps(out)
+
+    def encode_message(self, message):
+        return self.encode_message_dict(serializers.MessageSerializer(message).data)
+
+    def decode_message(self, message_dict):
+        return self.message(**self.decode_message_dict(message_dict))
 
     @classmethod
-    def message(cls, type, payload):
-        return {
-            'type': type,
-            'payload': payload
-        }
+    def decode_message_dict(cls, message_dict):
+        try:
+            decoded = {v: message_dict[k] for k, v in Message.ENCODING_KEY_MAP.items() if k in message_dict}
+        except TypeError:
+            raise ValueError("Invalid message")
+        if ('type' not in decoded or 'payload' not in decoded
+            or decoded['type'] not in Message.TYPE):
+            raise ValueError("Invalid message")
+        return decoded
 
     @property
     def group_name(self):
@@ -109,6 +109,18 @@ class Room(models.Model):
     def connected_memberships(self):
         participant_ids = redis_conn.hvals(f'rooms:{self.id}:peers')
         return self.memberships.filter(participant__in=participant_ids)
+
+    def get_memberships_with_peer_ids(self):
+        participant_peers = {int(v): k for k, v in redis_conn.hgetall(f'rooms:{self.id}:peers').items()}
+        memberships = []
+        for mem in self.memberships.filter(participant__in=participant_peers.keys()):
+            mem._peer_id = participant_peers[mem.participant_id]
+            memberships.append(mem)
+        for mem in self.memberships.exclude(participant__in=participant_peers.keys()):
+            mem._peer_id = None
+            memberships.append(mem)
+        return memberships
+
 
     def get_peer_id(self, participant):
         return redis_conn.get(f'rooms:{self.id}:participants:'
@@ -157,10 +169,9 @@ class Room(models.Model):
             return res
 
     def get_initial_data(self):
-        from .serializers import InitialRoomDataSerializer
-        return InitialRoomDataSerializer(self).data
+        return serializers.InitialRoomDataSerializer(self).data
 
-    def send(self, message, to_peer=None, save=None):
+    def send(self, message, to_peer=None, save=None, immediately=True):
         if to_peer is None:
             to = Group(self.group_name)
         else:
@@ -168,33 +179,39 @@ class Room(models.Model):
         if save is None and to_peer is None:
             save = self.should_save_message(message)
         if save:
-            self.add_message(**message)
-        to.send({'text': self.encode_message(message)})
-
-    def send_action_event(self, name, target_peer_id, from_peer_id, data=None):
-        if data is None:
-            data = {}
-        self.send(self.message('event', {
-            'type': name,
-            'data': {
-                'from': from_peer_id,
-                'target': target_peer_id,
-                **data
-            },
-        }))
-
-    def start_recording(self, target_peer_id, from_peer_id):
-        # FIXME: probably should check if peer is recording before actually transmitting
-        return self.send_action_event('request_start_recording',
-            target_peer_id=target_peer_id,
-            from_peer_id=from_peer_id
+            self.add_message(message)
+        to.send(
+            {'text': self.encode_message(message)},
+            immediately=immediately
         )
 
-    def stop_recording(self, target_peer_id, from_peer_id):
+    def send_action_event(self, name, target_peer_id, from_peer_id,
+                          from_participant, data=None):
+        if data is None:
+            data = {}
+        self.send(self.message(
+            type=Message.TYPE.event,
+            payload={
+                'type': name,
+                'data': {
+                    'target': target_peer_id,
+                    **data
+                },
+            },
+            peer_id=from_peer_id,
+            participant_id=from_participant.id
+        ))
+
+    def start_recording(self, *args, **kwargs):
+        # FIXME: probably should check if peer is recording before actually transmitting
+        return self.send_action_event('request_start_recording',
+            *args, **kwargs
+        )
+
+    def stop_recording(self, *args, **kwargs):
         # FIXME: probably should check if peer is recording before actually transmitting
         return self.send_action_event('request_stop_recording',
-            target_peer_id=target_peer_id,
-            from_peer_id=from_peer_id
+            *args, **kwargs
         )
 
     def kick(self, peer_id, from_peer_id):
@@ -202,17 +219,27 @@ class Room(models.Model):
         raise NotImplementedError
 
     def announce(self, peer_id, participant):
-        from .serializers import PeerSerializer
         mem = self.memberships.get(participant=participant)
-        self.send(self.message('announce', {
-            'peer': PeerSerializer(mem).data
-        }))
+        mem._peer_id = peer_id
+        self.send(self.message(
+            type=Message.TYPE.announce,
+            payload={
+                'peer': serializers.MembershipSerializer(mem).data
+            },
+            participant_id=participant.id,
+            peer_id=peer_id
+        ))
 
-    def leave(self, peer_id):
+    def leave(self, peer_id, participant):
         self.disconnect_peer(peer_id)
-        self.send(self.message('leave', {
-            'id': peer_id
-        }))
+        self.send(self.message(
+            type=Message.TYPE.leave,
+            payload={
+                'id': peer_id
+            },
+            participant_id=participant.id,
+            peer_id=peer_id
+        ))
 
     def join(self, participant, channel_name):
         # TODO fix tests
@@ -228,31 +255,32 @@ class Room(models.Model):
         return peer_id
 
     def create_recording(self, **kwargs):
-        from recordings.serializers import RecordingSerializer
         rec = self.recordings.create(**kwargs)
         rec.peer_id = self.get_peer_id(rec.participant)
-        self.send(self.message('event', {
-            'type': 'start_recording',
-            'data': RecordingSerializer(rec).data,
-        }))
+        self.send(self.message(
+            type=Message.TYPE.event,
+            payload={
+                'type': 'start_recording',
+                'data': recordings.serializers.RecordingSerializer(rec).data,
+            },
+            participant_id=rec.participant.id,
+            peer_id=rec.peer_id
+        ))
         return rec
 
-    def add_message(self, type, payload, from_participant=None,
-                    timestamp=None):
-        self.messages.create(
-            type=type,
-            payload=payload,
-            participant=from_participant,
-            timestamp=timestamp,
-        )
+    def add_message(self, message):
+        if message.id is not None:
+            raise ValueError("This message was already added.")
+        message.room = self
+        message.save()
 
     def should_save_message(self, message):
-        if message['type'] in ('leave', 'announce'):
+        if message.type in (Message.TYPE.leave, Message.TYPE.announce):
             return True
-        if message['type'] in ('join', 'signalling', 'action'):
+        if message.type in (Message.TYPE.join, Message.TYPE.signalling, Message.TYPE.action):
             return False
-        if message['type'] == 'event':
-            event_type = message['payload']['type']
+        if message.type == Message.TYPE.event:
+            event_type = message.payload['type']
             return event_type not in (
                 'recording_progress',
                 'upload_progress',
@@ -262,8 +290,17 @@ class Room(models.Model):
     def get_socket_url(self):
         return self.get_absolute_url() + "socket"
 
+    def get_full_socket_url(self):
+        return "ws://localhost:8000" + self.get_socket_url()
+
     def get_absolute_url(self):
         return reverse('rooms:room', kwargs={'room_id': self.id})
+
+    def get_join_url(self):
+        return reverse('rooms:join', kwargs={'room_id': self.id})
+
+    def get_messages_url(self):
+        return reverse('rooms:messages', kwargs={'room_id': self.id})
 
 
 class RoomMembership(models.Model):
@@ -273,13 +310,16 @@ class RoomMembership(models.Model):
     )
     STATUS = Choices(
         (0, 'disconnected', 'Disconnected'),
-        (-1, 'connected', 'Connected'),
+        (1, 'connected', 'Connected'),
     )
     participant = models.ForeignKey('Participant', related_name='memberships')
     room = models.ForeignKey('Room', related_name='memberships')
     name = models.CharField(max_length=64, blank=True, null=True)
     role = models.CharField(max_length=1, choices=ROLE, default=ROLE.guest)
     joined = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('room', 'participant')
 
     @property
     def status(self):
@@ -290,7 +330,10 @@ class RoomMembership(models.Model):
 
     @property
     def peer_id(self):
-        return self.room.get_peer_id(self.participant)
+        if hasattr(self, '_peer_id'):
+            return self._peer_id
+        else:
+            return self.room.get_peer_id(self.participant)
 
     @property
     def current_recording_id(self):
@@ -308,65 +351,4 @@ class RoomMembership(models.Model):
         return self.participant.recordings.all().filter(room=self.room)
 
     def get_display_name(self):
-        return self.name if self.name is not None else self.participant.name
-
-
-class Message(models.Model):
-    room = models.ForeignKey('Room', related_name='messages')
-    participant = models.ForeignKey('Participant', blank=True, null=True)
-    type = models.CharField(max_length=16)
-    payload = JSONField()
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-timestamp']
-
-
-class ParticipantManager(models.Manager):
-    def from_request(self, request, create=False):
-        return self.from_user_or_session(request.user, request.session, create=create)
-
-    def from_user_or_session(self, user, session, create=False):
-        if user.is_authenticated():
-            return self.get(user=user)
-        else:
-            if session.session_key is None:
-                session.save()
-            if create:
-                participant, _ = self.get_or_create(session_key=session.session_key)
-            else:
-                participant = self.get(
-                    session_key=session.session_key
-                )
-            return participant
-
-
-class Participant(models.Model):
-    user = models.OneToOneField('accounts.User', blank=True, null=True,
-                                related_name='participant')
-    session_key = models.CharField(max_length=32, blank=True, null=True)
-    name = models.CharField(max_length=64, blank=True, null=True)
-
-    def get_display_name(self):
-        if self.name is None:
-            if self.user_id:
-                return self.user.name
-        return self.name
-
-    objects = ParticipantManager()
-
-
-@receiver(post_save, sender=User)
-def create_participant_for_user(sender, instance, created, **kwargs):
-    if created:
-        Participant.objects.create(
-            user=instance,
-            name=instance.get_short_name()
-        )
-    else:
-        instance.participant.name = instance.get_short_name()
-        instance.participant.save()
-
-
-if settings.DEBUG and not settings.TEST:
-    redis_conn.flushdb()
+        return self.name if self.name is not None else self.participant.get_display_name()

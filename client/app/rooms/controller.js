@@ -1,8 +1,10 @@
-import {observable, action} from "mobx";
-import { bindEventHandlers, on } from 'lib/actions'
+import { observable, action, runInAction } from "mobx";
+import { bindEventHandlers, on } from 'lib/actions';
 
 import RoomConnection from './connection';
 import Recorder from 'app/recordings/recorder';
+import {MESSAGE_TYPES, MEMBER_STATUSES} from 'app/rooms/constants';
+import _ from 'lodash';
 
 export default class RoomController {
     constructor(opts = {}) {
@@ -16,6 +18,7 @@ export default class RoomController {
         });
         this.connection = new RoomConnection({
             room: this.room,
+            urls: opts.urls,
         });
 
         bindEventHandlers(this);
@@ -36,21 +39,21 @@ export default class RoomController {
     @on('connection.peerAdded')
     @action.bound
     handlePeerAdded(peer) {
-        this.room.userStore.update([peer.info.userInfo]);
         this.room.recordingStore.update(peer.info.recordings);
-        this.room.updateUserConnection(peer.uid, {
-            status: 'connected',
+        this.room.updateMembership(peer.uid, {
+            status: MEMBER_STATUSES.CONNECTED,
             role: peer.info.role,
             currentRecordingId: peer.info.currentRecordingId,
-            peer: peer
+            peer: peer,
+            name: peer.info.name,
         });
     }
 
     @on('connection.peerRemoved')
     @action.bound
-    handlePeerRemoved({userId}) {
-        this.room.updateUserConnection(userId, {
-            status: 'disconnected',
+    handlePeerRemoved({uid}) {
+        this.room.updateMembership(uid, {
+            status: MEMBER_STATUSES.DISCONNECTED,
             peerId: null,
             peer: null,
         });
@@ -67,18 +70,47 @@ export default class RoomController {
     @action.bound
     receiveMessage(message) {
         this.room.messageStore.addMessage(message);
+        // TODO: if it's an update event, don't add it to the message store -
+        // instead look for the last one
     }
 
     @action.bound
-    sendMessage(message) {
-        let promise = this.connection.sendMessage(message);
-        this.room.messageStore.addMessage(message, {sendPromise: promise});
+    sendEvent(type, data) {
+        let promise = this.connection.sendEvent(type, data, {http:true});
+        return this.room.messageStore.addMessage({
+            type: MESSAGE_TYPES.EVENT,
+            payload: {type, data},
+            room: this.room,
+        }, {sendPromise: promise});
     }
 
     @on('connection.event.updateStatus')
     @action.bound
     handleStatusUpdate(change) {
-        this.room.updateUserConnection(change.userId, change.data);
+        this.room.updateMembership(change.uid, change.data);
+    }
+
+    @on('connection.join')
+    @action.bound
+    async handleJoinRoom(data, message) {
+        _.each(
+            _.filter(data.members, m => m.peerId == null),
+            (m) => this.room.updateMembership(m.uid, {
+                status: MEMBER_STATUSES.DISCONNECTED,
+                role: m.info.role,
+                name: m.info.name,
+                uid: m.uid,
+            })
+        );
+        this.room.updateMembership(this.room.memberships.selfId, {
+            status: MEMBER_STATUSES.CONNECTED,
+            role: data.self.info.role,
+            peerId: data.self.peerId,
+            name: data.self.info.name,
+            uid: data.self.uid,
+        });
+        let messagesData = await this.connection.getMessages({until: message.timestamp});
+        this.room.updateMessagesFromServer(messagesData);
     }
 
     @on('connection.event.updateRecordingStatus')
@@ -89,12 +121,12 @@ export default class RoomController {
 
     @action.bound
     requestStartRecording(user) {
-        this.connection.sendEvent('requestStartRecording', {id:user.id});
+        return this.connection.runAction('start_recording', {id:user.id});
     }
 
     @action.bound
     requestStopRecording(user) {
-        this.connection.sendEvent('requestStopRecording', {id:user.id});
+        return this.connection.runAction('stop_recording', {id:user.id});
     }
 
     async openFS() {
@@ -104,17 +136,25 @@ export default class RoomController {
         return await this.fs.open();
     }
 
-    async initialise() {
-        /**
-         * Open the filesystem and storages, then connect to the server
-         */
-        await this.openFS();
+    async initialize() {
         // set up the storage here
-        await this.connect()
+        if (this.room.memberships.selfId != null) {
+            await this.connect();
+        }
+
+    }
+
+    @action
+    async initialJoin(data) {
+        let res = await this.connection.initialJoin(data);
+        runInAction(() => {
+            this.room.memberships.selfId = res.uid;
+        });
+        await this.initialize();
     }
 
     async connect() {
-        this.connection.connect();
+        await this.connection.connect();
     }
 
     get self() {

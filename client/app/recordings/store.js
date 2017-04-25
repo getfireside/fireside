@@ -17,7 +17,7 @@ export class Recording {
     @observable filesize = null;
     type = null;
     userId = null;
-    roomId = null;
+    room = null;
 
     @computed get duration() {
         return ((this.stopped || new Date()) - this.started) / 1000;
@@ -81,6 +81,6 @@ export default class RecordingStore extends ListStore {
     }
 
     forRoom(room) {
-        return _.filter(this.items, m => m.roomId === room.id);
+        return _.filter(this.items, m => m.room == room);
     }
 }

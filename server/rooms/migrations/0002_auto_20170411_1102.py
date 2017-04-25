@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 from django.db import migrations, models
-import rooms.models
+import rooms.models.room
 
 
 class Migration(migrations.Migration):
@@ -26,6 +26,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='room',
             name='id',
-            field=models.CharField(default=rooms.models.generate_id, max_length=6, primary_key=True, serialize=False),
+            field=models.CharField(default=rooms.models.room.RoomManager.generate_id, max_length=6, primary_key=True, serialize=False),
         ),
     ]

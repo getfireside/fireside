@@ -1,91 +1,71 @@
 import MemFS from 'lib/fs/memfs';
 import Room from 'app/rooms/room';
+import {ROLES, MEMBER_STATUSES} from 'app/rooms/constants';
 
 describe("Room", function() {
-    let userStore, messageStore, recordingStore;
-    beforeEach(() => ({
-        userStore,
-        messageStore,
-        recordingStore
-    } = fixtures.setupStores({fs: new MemFS()})));
-    it('Has a constructor that sets up all the stores and properties correctly', () => {
-        let room = new Room({
-            userStore: userStore,
-            messageStore: messageStore,
-            recordingStore: recordingStore,
-            id: 2,
-            owner: userStore.get(22),
-        });
-        expect(room.userStore).to.deep.equal(userStore);
-        expect(room.messageStore).to.deep.equal(messageStore);
-        expect(room.recordingStore).to.deep.equal(recordingStore);
-        expect(room.id).to.equal(2);
-        expect(room.owner).to.deep.equal(userStore.get(22));
-    });
+    it('Has a constructor that sets up all the stores and properties correctly');
     context('instance properties', () => {
         let room;
-        beforeEach( () => {
-            room = new Room({
-                userStore: userStore,
-                messageStore: messageStore,
-                recordingStore: recordingStore,
-                id: 2,
-                owner: userStore.get(42),
+
+        beforeEach(() => {
+            room = fixtures.roomWithStores({
+                fs: new MemFS()
             });
         });
+
         it('Has a computed messages attribute that calls messageStore.forRoom', () => {
             sinon.spy(room.messageStore, 'forRoom');
             let messages = room.messages;
             expect(room.messageStore.forRoom).calledWith(room);
-            expect(messages).to.deep.equal([...messageStore.items]);
+            expect(messages).to.deep.equal([...room.messageStore.items]);
         });
         it('Has a computed recordings attribute that calls recordingStore.forRoom', () => {
             sinon.spy(room.recordingStore, 'forRoom');
             let recordings = room.recordings;
             expect(room.recordingStore.forRoom).calledWith(room);
-            expect(recordings).to.deep.equal([...recordingStore.items]);
+            expect(recordings).to.deep.equal([...room.recordingStore.items]);
         });
+
     });
-    context('#userConnections', () => {
+    context('#memberships', () => {
         let room;
-        beforeEach( () => {
-            room = new Room({
-                userStore: userStore,
-                messageStore: messageStore,
-                recordingStore: recordingStore,
-                id: 2,
-                owner: userStore.get(42),
+        beforeEach(() => {
+            room = fixtures.roomWithStores({
+                fs: new MemFS()
             });
         });
         it('exists after instantiation', () => {
-            expect(room).to.have.property('userConnections');
+            expect(room).to.have.property('memberships');
         });
-        it('can be updated with updateUserConnection', () => {
-            room.updateUserConnection(22, {
+        it('can be updated with updateMembership', () => {
+            room.updateMembership(22, {
                 currentRecordingId: null,
-                status: "connected",
-                role: "guest"
+                status: MEMBER_STATUSES.CONNECTED,
+                role: ROLES.GUEST,
+                name: "Test",
             });
-            let userConn = room.userConnections.get(22);
-            expect(userConn).to.exist;
-            expect(userConn.currentRecording).to.not.exist;
-            expect(userConn.status).to.equal('connected');
-            expect(userConn.role).to.equal('guest');
+            let mem = room.memberships.get(22);
+            expect(mem).to.exist;
+            expect(mem.currentRecording).to.not.exist;
+            expect(mem.status).to.equal(MEMBER_STATUSES.CONNECTED);
+            expect(mem.role).to.equal(ROLES.GUEST);
+            expect(mem.name).to.equal('Test');
         });
-        it('updateUserConnection updates as well as creates data correctly', () => {
-            room.updateUserConnection(22, {
+        it('updateMembership updates as well as creates data correctly', () => {
+            room.updateMembership(22, {
                 currentRecordingId: null,
-                status: "connected",
-                role: "guest"
+                status: MEMBER_STATUSES.CONNECTED,
+                role: ROLES.GUEST,
             });
-            room.updateUserConnection(22, {
-                status: "disconnected",
+            room.updateMembership(22, {
+                status: MEMBER_STATUSES.DISCONNECTED,
             });
-            let userConn = room.userConnections.get(22);
-            expect(userConn).to.exist;
-            expect(userConn.currentRecording).to.not.exist;
-            expect(userConn.status).to.equal('disconnected');
-            expect(userConn.role).to.equal('guest');
+            let mem = room.memberships.get(22);
+            expect(mem).to.exist;
+            expect(mem.currentRecording).to.not.exist;
+            expect(mem.status).to.equal(MEMBER_STATUSES.DISCONNECTED);
+            expect(mem.role).to.equal(ROLES.GUEST);
         });
+        it('self and owner work correctly');
     });
 });

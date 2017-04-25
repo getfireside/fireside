@@ -132,7 +132,7 @@ describe("Recorder", function() {
                 });
 
                 it("Writes a blob to the recording's file after it becomes available", function(done) {
-                    this.timeout(3000);
+                    this.timeout(5000);
                     let spy;
                     recorder.on('started', () => {
                         spy = sinon.spy(recorder.currentRecording, 'appendBlobToFile');
@@ -170,16 +170,18 @@ describe("Recorder", function() {
                 });
 
                 afterEach((done) => {
-                    recorder.stop();
-                    media.pause();
-                    media.currentTime = 0;
-                    setTimeout(done, 500); // chrome crashes if we don't give it some time to close down resources
+                    setTimeout(() => {
+                        recorder.stop();
+                        media.pause();
+                        media.currentTime = 0;
+                        setTimeout(done, 500); // chrome crashes if we don't give it some time to close down resources
+                    }, 50);
                 });
 
             }); // end recording starts context
 
             context('After recording.stop is called', () => {
-                let stop = (fn, time=100) => {
+                let stop = (fn, time=500) => {
                     setTimeout(() => {
                         recorder.stop();
                         media.pause();
