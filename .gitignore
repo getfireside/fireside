@@ -42,3 +42,9 @@ dist/
 #Pycache
 __pycache__
 *.pyc
+
+# Tox
+.tox
+
+# Env
+.env
