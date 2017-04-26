@@ -152,3 +152,7 @@ export const decamelize = (s) => humps.decamelize(s, {split: /(?=[A-Z0-9])/});
 export const decamelizeKeys = (s) => humps.decamelizeKeys(s, {split: /(?=[A-Z0-9])/});
 export const camelize = humps.camelize;
 export const camelizeKeys = humps.camelizeKeys;
+
+export function isVideo(stream) {
+    return stream.getVideoTracks().length > 0;
+}

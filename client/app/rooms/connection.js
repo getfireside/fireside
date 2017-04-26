@@ -14,6 +14,7 @@ export default class RoomConnection extends WildEmitter {
      * Handles the connection to the signalling server, and to the RTC peers.
      */
     @observable status = null;
+    @observable.ref stream = null;
     @observable.shallow peers = [];
 
     constructor(opts) {
