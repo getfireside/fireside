@@ -18,7 +18,7 @@ class Message(models.Model):
         'T': 'timestamp',
         'p': 'payload',
         'P': 'peer_id',
-        'u': 'uid',
+        'u': 'participant_id',
         'i': 'id'
     }
     room = models.ForeignKey('Room', related_name='messages')

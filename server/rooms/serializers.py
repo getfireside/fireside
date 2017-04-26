@@ -25,7 +25,7 @@ class PeerInfoSerializer(serializers.Serializer):
 
 
 class MembershipSerializer(serializers.Serializer):
-    peerId = serializers.CharField(source='peer_id')
+    peer_id = serializers.CharField()
     uid = serializers.IntegerField(source='participant_id')
     info = PeerInfoSerializer(source='*')
     status = serializers.IntegerField()

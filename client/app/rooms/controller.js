@@ -24,13 +24,13 @@ export default class RoomController {
         bindEventHandlers(this);
     }
 
-    @on('connection.event.startRecordingRequest')
+    @on('connection.event.requestStartRecording')
     @action.bound
     startRecording() {
         this.recorder.start();
     }
 
-    @on('connection.event.stopRecordingRequest')
+    @on('connection.event.requestStopRecording')
     @action.bound
     stopRecording() {
         this.recorder.stop();
@@ -87,17 +87,17 @@ export default class RoomController {
 
     @on('connection.event.updateStatus')
     @action.bound
-    handleStatusUpdate(change) {
-        this.room.updateMembership(change.uid, change.data);
+    handleStatusUpdate(change, message) {
+        this.room.updateMembership(message.uid, change);
     }
 
     @on('connection.join')
     @action.bound
     async handleJoinRoom(data, message) {
         _.each(
-            _.filter(data.members, m => m.peerId == null),
+            data.members,
             (m) => this.room.updateMembership(m.uid, {
-                status: MEMBER_STATUSES.DISCONNECTED,
+                status: m.peerId ? MEMBER_STATUSES.CONNECTED : MEMBER_STATUSES.DISCONNECTED,
                 role: m.info.role,
                 name: m.info.name,
                 uid: m.uid,
@@ -124,25 +124,19 @@ export default class RoomController {
 
     @action.bound
     requestStartRecording(user) {
-        return this.connection.runAction('start_recording', {id:user.id});
+        return this.connection.runAction('startRecording', {id:user.id});
     }
 
     @action.bound
     requestStopRecording(user) {
-        return this.connection.runAction('stop_recording', {id:user.id});
+        return this.connection.runAction('stopRecording', {id:user.id});
     }
 
     @on('fs.diskUsageUpdate')
     @action.bound
     handleLocalDiskUsageUpdate(diskUsage) {
-        this.connection.sendEvent('update_disk_usage', diskUsage, {http: false});
         this.room.memberships.self.diskUsage = diskUsage;
-    }
-
-    @on('connection.event.update_disk_usage')
-    @action.bound
-    handleRemoteDiskUsageUpdate(diskUsage, message) {
-        this.room.updateMembership(message.uid, {diskUsage: diskUsage});
+        this.connection.sendEvent('updateStatus', {diskUsage}, {http: false});
     }
 
     async openFS() {

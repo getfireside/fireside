@@ -102,6 +102,7 @@ export class Message extends React.Component {
                 else if (event.type == 'chat') {
                     return <ChatMessage {...this.props} />;
                 }
+                return null;
             }
         };
     }
@@ -115,7 +116,7 @@ export default class MessagesPanel extends React.Component {
                 <h2>Messages</h2>
                 <ul>
                     {_.map(this.props.room.messages, (message) => (
-                        <li key={`${message.id}:${message.timestamp}`}>
+                        message && <li key={`${message.id}:${message.timestamp}`}>
                             <Message message={message} {...this.props} />
                         </li>
                     ))}

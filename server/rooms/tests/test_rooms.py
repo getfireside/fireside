@@ -93,13 +93,19 @@ class TestRoom:
             'recording_progress',
             'upload_progress',
             'update_meter',
-            'update_disk_usage',
         ):
             msg = room.message(type=Message.TYPE.event, payload={
                 'type': event_type,
                 'data': {'foo': 'bar'}
             })
             assert not room.should_save_message(msg)
+
+        assert not room.should_save_message(
+            room.message(type=Message.TYPE.event, payload={
+                'type': 'update_status',
+                'data': {'disk_usage': {'usage': 0, 'quota': 0}}
+            })
+        )
 
         for event_type in (
             'request_start_recording',
@@ -235,7 +241,7 @@ class TestRoom:
 
         mem = room.memberships.get(participant=room.owner)
         expected_peer_dict = MembershipSerializer(mem).data
-        expected_peer_dict['peerId'] = peer_id
+        expected_peer_dict['peer_id'] = peer_id
         expected_peer_dict['status'] = RoomMembership.STATUS.connected
         expected_peer_dict['info']['disk_usage'] = None
 
