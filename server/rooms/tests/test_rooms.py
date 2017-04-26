@@ -72,6 +72,10 @@ class TestRoom:
         assert msg.type == 't'
         assert msg.payload == {'foo': 'bar'}
 
+    @pytest.mark.skip
+    def test_receive_event(self):
+        pass
+
     def test_should_save_message(self, room):
         for msg_type in (Message.TYPE.leave, Message.TYPE.announce):
             msg = room.message(type=msg_type, payload={'foo': 'bar'})
@@ -88,13 +92,20 @@ class TestRoom:
         for event_type in (
             'recording_progress',
             'upload_progress',
-            'meter_update'
+            'update_meter',
         ):
             msg = room.message(type=Message.TYPE.event, payload={
                 'type': event_type,
                 'data': {'foo': 'bar'}
             })
             assert not room.should_save_message(msg)
+
+        assert not room.should_save_message(
+            room.message(type=Message.TYPE.event, payload={
+                'type': 'update_status',
+                'data': {'disk_usage': {'usage': 0, 'quota': 0}}
+            })
+        )
 
         for event_type in (
             'request_start_recording',
@@ -230,8 +241,9 @@ class TestRoom:
 
         mem = room.memberships.get(participant=room.owner)
         expected_peer_dict = MembershipSerializer(mem).data
-        expected_peer_dict['peerId'] = peer_id
+        expected_peer_dict['peer_id'] = peer_id
         expected_peer_dict['status'] = RoomMembership.STATUS.connected
+        expected_peer_dict['info']['disk_usage'] = None
 
         assert msg.type == Message.TYPE.announce
         assert msg.payload == {
@@ -282,6 +294,10 @@ class TestRoomSend:
             'rooms.models.Room.should_save_message'
         )
         return mocker
+
+    @pytest.mark.skip
+    def test_error_if_too_big(self):
+        pass
 
     def test_send_normal(self, room, mocker, send_mocks):
         msg1 = room.message(type='announce', payload={

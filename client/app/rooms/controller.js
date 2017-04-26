@@ -24,13 +24,13 @@ export default class RoomController {
         bindEventHandlers(this);
     }
 
-    @on('connection.event.startRecordingRequest')
+    @on('connection.event.requestStartRecording')
     @action.bound
     startRecording() {
         this.recorder.start();
     }
 
-    @on('connection.event.stopRecordingRequest')
+    @on('connection.event.requestStopRecording')
     @action.bound
     stopRecording() {
         this.recorder.stop();
@@ -46,6 +46,7 @@ export default class RoomController {
             currentRecordingId: peer.info.currentRecordingId,
             peer: peer,
             name: peer.info.name,
+            diskUsage: peer.info.diskUsage,
         });
     }
 
@@ -86,20 +87,21 @@ export default class RoomController {
 
     @on('connection.event.updateStatus')
     @action.bound
-    handleStatusUpdate(change) {
-        this.room.updateMembership(change.uid, change.data);
+    handleStatusUpdate(change, message) {
+        this.room.updateMembership(message.uid, change);
     }
 
     @on('connection.join')
     @action.bound
     async handleJoinRoom(data, message) {
         _.each(
-            _.filter(data.members, m => m.peerId == null),
+            data.members,
             (m) => this.room.updateMembership(m.uid, {
-                status: MEMBER_STATUSES.DISCONNECTED,
+                status: m.peerId ? MEMBER_STATUSES.CONNECTED : MEMBER_STATUSES.DISCONNECTED,
                 role: m.info.role,
                 name: m.info.name,
                 uid: m.uid,
+                diskUsage: m.info.diskUsage,
             })
         );
         this.room.updateMembership(this.room.memberships.selfId, {
@@ -111,6 +113,7 @@ export default class RoomController {
         });
         let messagesData = await this.connection.getMessages({until: message.timestamp});
         this.room.updateMessagesFromServer(messagesData);
+        this.openFS();
     }
 
     @on('connection.event.updateRecordingStatus')
@@ -121,19 +124,27 @@ export default class RoomController {
 
     @action.bound
     requestStartRecording(user) {
-        return this.connection.runAction('start_recording', {id:user.id});
+        return this.connection.runAction('startRecording', {id:user.id});
     }
 
     @action.bound
     requestStopRecording(user) {
-        return this.connection.runAction('stop_recording', {id:user.id});
+        return this.connection.runAction('stopRecording', {id:user.id});
+    }
+
+    @on('fs.diskUsageUpdate')
+    @action.bound
+    handleLocalDiskUsageUpdate(diskUsage) {
+        this.room.memberships.self.diskUsage = diskUsage;
+        this.connection.sendEvent('updateStatus', {diskUsage}, {http: false});
     }
 
     async openFS() {
         /**
          * Open the filesystem.
          */
-        return await this.fs.open();
+        await this.fs.open();
+
     }
 
     async initialize() {

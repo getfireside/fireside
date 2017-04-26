@@ -38,6 +38,7 @@ class RoomSocketConsumer(JsonWebsocketConsumer):
         decoded['room_id'] = self.kwargs['id']
         decoded['participant_id'] = \
             self.message.channel_session['participant_id']
+        print(decoded)
         Channel('room.receive').send(decoded)
 
 
@@ -82,7 +83,7 @@ class RoomConsumer(BaseConsumer):
             )
 
     def event(self, message, **kwargs):
-        self.room.send(message)
+        self.room.receive_event(message)
 
     def join(self, message, **kwargs):
         initial_data = self.room.get_initial_data()
@@ -92,7 +93,7 @@ class RoomConsumer(BaseConsumer):
         )
         mem = self.room.memberships.get(participant=self.participant)
         initial_data['self'] = {
-            'peerId': peer_id,
+            'peer_id': peer_id,
             'uid': mem.participant_id,
             'info': {
                 'name': mem.get_display_name(),

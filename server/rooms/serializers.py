@@ -9,10 +9,23 @@ class PeerInfoSerializer(serializers.Serializer):
     current_recording_id = serializers.UUIDField(required=False, default=None, format='hex')
     role = serializers.CharField()
     name = serializers.CharField(source='get_display_name')
+    disk_usage = serializers.DictField(required=False)
+
+    class Meta:
+        peer_only_fields = ['disk_usage']
+
+    def to_representation(self, obj):
+        '''Removes peer_only_fields from members who aren't connected'''
+        res = super().to_representation(obj)
+        if obj.peer_id is None:
+            for field_name in self.Meta.peer_only_fields:
+                res.pop(field_name)
+        return res
+
 
 
 class MembershipSerializer(serializers.Serializer):
-    peerId = serializers.CharField(source='peer_id')
+    peer_id = serializers.CharField()
     uid = serializers.IntegerField(source='participant_id')
     info = PeerInfoSerializer(source='*')
     status = serializers.IntegerField()
@@ -45,4 +58,3 @@ class PeerActionSerializer(serializers.Serializer):
         if value.hex not in self.context['room'].get_peer_ids():
             raise serializers.ValidationError('Peer is not connected.')
         return value
-

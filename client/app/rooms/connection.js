@@ -6,7 +6,7 @@ import Peer from 'lib/rtc/peer';
 import Socket from 'lib/socket';
 import {fetchPost, fetchJSON} from 'lib/util';
 import {Message} from 'app/messages/store';
-
+import {camelize, camelizeKeys, decamelize, decamelizeKeys} from 'lib/util';
 import {MESSAGE_TYPES} from './constants';
 
 export default class RoomConnection extends WildEmitter {
@@ -25,6 +25,7 @@ export default class RoomConnection extends WildEmitter {
         };
 
         this.peers = [];
+        this.selfPeerId = null;
         this.localMedia = [];
 
         this.socket = new Socket({url: this.urls.socket});
@@ -40,11 +41,13 @@ export default class RoomConnection extends WildEmitter {
                 }
             },
             announce: (message) => {
+                // when another peer joins
                 let peer = this.addPeer(message.payload.peer);
                 this.emit('peerAnnounce', peer, message);
             },
             join: (message) => {
-                // this event is sent on join
+                // when the user connects
+                this.selfPeerId = message.payload.self.peerId;
                 for (let member of message.payload.members) {
                     if (member.peerId) {
                         this.addPeer(member);
@@ -53,11 +56,14 @@ export default class RoomConnection extends WildEmitter {
                 this.emit('join', message.payload, message);
             },
             leave: (message) => {
+                // when another peer leaves
                 let peer = this.removePeer(message.payload.id);
                 this.emit('peerLeave', peer, message);
             },
             event: (message) => {
-                this.emit(`event.${message.payload.type}`, message.payload.data, message);
+                if (!this.selfPeerId || message.peerId != this.selfPeerId) {
+                    this.emit(`event.${message.payload.type}`, message.payload.data, message);
+                }
             }
         };
     }
@@ -98,9 +104,18 @@ export default class RoomConnection extends WildEmitter {
          */
         let msgData = Message.decode(message);
         msgData.room = this.room;
+
+        // Camelize the payload and (if event) the event type too
+        msgData.payload = camelizeKeys(msgData.payload);
+        if (msgData.type == MESSAGE_TYPES.EVENT) {
+            msgData.payload.type = camelize(msgData.payload.type);
+        }
+
         message = new Message(msgData);
         this.messageHandlers[message.typeName](message);
-        this.emit('message', message);
+        if (!this.selfPeerId || message.peerId != this.selfPeerId) {
+            this.emit('message', message);
+        }
     }
 
     addPeer(data) {
@@ -135,30 +150,31 @@ export default class RoomConnection extends WildEmitter {
     }
 
     send({type, payload}, {http = true} = {}) {
+        let decamelized = decamelizeKeys(payload);
         if (http) {
             return fetchPost(this.urls.messages, {
                 type: type,
-                payload: payload
+                payload: decamelized,
             });
         }
         else {
             this.socket.send({
                 t: type,
-                p: payload
+                p: decamelized,
             });
         }
     }
 
     sendEvent(type, data, {http = true} = {}) {
         let toSend = {type: MESSAGE_TYPES.EVENT, payload: {
-            type: type,
+            type: decamelize(type),
             data: data
         }};
         return this.send(toSend, {http: http});
     }
 
     runAction(name, data) {
-        return fetchPost(this.urls.action, data);
+        return fetchPost(this.urls.action, decamelizeKeys(data));
     }
 
     connectStream(stream) {

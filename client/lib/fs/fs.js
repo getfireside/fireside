@@ -1,4 +1,6 @@
 import {ExtendableError} from 'lib/util';
+import WildEmitter from 'WildEmitter';
+import _ from 'lodash';
 
 class FSError extends ExtendableError {
     constructor(message) {
@@ -38,10 +40,33 @@ class FSFile {
 }
 
 
-class FS {
-    constructor(opts) {}
+class FS extends WildEmitter {
+    constructor(opts) {
+        super()
+    }
 
     getFile(path, opts) {}
+
+    watchDiskUsage() {
+        this._lastDiskUsage = null;
+        clearInterval(this._diskUsageTimer);
+        let fn = async () => {
+            let res = await this.getDiskUsage();
+            if (
+                this._lastDiskUsage == null
+                || this._lastDiskUsage.quota != res.quota
+                || this._lastDiskUsage.usage != res.usage
+            ) {
+                this._lastDiskUsage = res;
+                this.emit('diskUsageUpdate', res);
+                this.logger.log(
+                    `Disk usage update. Quota: ${res.quota}, Usage: ${res.usage}`
+                );
+            }
+        };
+        fn();
+        this._diskUsageTimer = setInterval(fn, 1000);
+    }
 }
 
 export { FS, FSFile, FSError, DiskSpaceError, LookupError };

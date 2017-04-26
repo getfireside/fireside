@@ -1,9 +1,15 @@
 import {IDBFS, IDBFile, DiskSpaceError, LookupError, FSError} from 'lib/fs/idbfs';
 import {blobToString} from 'lib/util';
+import {testDiskUsageEvents} from './quota.spec.js';
 
 const generateHugeBlob = (mb=1000) => new Blob([new Uint8Array(mb*1024*1024)]);
 
 describe('IDBFS', () => {
+    it('Watches disk usage correctly', function(done) {
+        let fs = new IDBFS({dbname: 'testdb'});
+        this.timeout(10000);
+        testDiskUsageEvents(fs).then(() => done()).catch(done);
+    });
     context('#open', () => {
         it('Opens the DB and creates stores and indices as necessary', async () => {
             let fs = new IDBFS({dbname: 'testdb'});
@@ -11,25 +17,25 @@ describe('IDBFS', () => {
             expect(fs).to.have.property('db');
             let sto = fs.db.transaction(['chunks']).objectStore('chunks');
             expect(sto.indexNames.contains('filename'));
-            fs.close()
+            fs.close();
         });
         it('Fulfils immediately if already open', async () => {
             let fs = new IDBFS({dbname: 'testdb'});
             await fs.open();
             let open = false;
             fs.open().then(() => {
-                open = true
-            })
+                open = true;
+            });
             await (new Promise((fulfil, reject) => {
-                fs.close()
+                fs.close();
                 setTimeout(() => {
                     if (open) {
-                        fulfil()
+                        fulfil();
                     }
                     else {
-                        reject(new Error('Promise did not resolve quickly enough'))
+                        reject(new Error('Promise did not resolve quickly enough'));
                     }
-                }, 10)
+                }, 10);
             }));
         });
         it('Works after the DB has been closed', async () => {
@@ -37,9 +43,9 @@ describe('IDBFS', () => {
             await fs.open();
             fs.close();
             await fs.open();
-            fs.close()
+            fs.close();
         });
-    })
+    });
     it('Has a close method that runs without error', async () => {
         let fs = new IDBFS({dbname: 'testdb'});
         await fs.open();

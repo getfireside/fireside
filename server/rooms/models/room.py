@@ -85,10 +85,25 @@ class Room(models.Model):
         return json.dumps(out)
 
     def encode_message(self, message):
-        return self.encode_message_dict(serializers.MessageSerializer(message).data)
+        data = serializers.MessageSerializer(message).data
+        if 'uid' in data:
+            # rename.
+            # TODO: do in a nicer way?
+            data['participant_id'] = data['uid']
+            del data['uid']
+        return self.encode_message_dict(data)
 
     def decode_message(self, message_dict):
         return self.message(**self.decode_message_dict(message_dict))
+
+    def receive_event(self, message):
+        assert message.type == Message.TYPE.event
+        event = message.payload
+        print(event)
+        if event['type'] == 'update_status':
+            if 'disk_usage' in event['data']:
+                self.set_peer_data(message.peer_id, 'disk_usage', event['data']['disk_usage'])
+        self.send(message)
 
     @classmethod
     def decode_message_dict(cls, message_dict):
@@ -120,7 +135,6 @@ class Room(models.Model):
             mem._peer_id = None
             memberships.append(mem)
         return memberships
-
 
     def get_peer_id(self, participant):
         return redis_conn.get(f'rooms:{self.id}:participants:'
@@ -281,11 +295,17 @@ class Room(models.Model):
             return False
         if message.type == Message.TYPE.event:
             event_type = message.payload['type']
-            return event_type not in (
+            if event_type in (
                 'recording_progress',
                 'upload_progress',
-                'meter_update',
-            )
+                'update_meter',
+            ):
+                return False
+            else:
+                if event_type == 'update_status':
+                    if 'disk_usage' in message.payload['data']:
+                        return False
+            return True
 
     def get_socket_url(self):
         return self.get_absolute_url() + "socket"
@@ -345,6 +365,13 @@ class RoomMembership(models.Model):
     @property
     def current_recording(self):
         return self.recordings.latest()
+
+    @property
+    def disk_usage(self):
+        if self.peer_id:
+            return self.room.get_peer_data(self.peer_id, 'disk_usage')
+        else:
+            return None
 
     @property
     def recordings(self):

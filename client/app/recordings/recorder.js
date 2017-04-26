@@ -3,6 +3,7 @@ import moment from 'moment';
 import WAVAudioRecorder from 'lib/wavrecorder/recorder';
 import { Logger } from 'lib/logger';
 import { observable, action } from 'mobx';
+import _ from 'lodash';
 
 function isVideo(stream) {
     return stream.getVideoTracks().length > 0;
@@ -23,6 +24,7 @@ export default class Recorder extends WildEmitter {
     @observable currentRecording = null;
     @observable lastBitrate = null;
     @observable lastChunkTime = null;
+    @observable diskUsage = null;
 
     constructor(opts) {
         let defaults =
@@ -30,7 +32,7 @@ export default class Recorder extends WildEmitter {
 
         opts = _.extend({}, defaults, opts);
 
-        super()
+        super();
 
         this.store = opts.store;
         this.recordingPeriod = opts.recordingPeriod;
@@ -61,7 +63,7 @@ export default class Recorder extends WildEmitter {
         this.mediaRecorder.onstart = this.onStart.bind(this);
         this.mediaRecorder.onstop = this.onStop.bind(this);
 
-        this.logger.info('STATUS = "ready"')
+        this.logger.info('STATUS = "ready"');
         this.status = 'ready';
 
         this.emit('ready');

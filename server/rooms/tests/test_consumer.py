@@ -25,14 +25,28 @@ def client2(user2):
 
 
 @pytest.fixture
+def client3(participant3, participant3_client):
+    client = HttpClient()
+    client._session = participant3_client.session
+    client.participant = participant3
+    return client
+
+
+@pytest.fixture
 def joined_clients(room, client, client2):
     client.send_and_consume('websocket.connect', path=room.get_socket_url())
     client.consume('room.join')
-    client.peer_id = client.receive()['p']['self']['peerId']
+    client.peer_id = client.receive()['p']['self']['peer_id']
     client2.send_and_consume('websocket.connect', path=room.get_socket_url())
     client2.consume('room.join')
-    client2.peer_id = client2.receive()['p']['self']['peerId']
+    client2.peer_id = client2.receive()['p']['self']['peer_id']
     client.receive()
+    client.membership = room.memberships.get(
+        participant=client.user.participant
+    )
+    client2.membership = room.memberships.get(
+        participant=client2.user.participant
+    )
     return client, client2
 
 
@@ -74,7 +88,7 @@ class TestRoomConsumer:
                 'recordings': [],
                 'role': 'o'
             },
-            'peerId': None,
+            'peer_id': None,
             'status': 0,
             'uid': 1
         }, {
@@ -84,14 +98,14 @@ class TestRoomConsumer:
                 'recordings': [],
                 'role': 'g'
             },
-            'peerId': None,
+            'peer_id': None,
             'status': 0,
             'uid': 2
         }]
 
 
         joined_peer1 = msg.payload['self']
-        assert 'peerId' in joined_peer1
+        assert 'peer_id' in joined_peer1
         assert joined_peer1['uid'] == room.owner.id
         assert joined_peer1['info']['name'] == 'HAL'
         assert joined_peer1['info']['role'] == 'o'
@@ -123,6 +137,7 @@ class TestRoomConsumer:
                 'current_recording_id': None,
                 'role': 'g',
                 'name': 'Dave',
+                'disk_usage': None,
                 'recordings': [RecordingSerializer(rec).data]
             }
         }
@@ -135,7 +150,7 @@ class TestRoomConsumer:
 
         assert len(msg3.payload['members']) == 2
         assert msg3.payload['members'][0]['status'] == RoomMembership.STATUS.connected
-        assert joined_peer1['peerId'] == peer1_data['peerId']
+        assert joined_peer1['peer_id'] == peer1_data['peer_id']
         assert joined_peer1['uid'] == peer1_data['uid']
         assert joined_peer1['info'].items() <= peer1_data['info'].items()
 
@@ -188,4 +203,41 @@ class TestRoomConsumer:
         assert msg.type == Message.TYPE.event
         assert msg.payload['type'] == 'start_recording'
         assert msg.payload['data'] == RecordingSerializer(rec).data
+        assert msg.participant == client2.user.participant
         assert self.get_message(client2, room) == msg
+
+    def test_disk_usage_event(self, room, joined_clients, client3):
+        client, client2 = joined_clients
+        disk_usage = {
+            'quota': 1024**3, 'usage': 1024**2
+        }
+        self.send_message(
+            room=room,
+            client=client,
+            type=Message.TYPE.event,
+            payload={
+                'type': 'update_status',
+                'data': {'disk_usage': disk_usage}
+            }
+        )
+        assert client.membership.disk_usage == disk_usage
+        msg = self.get_message(client2, room)
+        assert msg.type == Message.TYPE.event
+        assert msg.payload['type'] == 'update_status'
+        assert msg.payload['data'] == {'disk_usage': disk_usage}
+        assert msg.participant == client.user.participant
+
+        # check if disk usage is present on initial message when
+        # third client joins
+        room.memberships.create(participant=client3.participant)
+        client3.send_and_consume(
+            'websocket.connect',
+            path=room.get_socket_url()
+        )
+        client3.consume('room.join')
+        msg2 = self.get_message(client3, room)
+        assert msg2.type == Message.TYPE.join
+        members = msg2.payload['members']
+        member_data = next(m for m in members if m['peer_id'] == client.peer_id)
+        assert member_data['info']['disk_usage'] == disk_usage
+

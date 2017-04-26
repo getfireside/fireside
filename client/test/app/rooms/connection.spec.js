@@ -2,6 +2,7 @@
 
 import RoomConnection from 'app/rooms/connection';
 import * as util from 'lib/util';
+import {decamelizeKeys} from 'lib/util';
 
 let peer1 = {
     peerId: 1,
@@ -66,7 +67,7 @@ describe("RoomConnection", function() {
             let peer1Added = false;
             let peer2Added = false;
             let testPayload = {members: [peer1, peer2], self: peer3};
-            let message = {t: 'j', p: testPayload};
+            let message = {t: 'j', p: decamelizeKeys(testPayload)};
             rc.on('peerAdded', (peer) => {
                 if (peer.id == 1) {
                     peer1Added = true;
@@ -93,6 +94,62 @@ describe("RoomConnection", function() {
             rc.socket.emit('message', message);
         });
 
+        it('Sets selfPeerId on join', (done) => {
+            let testPayload = decamelizeKeys({members: [], self: peer3});
+            let message = {t: 'j', p: testPayload};
+            rc.on('join', (data, message) => {
+                expect(rc.selfPeerId).to.equal(peer3.peerId);
+                done();
+            });
+            rc.socket.emit('message', message);
+        });
+
+        it('Only emits message event (and relevant typed events) if from another peer', (done) => {
+            rc.status = 'connected';
+            rc.selfPeerId = peer1.peerId;
+            rc.addPeer(peer2);
+            rc.socket.emit('message', {t: 'a', p: {peer: {peer1}}, P: peer1.peerId});
+            rc.socket.emit('message', {t: 'e', p: {type: 'testEvent', data: null}, P: peer1.peerId});
+            rc.on('event.testEvent', () => {
+                done(new Error('Should not have emitted for this event'));
+            });
+            rc.on('message', () => {
+                done(new Error('Should not have emitted for this message'));
+            });
+            setTimeout(done, 50);
+        });
+
+        it('Camelizes incoming messages', (done) => {
+            rc.on('message', (message) => {
+                if (message.type == 'e') {
+                    expect(message.payload.type).to.equal('testEventName');
+                    expect(message.payload.data.testKey1).to.equal('foo');
+                    expect(message.payload.data.test_key_1).to.be.undefined;
+                }
+                else if (message.type == 'a') {
+                    expect(message.payload.dataTest).to.equal(22);
+                    expect(message.payload.data_test).to.be.undefined;
+                    done();
+                }
+            });
+            rc.socket.emit('message', {
+                t: 'e',
+                p: {
+                    type: 'test_event_name',
+                    data: {
+                        test_key_1: 'foo',
+                    }
+                }
+            });
+            rc.socket.emit('message', {
+                t: 'a',
+                p: {
+                    peer: peer2,
+                    data_test: 22,
+                }
+            });
+        });
+
         it('Passes through signalling messages to peers', () => {
             rc.status = 'connected';
             rc.addPeer(peer1);
@@ -117,7 +174,7 @@ describe("RoomConnection", function() {
             rc.socket.emit('message', {
                 t: 'e',
                 p: {
-                    type: 'testEvent1',
+                    type: 'test_event_1',
                     data: {foo: 'bar'}
                 }
             });
@@ -190,7 +247,7 @@ describe("RoomConnection", function() {
 
         it('After a valid message of any kind, emits a message event', (done) => {
             let testMessages = [
-                {t: 'j', p: {members: []}},
+                {t: 'j', p: {members: [], self: {peerId: peer1.id}}},
                 {t: 'a', p: {peer: peer2}},
                 {t: 'e', p: {type: 'testEvent1', data: {foo: 'bar'}}},
                 {t: 's', p: {to: peer2.peerId}},
@@ -203,13 +260,13 @@ describe("RoomConnection", function() {
                         sinon.stub(rc.peers[0], 'receiveSignallingMessage');
                     }
                     expect(received.type).to.equal(msg.t);
-                    expect(received.payload).to.equal(msg.p);
+                    expect(received.payload).to.deep.equal(msg.p);
                     numMessagesReceived++;
                     if (numMessagesReceived == 5) {
                         done();
                     }
                 });
-                rc.socket.emit('message', msg);
+                rc.socket.emit('message', decamelizeKeys(msg));
             }
         });
     });
@@ -245,7 +302,7 @@ describe("RoomConnection", function() {
             expect(rc.socket.send).to.have.been.calledWithExactly({
                 t: 'e',
                 p: {
-                    type: 'testEvent1',
+                    type: 'test_event_1',
                     data: {foo: 'bar'},
                 }
             });
@@ -253,16 +310,30 @@ describe("RoomConnection", function() {
 
         it('sendEvent(..., {http: true}) sends events over HTTP and returns a promise', () => {
             rc.status = 'connected';
-            sinon.stub(util, 'fetchPost', (x) => 'fakePromise');
+            sinon.stub(util, 'fetchPost', () => 'fakePromise');
             let res = rc.sendEvent('testEvent2', {foo: 'bar'}, {http: true});
             expect(util.fetchPost).to.have.been.calledWith(rc.urls.messages, {
                 type: 'e',
                 payload: {
-                    type: 'testEvent2',
+                    type: 'test_event_2',
                     data: {foo: 'bar'}
                 }
             });
             expect(res).to.equal('fakePromise');
+        });
+
+        it('send decamelizes message keys', () => {
+            rc.send({type: 'e', payload: {
+                type: 'test',
+                data: {'fooBar': 'bar12'}
+            }}, {http: false});
+            expect(rc.socket.send).to.have.been.calledWithExactly({
+                t: 'e',
+                p: {
+                    type: 'test',
+                    data: {'foo_bar': 'bar12'}
+                }
+            });
         });
     });
 });
