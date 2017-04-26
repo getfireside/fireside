@@ -164,6 +164,28 @@ export default class RoomController {
         await this.initialize();
     }
 
+    @action
+    async setupLocalMedia({audio = true, video = true} = {}) {
+        let mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio,
+            video: video && {
+                optional: [
+                    {minWidth: 320},
+                    {minWidth: 640},
+                    {minWidth: 1024},
+                    {minWidth: 1280},
+                    {minWidth: 1920},
+                    {minWidth: 2560},
+                    {minWidth: 3840},
+                ]
+            }
+        });
+        runInAction( () => {
+            this.recorder.setStream(mediaStream);
+            this.connection.connectStream(mediaStream);
+        });
+    }
+
     async connect() {
         await this.connection.connect();
     }

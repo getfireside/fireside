@@ -4,10 +4,7 @@ import WAVAudioRecorder from 'lib/wavrecorder/recorder';
 import { Logger } from 'lib/logger';
 import { observable, action } from 'mobx';
 import _ from 'lodash';
-
-function isVideo(stream) {
-    return stream.getVideoTracks().length > 0;
-}
+import { isVideo } from 'lib/util';
 
 /**
  * Manages the recording of a single stream.

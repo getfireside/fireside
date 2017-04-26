@@ -20,7 +20,7 @@ export class HostRoomView extends React.Component {
                     <MessagesPanel {...this.props} />
                 </aside>
                 <main>
-                    <AVPanel />
+                    <AVPanel {...this.props} />
                     <FilesDrawer />
                 </main>
             </div>
@@ -39,7 +39,7 @@ export class GuestRoomView extends React.Component {
                     <MessagesPanel {...this.props} />
                 </aside>
                 <main>
-                    <AVPanel />
+                    <AVPanel {...this.props} />
                     <FilesDrawer />
                 </main>
             </div>
