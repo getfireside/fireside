@@ -87,6 +87,7 @@ export default class HTML5FS extends FS {
 
             if (!this.fs) {
                 requestStorageQuota().then((size) => {
+                    this.logger.log(`We got a quota of ${size} bytes`);
                     requestFileSystem(window.PERSISTENT, size, init, handleErr);
                 });
             }

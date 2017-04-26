@@ -49,16 +49,23 @@ class FS extends WildEmitter {
 
     watchDiskUsage() {
         this._lastDiskUsage = null;
-        this._diskUsageTimer = setInterval( async () => {
+        clearInterval(this._diskUsageTimer);
+        let fn = async () => {
             let res = await this.getDiskUsage();
-            if (!_.isEqual(this._lastDiskUsage, res)) {
+            if (
+                this._lastDiskUsage == null
+                || this._lastDiskUsage.quota != res.quota
+                || this._lastDiskUsage.usage != res.usage
+            ) {
                 this._lastDiskUsage = res;
                 this.emit('diskUsageUpdate', res);
                 this.logger.log(
                     `Disk usage update. Quota: ${res.quota}, Usage: ${res.usage}`
                 );
             }
-        }, 1000);
+        };
+        fn();
+        this._diskUsageTimer = setInterval(fn, 1000);
     }
 }
 

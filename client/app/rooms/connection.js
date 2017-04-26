@@ -6,7 +6,7 @@ import Peer from 'lib/rtc/peer';
 import Socket from 'lib/socket';
 import {fetchPost, fetchJSON} from 'lib/util';
 import {Message} from 'app/messages/store';
-import {camelize, camelizeKeys, decamelize, decamelizeKeys} from 'humps';
+import {camelize, camelizeKeys, decamelize, decamelizeKeys} from 'lib/util';
 import {MESSAGE_TYPES} from './constants';
 
 export default class RoomConnection extends WildEmitter {
@@ -61,7 +61,7 @@ export default class RoomConnection extends WildEmitter {
                 this.emit('peerLeave', peer, message);
             },
             event: (message) => {
-                if (message.peerId != this.selfPeerId) {
+                if (!this.selfPeerId || message.peerId != this.selfPeerId) {
                     this.emit(`event.${message.payload.type}`, message.payload.data, message);
                 }
             }
@@ -113,7 +113,7 @@ export default class RoomConnection extends WildEmitter {
 
         message = new Message(msgData);
         this.messageHandlers[message.typeName](message);
-        if (this.selfPeerId && message.peerId != this.selfPeerId) {
+        if (!this.selfPeerId || message.peerId != this.selfPeerId) {
             this.emit('message', message);
         }
     }

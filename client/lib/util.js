@@ -1,3 +1,5 @@
+import * as humps from 'humps';
+
 export function eventListenerToPromise(object, name) {
         return new Promise(function(resolve) {
                 object.addEventListener(name, resolve);
@@ -119,7 +121,7 @@ export const fetchPost = async (url, data, method = 'POST') => {
     else {
         throw new Error(response.statusText);
     }
-}
+};
 
 export const fetchJSON = async (url, data) => {
     let response = await fetch(url, {
@@ -144,4 +146,9 @@ export const fetchJSON = async (url, data) => {
     else {
         throw new Error(response.statusText);
     }
-}
+};
+
+export const decamelize = (s) => humps.decamelize(s, {split: /(?=[A-Z0-9])/});
+export const decamelizeKeys = (s) => humps.decamelizeKeys(s, {split: /(?=[A-Z0-9])/});
+export const camelize = humps.camelize;
+export const camelizeKeys = humps.camelizeKeys;

@@ -100,11 +100,11 @@ module.exports = function(config) {
         customLaunchers: {
             chrome_webplatform: {
                 base: "Chrome",
-                flags: ["--enable-experimental-web-platform-features", "--enable-logging", "--v=1"]
+                flags: ["--enable-experimental-web-platform-features", "--unlimited-storage"]
             },
             Chrome_travis_ci: {
                 base: 'Chrome',
-                flags: ['--no-sandbox', '--enable-experimental-web-platform-features']
+                flags: ['--no-sandbox', '--enable-experimental-web-platform-features', "--unlimited-storage"]
             }
         },
 

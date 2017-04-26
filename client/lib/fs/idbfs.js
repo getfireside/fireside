@@ -149,8 +149,6 @@ export default class IDBFS extends FS {
                 return;
             }
 
-            this.watchDiskUsage();
-
             let openRequest = indexedDB.open(this.dbname, 1);
             window._or = openRequest;
 
@@ -174,6 +172,7 @@ export default class IDBFS extends FS {
                 this.logger.info('FS opened.')
                 this.db.onerror = (e) => console.error(e.target.error);
                 this.db.onabort = (e) => console.error(e.target.error);
+                this.watchDiskUsage();
                 fulfil(this);
             };
 

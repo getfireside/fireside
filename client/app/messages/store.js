@@ -3,7 +3,7 @@ import {ListStore} from 'lib/store';
 import _ from 'lodash';
 import {MESSAGE_ENCODING_KEYS, MESSAGE_TYPES_INVERSE} from 'app/rooms/constants';
 import moment from 'moment';
-import {camelizeKeys} from 'humps';
+import {camelizeKeys} from 'lib/util';
 
 export class Message {
     room = null;

@@ -42,14 +42,21 @@ describe("RoomController", function() {
     context('Event handlers', () => {
         it('On start recording request, attempt to start recording.', () => {
             sinon.stub(rc.recorder, 'start');
-            rc.connection.emit('event.startRecordingRequest');
+            rc.connection.emit('event.requestStartRecording');
             expect(rc.recorder.start.calledOnce).to.be.true;
         });
 
         it('On stop recording request, attempt to stop recording.', () => {
             sinon.stub(rc.recorder, 'stop');
-            rc.connection.emit('event.stopRecordingRequest');
+            rc.connection.emit('event.requestStopRecording');
             expect(rc.recorder.stop.calledOnce).to.be.true;
+        });
+
+        context('On join', () => {
+            it('Adds members');
+            it('Updates self');
+            it('Gets and updates messages from server');
+            it('Tries to open the FS');
         });
 
         it('On receiving a message event from connection, adds received messages to the message store', () => {
@@ -68,6 +75,7 @@ describe("RoomController", function() {
                 info: {
                     name: "Test user",
                     role: 'guest',
+                    diskUsage: {usage: 0, quota: 3}
                 },
                 currentRecordingId: "test-rec-22",
                 recordings: [{
@@ -87,7 +95,8 @@ describe("RoomController", function() {
                 role: peer.info.role,
                 currentRecordingId: peer.info.currentRecordingId,
                 peer: peer,
-                name: peer.info.name
+                name: peer.info.name,
+                diskUsage: peer.info.diskUsage,
             });
         });
 
@@ -104,11 +113,20 @@ describe("RoomController", function() {
         it('Dispatches status updates from connection to room user connection', () => {
             sinon.stub(rc.room, 'updateMembership');
             rc.connection.emit('event.updateStatus', {
-                data: {foo: 'bar'},
-                uid: 42,
-            });
+                foo: 'bar'
+            }, {uid: 42});
             expect(rc.room.updateMembership).to.have.been.calledWith(
                 42, {foo: 'bar'}
+            );
+        });
+
+        it('When a disk usage update is trigged, send it through to the connection and update self', () => {
+            sinon.stub(rc.connection, 'sendEvent');
+            let diskUsage = {usage: 0, quota: 1024};
+            rc.fs.emit('diskUsageUpdate', diskUsage);
+            expect(rc.room.memberships.self.diskUsage).to.deep.equal(diskUsage);
+            expect(rc.connection.sendEvent).to.have.been.calledWith(
+                'updateStatus', {diskUsage}, {http:false}
             );
         });
     });

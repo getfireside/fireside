@@ -11,16 +11,16 @@ export function requestStorageQuota() {
             );
         }
         else {
-            resolve(null);
+            resolve();
         }
     });
 }
 export function getStorageUsage() {
     return new Promise( (resolve, reject) => {
         if (navigator.webkitPersistentStorage != null) {
-            navigator.webkitTemporaryStorage.queryUsageAndQuota(
+            navigator.webkitPersistentStorage.queryUsageAndQuota(
                 (usedBytes, grantedBytes) => {
-                    resolve({quota:grantedBytes, usage:usedBytes})
+                    resolve({quota:grantedBytes, usage:usedBytes});
                 },
                 reject,
             );

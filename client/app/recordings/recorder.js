@@ -28,7 +28,7 @@ export default class Recorder extends WildEmitter {
 
     constructor(opts) {
         let defaults =
-            {recordingPeriod: 1000, diskUsageUpdatePeriod: 1000};
+            {recordingPeriod: 1000};
 
         opts = _.extend({}, defaults, opts);
 
