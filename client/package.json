@@ -43,21 +43,6 @@
     "sinon-chai": "^2.9.0",
     "webpack": "^2.4.1"
   },
-  "jest": {
-    "verbose": true,
-    "moduleFileExtensions": [
-      "js",
-      "jsx"
-    ],
-    "moduleDirectories": [
-      "node_modules",
-      "bower_components",
-      "shared"
-    ],
-    "modulePaths": [
-      "client"
-    ]
-  },
   "dependencies": {
     "babel-core": "^6.24.1",
     "filetransfer": "^2.0.5",
@@ -73,8 +58,6 @@
     "react-dom": "^15.5.4",
     "react-modal": "^1.7.7",
     "rtcpeerconnection": "^7.0.2",
-    "semantic-ui": "^2.2.10",
-    "semantic-ui-react": "^0.68.0",
     "webrtcsupport": "^2.2.0",
     "wildemitter": "^1.2.0"
   },
