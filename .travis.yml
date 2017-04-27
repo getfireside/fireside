@@ -9,8 +9,7 @@ services:
 
 matrix:
   include:
-    - python:
-      - "3.6"
+    - python: "3.6"
     - env:
       - DATABASE_URL=psql://postgres:/travis_ci_test
       - SECRET_KEY=travis_secret_key
