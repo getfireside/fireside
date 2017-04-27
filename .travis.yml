@@ -38,4 +38,6 @@ matrix:
         - sh -e /etc/init.d/xvfb start
       script:
         - cd client
+        - npm install yarn
+        - yarn
         - make test
