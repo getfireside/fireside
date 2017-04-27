@@ -11,28 +11,30 @@ node_js:
 services:
   - postgresql
 
-before_script:
-  - export DISPLAY=:99.0
-  - sh -e /etc/init.d/xvfb start
-  - psql -c 'create database travis_ci_test;' -U postgres
 
-env:
-  global:
-    - NODE_ENV=test
-    - DATABASE_URL=psql://postgres:/travis_ci_test
-    - SECRET_KEY=travis_secret_key
+matrix:
+  include:
+    - env:
+      - DATABASE_URL=psql://postgres:/travis_ci_test
+      - SECRET_KEY=travis_secret_key
+      - COVERAGE=1
+      before_script:
+      - psql -c 'create database travis_ci_test;' -U postgres
+      script:
+        - cd server
+        - make test
 
-  matrix:
-  - TEST_DIR=client
-  - TEST_DIR=server
-
-
-script:
-  - make
-  - cd $TEST_DIR && COVERAGE=1 make test
-
-addons:
-  firefox: latest-nightly
-  apt:
-    packages:
-      google-chrome-stable
+    - env:
+      - NODE_ENV=test
+      - COVERAGE=1
+      addons:
+        firefox: latest-nightly
+        apt:
+          packages:
+            google-chrome-stable
+      before_script:
+        - export DISPLAY=:99.0
+        - sh -e /etc/init.d/xvfb start
+      script:
+        - cd client
+        - make test
