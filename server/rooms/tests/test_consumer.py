@@ -2,7 +2,7 @@ import pytest
 from channels.test import HttpClient
 from django.utils.timezone import now
 from datetime import timedelta
-from rooms.models import *
+from rooms.models import RoomMembership, Message
 from recordings.models import Recording
 from recordings.serializers import RecordingSerializer
 import uuid
@@ -103,13 +103,11 @@ class TestRoomConsumer:
             'uid': 2
         }]
 
-
         joined_peer1 = msg.payload['self']
         assert 'peer_id' in joined_peer1
         assert joined_peer1['uid'] == room.owner.id
         assert joined_peer1['info']['name'] == 'HAL'
         assert joined_peer1['info']['role'] == 'o'
-
 
         # now let's join another client, with a recording
         rec = Recording.objects.create(
@@ -149,7 +147,10 @@ class TestRoomConsumer:
         peer1_data = msg3.payload['members'][0]
 
         assert len(msg3.payload['members']) == 2
-        assert msg3.payload['members'][0]['status'] == RoomMembership.STATUS.connected
+        assert (
+            msg3.payload['members'][0]['status'] ==
+            RoomMembership.STATUS.connected
+        )
         assert joined_peer1['peer_id'] == peer1_data['peer_id']
         assert joined_peer1['uid'] == peer1_data['uid']
         assert joined_peer1['info'].items() <= peer1_data['info'].items()
@@ -238,6 +239,7 @@ class TestRoomConsumer:
         msg2 = self.get_message(client3, room)
         assert msg2.type == Message.TYPE.join
         members = msg2.payload['members']
-        member_data = next(m for m in members if m['peer_id'] == client.peer_id)
+        member_data = next(
+            m for m in members if m['peer_id'] == client.peer_id
+        )
         assert member_data['info']['disk_usage'] == disk_usage
-

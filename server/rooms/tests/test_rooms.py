@@ -4,7 +4,7 @@ import uuid
 
 from django.utils.timezone import now
 
-from rooms.models import *
+from rooms.models import Room, Message, RoomMembership
 from rooms.serializers import MembershipSerializer
 from recordings.serializers import RecordingSerializer
 # from channels.test import ChannelTestCase
@@ -288,7 +288,10 @@ class TestRoomSend:
             'rooms.models.Room.channel_for_peer',
             autospec=True
         )
-        mocker.group_class = mocker.patch('rooms.models.room.Group', autospec=True)
+        mocker.group_class = mocker.patch(
+            'rooms.models.room.Group',
+            autospec=True
+        )
         mocker.add_message = mocker.patch('rooms.models.Room.add_message')
         mocker.should_save_message = mocker.patch(
             'rooms.models.Room.should_save_message'

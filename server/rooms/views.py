@@ -9,7 +9,7 @@ from rest_framework.views import APIView
 from rest_framework.generics import ListCreateAPIView, ListAPIView
 from rest_framework.permissions import BasePermission
 
-from .models import Room, Participant, RoomMembership, Message
+from .models import Room, Participant, RoomMembership
 from .serializers import (
     MembershipSerializer,
     MessageSerializer,
@@ -65,7 +65,9 @@ class RoomView(DetailView):
         except Participant.DoesNotExist:
             pass
         else:
-            if self.object.memberships.filter(participant=participant).exists():
+            if self.object.memberships.filter(
+                participant=participant
+            ).exists():
                 ctx['self_uid'] = participant.id
         return ctx
 
@@ -75,7 +77,6 @@ class CreateRoomView(View):
         participant = Participant.objects.from_request(request, create=True)
         room = Room.objects.create_with_owner(participant)
         return HttpResponseRedirect(room.get_absolute_url())
-
 
 
 class JoinRoomView(APIView):
@@ -127,7 +128,10 @@ class RoomActionView(APIView):
     permission_classes = (IsRoomAdmin,)
 
     def base_action(self, action_name):
-        serializer = PeerActionSerializer(data=self.request.data, context={'room': self.request.room})
+        serializer = PeerActionSerializer(
+            data=self.request.data,
+            context={'room': self.request.room}
+        )
         if not serializer.is_valid():
             return Response(
                 data=serializer.errors,

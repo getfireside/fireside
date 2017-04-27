@@ -2,9 +2,8 @@ from django.utils.timezone import now
 from channels.generic.websockets import JsonWebsocketConsumer
 from channels.generic import BaseConsumer
 from channels import Channel, Group
-from .models import *
+from .models import Room, Participant, Message
 import functools
-
 
 
 class RoomSocketConsumer(JsonWebsocketConsumer):
@@ -110,7 +109,10 @@ class RoomConsumer(BaseConsumer):
         Group(self.room.group_name).add(self.message.reply_channel)
 
     def leave(self, message, **kwargs):
-        self.room.leave(self.message.channel_session['peer_id'], participant=self.participant)
+        self.room.leave(
+            self.message.channel_session['peer_id'],
+            participant=self.participant
+        )
         Group(self.room.group_name).discard(self.message.reply_channel)
 
     def signalling(self, message, to, **data):

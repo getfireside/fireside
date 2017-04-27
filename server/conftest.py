@@ -33,11 +33,13 @@ def user2():
         last_name='Bowman'
     )
 
+
 @pytest.fixture
 def participant3_client():
     c = APIClient()
     c.session.save()
     return c
+
 
 @pytest.fixture
 def participant3(participant3_client):

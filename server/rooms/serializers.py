@@ -6,7 +6,11 @@ from fireside.util import TimestampField
 
 class PeerInfoSerializer(serializers.Serializer):
     recordings = RecordingSerializer(many=True)
-    current_recording_id = serializers.UUIDField(required=False, default=None, format='hex')
+    current_recording_id = serializers.UUIDField(
+        required=False,
+        default=None,
+        format='hex'
+    )
     role = serializers.CharField()
     name = serializers.CharField(source='get_display_name')
     disk_usage = serializers.DictField(required=False)
@@ -21,7 +25,6 @@ class PeerInfoSerializer(serializers.Serializer):
             for field_name in self.Meta.peer_only_fields:
                 res.pop(field_name)
         return res
-
 
 
 class MembershipSerializer(serializers.Serializer):
@@ -44,7 +47,10 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 class InitialRoomDataSerializer(serializers.Serializer):
-    members = MembershipSerializer(source='get_memberships_with_peer_ids', many=True)
+    members = MembershipSerializer(
+        source='get_memberships_with_peer_ids',
+        many=True
+    )
 
 
 class JoinRoomSerializer(serializers.Serializer):

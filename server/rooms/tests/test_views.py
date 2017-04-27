@@ -3,9 +3,11 @@ from django.urls import reverse
 from rooms.models import Message, Room
 import re
 
+
 @pytest.mark.skip
 class TestRoomJoinView:
     pass
+
 
 @pytest.mark.django_db
 class TestCreateRoomView:
@@ -21,6 +23,7 @@ class TestCreateRoomView:
         room_id = re.match(r'/rooms/(\w+)/', response.url)[1]
         room = Room.objects.get(id=room_id)
         assert room.owner.session_key == api_client.session.session_key
+
 
 @pytest.mark.django_db
 class TestRoomMessagesView:
@@ -117,8 +120,9 @@ class TestRoomActionView:
     recording_actions = ['start_recording', 'stop_recording']
 
     @pytest.mark.parametrize('action_name', recording_actions)
-    @pytest.mark.usefixtures('redisdb')
-    def test_start_stop_recording(self, action_name, api_client, room, user, user2, mocker):
+    @pytest.mark.usefixtures('redisdb', 'channel_test')
+    def test_start_stop_recording(self, action_name, api_client, room, user,
+                                  user2, mocker):
         peer_id = room.join(user.participant, 'user_channel')
         peer2_id = room.join(user2.participant, 'user2_channel')
         url = reverse('rooms:action', kwargs={

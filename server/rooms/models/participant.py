@@ -7,7 +7,11 @@ from accounts.models import User
 
 class ParticipantManager(models.Manager):
     def from_request(self, request, create=False):
-        return self.from_user_or_session(request.user, request.session, create=create)
+        return self.from_user_or_session(
+            request.user,
+            request.session,
+            create=create
+        )
 
     def from_user_or_session(self, user, session, create=False):
         if user.is_authenticated():
@@ -16,7 +20,9 @@ class ParticipantManager(models.Manager):
             if session.session_key is None:
                 session.save()
             if create:
-                participant, _ = self.get_or_create(session_key=session.session_key)
+                participant, _ = self.get_or_create(
+                    session_key=session.session_key
+                )
             else:
                 participant = self.get(
                     session_key=session.session_key
@@ -49,4 +55,3 @@ def create_participant_for_user(sender, instance, created, **kwargs):
     else:
         instance.participant.name = instance.get_short_name()
         instance.participant.save()
-

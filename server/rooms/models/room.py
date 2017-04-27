@@ -15,6 +15,7 @@ from .message import Message
 from .. import serializers
 import recordings.serializers
 
+
 class RoomManager(models.Manager):
     @classmethod
     def generate_id(cls):
@@ -42,7 +43,11 @@ class Room(models.Model):
         'kick'
     ]
 
-    id = models.CharField(max_length=6, primary_key=True, default=RoomManager.generate_id)
+    id = models.CharField(
+        max_length=6,
+        primary_key=True,
+        default=RoomManager.generate_id
+    )
     owner = models.ForeignKey('Participant', related_name='owned_rooms')
     members = models.ManyToManyField('Participant',
         through='RoomMembership',
@@ -79,7 +84,11 @@ class Room(models.Model):
 
     @classmethod
     def encode_message_dict(cls, message_dict):
-        out = {k: message_dict[v] for k, v in Message.ENCODING_KEY_MAP.items() if v in message_dict}
+        out = {
+            k: message_dict[v]
+            for k, v in Message.ENCODING_KEY_MAP.items()
+            if v in message_dict
+        }
         if not out.get('t') or not out.get('p'):
             raise ValueError("Invalid message")
         return json.dumps(out)
@@ -102,17 +111,28 @@ class Room(models.Model):
         print(event)
         if event['type'] == 'update_status':
             if 'disk_usage' in event['data']:
-                self.set_peer_data(message.peer_id, 'disk_usage', event['data']['disk_usage'])
+                self.set_peer_data(
+                    message.peer_id,
+                    'disk_usage',
+                    event['data']['disk_usage']
+                )
         self.send(message)
 
     @classmethod
     def decode_message_dict(cls, message_dict):
         try:
-            decoded = {v: message_dict[k] for k, v in Message.ENCODING_KEY_MAP.items() if k in message_dict}
+            decoded = {
+                v: message_dict[k]
+                for k, v in Message.ENCODING_KEY_MAP.items()
+                if k in message_dict
+            }
         except TypeError:
             raise ValueError("Invalid message")
-        if ('type' not in decoded or 'payload' not in decoded
-            or decoded['type'] not in Message.TYPE):
+        if (
+            'type' not in decoded or
+            'payload' not in decoded or
+            decoded['type'] not in Message.TYPE
+        ):
             raise ValueError("Invalid message")
         return decoded
 
@@ -126,12 +146,19 @@ class Room(models.Model):
         return self.memberships.filter(participant__in=participant_ids)
 
     def get_memberships_with_peer_ids(self):
-        participant_peers = {int(v): k for k, v in redis_conn.hgetall(f'rooms:{self.id}:peers').items()}
+        participant_peers = {
+            int(v): k
+            for k, v in redis_conn.hgetall(f'rooms:{self.id}:peers').items()
+        }
         memberships = []
-        for mem in self.memberships.filter(participant__in=participant_peers.keys()):
+        for mem in self.memberships.filter(
+            participant__in=participant_peers.keys()
+        ):
             mem._peer_id = participant_peers[mem.participant_id]
             memberships.append(mem)
-        for mem in self.memberships.exclude(participant__in=participant_peers.keys()):
+        for mem in self.memberships.exclude(
+            participant__in=participant_peers.keys()
+        ):
             mem._peer_id = None
             memberships.append(mem)
         return memberships
@@ -217,13 +244,15 @@ class Room(models.Model):
         ))
 
     def start_recording(self, *args, **kwargs):
-        # FIXME: probably should check if peer is recording before actually transmitting
+        # FIXME: probably should check if peer is recording before actually
+        # transmitting
         return self.send_action_event('request_start_recording',
             *args, **kwargs
         )
 
     def stop_recording(self, *args, **kwargs):
-        # FIXME: probably should check if peer is recording before actually transmitting
+        # FIXME: probably should check if peer is recording before actually
+        # transmitting
         return self.send_action_event('request_stop_recording',
             *args, **kwargs
         )
@@ -291,7 +320,11 @@ class Room(models.Model):
     def should_save_message(self, message):
         if message.type in (Message.TYPE.leave, Message.TYPE.announce):
             return True
-        if message.type in (Message.TYPE.join, Message.TYPE.signalling, Message.TYPE.action):
+        if message.type in (
+            Message.TYPE.join,
+            Message.TYPE.signalling,
+            Message.TYPE.action
+        ):
             return False
         if message.type == Message.TYPE.event:
             event_type = message.payload['type']
@@ -378,4 +411,7 @@ class RoomMembership(models.Model):
         return self.participant.recordings.all().filter(room=self.room)
 
     def get_display_name(self):
-        return self.name if self.name is not None else self.participant.get_display_name()
+        if self.name is not None:
+            return self.name
+        else:
+            return self.participant.get_display_name()
