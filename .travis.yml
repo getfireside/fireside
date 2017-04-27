@@ -6,10 +6,10 @@ language: python
 services:
   - postgresql
 
+python: 3.6
 
 matrix:
   include:
-    - python: 3.6
     - env:
       - DATABASE_URL=psql://postgres:/travis_ci_test
       - SECRET_KEY=travis_secret_key
