@@ -36,5 +36,5 @@ matrix:
       script:
         - cd client
         - npm install yarn
-        - yarn
+        - yarn --verbose
         - make test
