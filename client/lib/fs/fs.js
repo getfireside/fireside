@@ -59,9 +59,6 @@ class FS extends WildEmitter {
             ) {
                 this._lastDiskUsage = res;
                 this.emit('diskUsageUpdate', res);
-                this.logger.log(
-                    `Disk usage update. Quota: ${res.quota}, Usage: ${res.usage}`
-                );
             }
         };
         fn();

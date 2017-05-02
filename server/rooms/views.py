@@ -9,13 +9,14 @@ from rest_framework.views import APIView
 from rest_framework.generics import ListCreateAPIView, ListAPIView
 from rest_framework.permissions import BasePermission
 
-from .models import Room, Participant, RoomMembership
+from .models import Room, Participant, RoomMembership, Message
 from .serializers import (
     MembershipSerializer,
     MessageSerializer,
     PeerActionSerializer,
     JoinRoomSerializer
 )
+from recordings.serializers import RecordingSerializer
 
 
 class HasRoomAccess(BasePermission):
@@ -100,9 +101,26 @@ class JoinRoomView(APIView):
         return Response({'uid': mem.id}, status=status.HTTP_200_OK)
 
 
-class RoomMessagesView(ListCreateAPIView):
+class RoomMessagesView(ListAPIView):
     permission_classes = (HasRoomAccess,)
-    serializer_class = (MessageSerializer)
+    serializer_class = MessageSerializer
+
+    def post(self, request, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            message = Message(**serializer.validated_data)
+            message.participant = request.participant
+            message.peer_id = request.room.get_peer_id(request.participant)
+            print(message.__dict__)
+            request.room.receive_event(message)
+            return Response({'id': message.id}, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                data=serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
 
     def get_queryset(self):
         qs = self.request.room.messages.all()
@@ -114,6 +132,19 @@ class RoomMessagesView(ListCreateAPIView):
                 ),
             )
         return qs
+
+class RoomRecordingsView(ListCreateAPIView):
+    permission_classes = (HasRoomAccess,)
+    serializer_class = RecordingSerializer
+
+    def get_queryset(self):
+        return self.request.room.recordings.all()
+
+    def perform_create(self, serializer):
+        serializer.save(
+            room=self.request.room,
+            participant=self.request.participant,
+        )
 
 
 class RoomParticipantsView(ListAPIView):

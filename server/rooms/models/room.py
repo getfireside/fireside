@@ -108,14 +108,38 @@ class Room(models.Model):
     def receive_event(self, message):
         assert message.type == Message.TYPE.event
         event = message.payload
-        print(event)
         if event['type'] == 'update_status':
+            # TODO refactor this bit - maybe serializer?
             if 'disk_usage' in event['data']:
                 self.set_peer_data(
                     message.peer_id,
                     'disk_usage',
                     event['data']['disk_usage']
                 )
+            elif 'resources' in event['data']:
+                self.set_peer_data(
+                    message.peer_id,
+                    'resources',
+                    event['data']['resources']
+                )
+            elif 'recorder_status' in event['data']:
+                self.set_peer_data(
+                    message.peer_id,
+                    'recorder_status',
+                    event['data']['recorder_status']
+                )
+
+        if event['type'] == 'stop_recording':
+            update = recordings.serializers.RecordingSerializer(
+                data=event['data']
+            )
+            if update.is_valid():
+                if self.recordings.filter(
+                    id=event['data']['id'],
+                    participant=message.participant
+                ).exists():
+                    self.recordings.filter(id=event['data']['id']).update(update.validated_data)
+
         self.send(message)
 
     @classmethod
@@ -329,7 +353,7 @@ class Room(models.Model):
         if message.type == Message.TYPE.event:
             event_type = message.payload['type']
             if event_type in (
-                'recording_progress',
+                'update_recording',
                 'upload_progress',
                 'update_meter',
             ):
@@ -337,6 +361,8 @@ class Room(models.Model):
             else:
                 if event_type == 'update_status':
                     if 'disk_usage' in message.payload['data']:
+                        return False
+                    if 'resources' in message.payload['data']:
                         return False
             return True
 
@@ -354,6 +380,9 @@ class Room(models.Model):
 
     def get_messages_url(self):
         return reverse('rooms:messages', kwargs={'room_id': self.id})
+
+    def get_recordings_url(self):
+        return reverse('rooms:recordings', kwargs={'room_id': self.id})
 
 
 class RoomMembership(models.Model):
@@ -403,6 +432,20 @@ class RoomMembership(models.Model):
     def disk_usage(self):
         if self.peer_id:
             return self.room.get_peer_data(self.peer_id, 'disk_usage')
+        else:
+            return None
+
+    @property
+    def resources(self):
+        if self.peer_id:
+            return self.room.get_peer_data(self.peer_id, 'resources')
+        else:
+            return None
+
+    @property
+    def recorder_status(self):
+        if self.peer_id:
+            return self.room.get_peer_data(self.peer_id, 'recorder_status')
         else:
             return None
 

@@ -1,5 +1,5 @@
 import WildEmitter from 'wildemitter';
-import moment from 'moment';
+// import moment from 'moment';
 import WAVAudioRecorder from 'lib/wavrecorder/recorder';
 import { Logger } from 'lib/logger';
 import { observable, action } from 'mobx';
@@ -48,7 +48,9 @@ export default class Recorder extends WildEmitter {
      */
     setupMediaRecorder(stream) {
         if (isVideo(stream)) {
-            this.mediaRecorder = new MediaRecorder(stream);
+            this.mediaRecorder = new MediaRecorder(stream, {
+                videoBitsPerSecond: 5*1024*1024
+            });
         }
         else {
             this.mediaRecorder = new WAVAudioRecorder(stream, {
@@ -86,8 +88,6 @@ export default class Recorder extends WildEmitter {
     }
 
     onStart(e) {
-        console.log(this)
-        console.log(this.currentRecording)
         this.logger.info('Recording started.');
         this.emit('started', this.currentRecording);
         if (this.currentRecording.started == null) {
@@ -115,15 +115,17 @@ export default class Recorder extends WildEmitter {
     }
 
     onStop(e) {
-        if (this.currentRecording.stopped == null) {
-            this.currentRecording.stopped = new Date;
+        if (this.currentRecording.ended == null) {
+            this.currentRecording.ended = new Date;
         }
         if (this.mediaRecorder instanceof WAVAudioRecorder && this.currentRecording.filesize) {
             this.mediaRecorder.fixWaveFile(this.currentRecording).then( () => {
                 this.logger.log("fixed wave file!");
                 this.status = 'ready';
                 this.emit('stopped', this.currentRecording);
-                this.emit('ready');
+                setTimeout(() => {
+                    this.emit('ready');
+                }, 250);
             }).catch( (err) => {
                 this.logger.error("problem writing wavefile header");
                 this.logger.error(err);
@@ -131,13 +133,17 @@ export default class Recorder extends WildEmitter {
                 this.emit('error', {message: "Problem writing wavefile header", details: err.message, err});
                 this.status = 'ready';
                 this.emit('stopped', this.currentRecording);
-                this.emit('ready');
+                setTimeout(() => {
+                    this.emit('ready');
+                }, 250);
             });
         }
         else {
             this.status = 'ready';
             this.emit('stopped', this.currentRecording);
-            this.emit('ready');
+            setTimeout(() => {
+                this.emit('ready');
+            }, 250);
         }
         this.logger.info(`Recording ${this.currentRecording.filename} completed\n\tlength: ${this.currentRecording.duration} secs;\n\tsize: ${this.currentRecording.filesize} bytes`);
     }
@@ -151,15 +157,15 @@ export default class Recorder extends WildEmitter {
         if (this.status === 'ready') {
             this.currentRecording = this.createRecording({
                 type: this.mediaRecorder instanceof WAVAudioRecorder ? 'audio/wav' : 'video/webm'
-            })
+            });
             this.status = 'started';
-            this.logger.info('STATUS = "started"')
+            this.logger.info('STATUS = "started"');
             this.mediaRecorder.start(this.recordingPeriod);
             this.currentRecording.started = new Date();
         }
         else {
             this.logger.warn("Not ready to start.");
-            setTimeout(this.start, 250)
+            setTimeout(this.start, 250);
         }
     }
 
@@ -172,7 +178,7 @@ export default class Recorder extends WildEmitter {
             this.emit('stopping');
             this.status = 'stopping';
             this.mediaRecorder.stop();
-            this.currentRecording.stopped = new Date;
+            this.currentRecording.ended = new Date;
         }
         else {
             this.logger.warn("Not started!");

@@ -6,19 +6,47 @@ import {formatBytes} from '../helpers';
 
 @observer
 export class UserStatusPanelItem extends React.Component {
+    getClassName() {
+        let c = "";
+        if (this.props.membership.status == MEMBER_STATUSES.CONNECTED) {
+            c += 'connected';
+        }
+        else {
+            c += 'disconnected';
+        }
+        return c;
+    }
     render() {
         let membership = this.props.membership;
         return (
-            <div className="membership">
-                <h2>{membership.name}</h2>
-                <p>uid: <b>{membership.uid}</b></p>
-                <p>peer id: <b>{membership.peerId}</b></p>
-                <p>status: <b>{membership.status}</b></p>
-                <p>role: <b>{membership.role}</b></p>
-                <p>has current recording? <b>{(!!membership.currentRecording).toString()}</b></p>
+            <div className={`membership ${this.getClassName()}`}>
+                <div className="info">
+                    <span className='name'>{membership.name}</span>
+                    <span className={`role role-${membership.roleName}`}>{membership.roleName}</span>
+                </div>
+                {
+                    membership.resources ?
+                    <div className="resources">
+                        <span className={`video ${membership.resources.video ? '' : 'disabled'}`}>
+                            {
+                                membership.resources.video.width ?
+                                <span className="resolution">
+                                    {membership.resources.video.width} x {membership.resources.video.height}
+                                </span> :
+                                null
+                            }
+                        </span>
+                        <span className={`audio ${membership.resources.audio ? '' : 'disabled'}`}>
+
+                        </span>
+                    </div> :
+                    null
+                }
                 {
                     membership.diskUsage ?
-                    <p>disk space: <b>{formatBytes(membership.diskUsage.usage)} used / {formatBytes(membership.diskUsage.quota)} available</b></p> :
+                    <div className="disk">
+                        <b>{formatBytes(membership.diskUsage.usage)} used / {formatBytes(membership.diskUsage.quota)} available</b>
+                    </div> :
                     null
                 }
             </div>
@@ -30,13 +58,16 @@ export class UserStatusPanelItem extends React.Component {
 export default class UserStatusPanel extends React.Component {
     render() {
         return (
-            <ul>
-                {_.map(this.props.room.memberships.values(), (membership) => (
-                    <li key={membership.uid}>
-                        <UserStatusPanelItem membership={membership} />
-                    </li>
-                ))}
-            </ul>
+            <div className="panel user-status-panel">
+                <h2>Users</h2>
+                <ul>
+                    {_.map(this.props.room.memberships.values(), (membership) => (
+                        <li key={membership.uid}>
+                            <UserStatusPanelItem membership={membership} />
+                        </li>
+                    ))}
+                </ul>
+            </div>
         );
     }
 }

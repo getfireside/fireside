@@ -8,6 +8,7 @@ import {RecordingStore, MessageStore, UserStore} from 'app/stores';
 import Room from 'app/rooms/room';
 import RoomController from 'app/rooms/controller';
 import UIApp from 'app/ui/components/app';
+import UIStore from 'app/ui/store';
 import {useStrict} from 'mobx';
 
 useStrict(true);
@@ -27,7 +28,6 @@ export default class FiresideApp {
 
     setupRoom(roomData) {
         this.room = new Room({
-            userStore: this.userStore,
             messageStore: this.messageStore,
             recordingStore: this.recordingStore,
             ...roomData,
@@ -42,7 +42,6 @@ export default class FiresideApp {
     }
 
     setupStores() {
-        this.userStore = new UserStore();
         this.recordingStore = new RecordingStore({
             fs: this.fs,
             userStore: this.userStore
@@ -50,7 +49,7 @@ export default class FiresideApp {
         this.messageStore = new MessageStore({
             userStore: this.userStore
         });
-        // this.uiStore = new UIStore({app: this})
+        this.uiStore = new UIStore({app: this})
     }
 
     setupFS() {

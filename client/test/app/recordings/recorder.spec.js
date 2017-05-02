@@ -54,7 +54,7 @@ function captureStream(el) {
     }
 }
 
-describe("Recorder", function() {
+describe.only("Recorder", function() {
     let recorder, video, audio;
 
     // set up some AV streams we can use to test the recorder, using MediaSource
@@ -79,7 +79,7 @@ describe("Recorder", function() {
                 recorder = new Recorder({
                     // set up a clean recorder instance with a test FS before each test
                     store: fixtures.generateRecordingStore(window.fs),
-                    extraAttrs: {roomId: 2}
+                    extraAttrs: {room: {id: '6UQbFa'}}
                 });
                 if (recordingType === 'audio') {
                     media = audio;

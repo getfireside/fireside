@@ -1,4 +1,4 @@
-import {observable, computed} from "mobx";
+import {observable, computed, action, runInAction} from "mobx";
 import _ from 'lodash';
 
 const fileMixin = Base => class extends Base {
@@ -22,7 +22,9 @@ const fileMixin = Base => class extends Base {
         this._fileSizeDirty = false;
         let blob = await f.read();
         if (!this._fileSizeDirty) {
-            this.filesize = blob.size;
+            runInAction( () => {
+                this.filesize = blob.size;
+            });
         }
         return blob;
     }
@@ -31,7 +33,9 @@ const fileMixin = Base => class extends Base {
         let f = await this.fs.getFile(this.filename);
         await f.remove();
         this._fileSizeDirty = true;
-        this.filesize = null;
+        runInAction( () => {
+            this.filesize = null;
+        });
     }
 
     async getFileBlobURL() {
@@ -43,10 +47,12 @@ const fileMixin = Base => class extends Base {
         let f = await this.fs.getFile(this.filename);
         await f.append(blob);
         this._fileSizeDirty = true;
-        if (this.filesize == null) {
-            this.filesize = 0;
-        }
-        this.filesize += blob.size;
+        runInAction( () => {
+            if (this.filesize == null) {
+                this.filesize = 0;
+            }
+            this.filesize += blob.size;
+        });
     }
 
     async writeBlobToFile(blob, pos=0) {
@@ -55,6 +61,6 @@ const fileMixin = Base => class extends Base {
         await f.write(blob, pos);
         return;
     }
-}
+};
 
 export default fileMixin;

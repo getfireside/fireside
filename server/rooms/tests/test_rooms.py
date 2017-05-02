@@ -107,6 +107,13 @@ class TestRoom:
             })
         )
 
+        assert not room.should_save_message(
+            room.message(type=Message.TYPE.event, payload={
+                'type': 'update_status',
+                'data': {'resources': {'video': True, 'quota': True}}
+            })
+        )
+
         for event_type in (
             'request_start_recording',
             'request_stop_recording',
@@ -244,6 +251,7 @@ class TestRoom:
         expected_peer_dict['peer_id'] = peer_id
         expected_peer_dict['status'] = RoomMembership.STATUS.connected
         expected_peer_dict['info']['disk_usage'] = None
+        expected_peer_dict['info']['resources'] = None
 
         assert msg.type == Message.TYPE.announce
         assert msg.payload == {
