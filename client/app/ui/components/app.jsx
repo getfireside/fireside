@@ -6,7 +6,11 @@ import {observer} from "mobx-react";
 export default class App extends React.Component {
     render() {
         return (
-            <RoomView controller={this.props.app.roomController} room={this.props.app.room} />
+            <RoomView
+                controller={this.props.app.roomController}
+                room={this.props.app.room}
+                uiStore={this.props.app.uiStore}
+            />
         );
     }
 }

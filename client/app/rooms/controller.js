@@ -5,6 +5,7 @@ import RoomConnection from './connection';
 import Recorder from 'app/recordings/recorder';
 import {MESSAGE_TYPES, MEMBER_STATUSES} from 'app/rooms/constants';
 import _ from 'lodash';
+import {camelizeKeys} from 'lib/util';
 
 export default class RoomController {
     constructor(opts = {}) {
@@ -14,7 +15,8 @@ export default class RoomController {
 
         this.recorder = new Recorder({
             store: this.room.recordingStore,
-            fs: this.fs
+            fs: this.fs,
+            extraAttrs: {room: this.room, uid: this.room.memberships.selfId}
         });
         this.connection = new RoomConnection({
             room: this.room,
@@ -22,6 +24,45 @@ export default class RoomController {
         });
 
         bindEventHandlers(this);
+    }
+
+    /* ---- RECORDING EVENTS ---- */
+
+    @on('recorder.*')
+    @action.bound
+    updateRecorderStatus(eventName) {
+        if (_.includes(['ready', 'started', 'stopping', 'stopped'], eventName)) {
+            this.room.memberships.self.recorderStatus = this.recorder.status;
+            this.sendEvent('updateStatus', {
+                'recorderStatus': eventName,
+            });
+        }
+    }
+
+    @on('recorder.started')
+    @action.bound
+    notifyCreatedRecording(recording) {
+        this.room.memberships.self.currentRecordingId = this.recorder.currentRecording.id;
+        this.room.memberships.self.currentRecording = this.recorder.currentRecording;
+        this.connection.notifyCreatedRecording(recording.serialize());
+    }
+
+    @on('recorder.blobWritten')
+    @action.bound
+    notifyRecordingUpdate() {
+        this.connection.sendEvent('updateRecording', {
+            filesize: this.recorder.currentRecording.filesize
+        }, {http: false});
+    }
+
+    @on('recorder.stopped')
+    @action.bound
+    notifyRecordingComplete(recording) {
+        this.sendEvent('stopRecording', {
+            id: recording.id,
+            filesize: recording.filesize,
+            ended: +(recording.ended)
+        });
     }
 
     @on('connection.event.requestStartRecording')
@@ -36,10 +77,22 @@ export default class RoomController {
         this.recorder.stop();
     }
 
+    @on('connection.event.updateRecordingStatus')
+    @action.bound
+    handleRecordingStatusUpdate(change) {
+        this.room.recordingStore.update([camelizeKeys(change)]);
+    }
+
+    /* ---- PEER AND JOIN EVENTS ---- */
+
     @on('connection.peerAdded')
     @action.bound
     handlePeerAdded(peer) {
-        this.room.recordingStore.update(peer.info.recordings);
+        this.room.recordingStore.update(_.map(peer.info.recordings, r => {
+            r = camelizeKeys(r);
+            r.room = this.room;
+            return r;
+        }));
         this.room.updateMembership(peer.uid, {
             status: MEMBER_STATUSES.CONNECTED,
             role: peer.info.role,
@@ -47,6 +100,7 @@ export default class RoomController {
             peer: peer,
             name: peer.info.name,
             diskUsage: peer.info.diskUsage,
+            resources: peer.info.resources,
         });
     }
 
@@ -60,12 +114,59 @@ export default class RoomController {
         });
     }
 
+    @on('connection.join')
+    @action.bound
+    async handleJoinRoom(data, message) {
+        _.each(
+            data.members,
+            (m) => {
+                this.room.updateMembership(m.uid, {
+                    status: m.peerId ? MEMBER_STATUSES.CONNECTED : MEMBER_STATUSES.DISCONNECTED,
+                    role: m.info.role,
+                    name: m.info.name,
+                    uid: m.uid,
+                    diskUsage: m.info.diskUsage,
+                    resources: m.info.resources,
+                    recorderStatus: m.info.recorderStatus,
+                });
+                this.room.recordingStore.update(_.map(m.info.recordings, r => {
+                    r = camelizeKeys(r);
+                    r.room = this.room;
+                    return r;
+                }));
+            }
+        );
+        this.room.updateMembership(this.room.memberships.selfId, {
+            status: MEMBER_STATUSES.CONNECTED,
+            role: data.self.info.role,
+            peerId: data.self.peerId,
+            name: data.self.info.name,
+            uid: data.self.uid,
+        });
+        this.room.recordingStore.update(_.map(data.self.info.recordings, r => {
+            r = camelizeKeys(r);
+            r.room = this.room;
+            return r;
+        }));
+        let messagesData = await this.connection.getMessages({until: message.timestamp});
+        this.room.updateMessagesFromServer(messagesData);
+        this.openFS();
+    }
+
     // @on('connection.event.uploadRecordingRequest')
     // @action.bound
     // async uploadRecordingToHost(recordingId) {
     //     let blob = await this.room.recordingStore.get(recordingId).getFileBlob();
     //     this.connection.startFileUpload(this.room.owner, blob);
     // }
+
+    /* ---- MESSAGES AND EVENTS ---- */
+
+    @on('connection.event.updateStatus')
+    @action.bound
+    handleStatusUpdate(change, message) {
+        this.room.updateMembership(message.uid, change);
+    }
 
     @on('connection.message')
     @action.bound
@@ -74,6 +175,15 @@ export default class RoomController {
         // TODO: if it's an update event, don't add it to the message store -
         // instead look for the last one
     }
+
+    @on('fs.diskUsageUpdate')
+    @action.bound
+    handleLocalDiskUsageUpdate(diskUsage) {
+        this.room.memberships.self.diskUsage = diskUsage;
+        this.connection.sendEvent('updateStatus', {diskUsage}, {http: false});
+    }
+
+    /* ---- ACTIONS ---- */
 
     @action.bound
     sendEvent(type, data) {
@@ -85,58 +195,14 @@ export default class RoomController {
         }, {sendPromise: promise});
     }
 
-    @on('connection.event.updateStatus')
-    @action.bound
-    handleStatusUpdate(change, message) {
-        this.room.updateMembership(message.uid, change);
-    }
-
-    @on('connection.join')
-    @action.bound
-    async handleJoinRoom(data, message) {
-        _.each(
-            data.members,
-            (m) => this.room.updateMembership(m.uid, {
-                status: m.peerId ? MEMBER_STATUSES.CONNECTED : MEMBER_STATUSES.DISCONNECTED,
-                role: m.info.role,
-                name: m.info.name,
-                uid: m.uid,
-                diskUsage: m.info.diskUsage,
-            })
-        );
-        this.room.updateMembership(this.room.memberships.selfId, {
-            status: MEMBER_STATUSES.CONNECTED,
-            role: data.self.info.role,
-            peerId: data.self.peerId,
-            name: data.self.info.name,
-            uid: data.self.uid,
-        });
-        let messagesData = await this.connection.getMessages({until: message.timestamp});
-        this.room.updateMessagesFromServer(messagesData);
-        this.openFS();
-    }
-
-    @on('connection.event.updateRecordingStatus')
-    @action.bound
-    handleRecordingStatusUpdate(change) {
-        this.room.recordingStore.update([change]);
-    }
-
     @action.bound
     requestStartRecording(user) {
-        return this.connection.runAction('startRecording', {id:user.id});
+        return this.connection.runAction('startRecording', {peerId:user.peerId});
     }
 
     @action.bound
     requestStopRecording(user) {
-        return this.connection.runAction('stopRecording', {id:user.id});
-    }
-
-    @on('fs.diskUsageUpdate')
-    @action.bound
-    handleLocalDiskUsageUpdate(diskUsage) {
-        this.room.memberships.self.diskUsage = diskUsage;
-        this.connection.sendEvent('updateStatus', {diskUsage}, {http: false});
+        return this.connection.runAction('stopRecording', {peerId:user.peerId});
     }
 
     async openFS() {
@@ -144,7 +210,6 @@ export default class RoomController {
          * Open the filesystem.
          */
         await this.fs.open();
-
     }
 
     async initialize() {
@@ -152,7 +217,6 @@ export default class RoomController {
         if (this.room.memberships.selfId != null) {
             await this.connect();
         }
-
     }
 
     @action
@@ -162,6 +226,43 @@ export default class RoomController {
             this.room.memberships.selfId = res.uid;
         });
         await this.initialize();
+    }
+
+    @action.bound
+    updateResources(data) {
+        this.room.memberships.self.resources = data;
+        this.connection.sendEvent('updateStatus', {resources:data}, {http:false});
+    }
+
+    @action
+    async setupLocalMedia({audio = true, video = true} = {}) {
+        let mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio,
+            video: video && {
+                optional: [
+                    {minWidth: 320},
+                    {minWidth: 640},
+                    {minWidth: 1024},
+                    {minWidth: 1280},
+                    {minWidth: 1920},
+                    {minWidth: 2560},
+                    {minWidth: 3840},
+                ]
+            }
+        });
+        runInAction( () => {
+            this.recorder.setStream(mediaStream);
+            this.connection.connectStream(mediaStream);
+            this.updateResources({audio, video});
+        });
+        for (let track of mediaStream.getTracks()) {
+            track.addEventListener('ended', action(() => {
+                if (_.every(mediaStream.getTracks(), t => t.readyState == "ended")) {
+                    this.updateResources({audio: null, video: null});
+                }
+            }));
+        }
+        return mediaStream;
     }
 
     async connect() {

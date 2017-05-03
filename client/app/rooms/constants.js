@@ -5,6 +5,8 @@ export const ROLES = {
     OWNER: 'o',
 };
 
+export const ROLES_INVERSE = _.invert(ROLES);
+
 export const MESSAGE_TYPES = {
     SIGNALLING: 's',
     EVENT: 'e',
@@ -25,6 +27,6 @@ export const MESSAGE_ENCODING_KEYS = {
 };
 
 export const MEMBER_STATUSES = {
-    CONNECTED: 0,
-    DISCONNECTED: -1,
+    CONNECTED: 1,
+    DISCONNECTED: 0,
 };

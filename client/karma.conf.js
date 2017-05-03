@@ -100,11 +100,24 @@ module.exports = function(config) {
         customLaunchers: {
             chrome_webplatform: {
                 base: "Chrome",
-                flags: ["--enable-experimental-web-platform-features", "--unlimited-storage"]
+                flags: [
+                    "--enable-experimental-web-platform-features",
+                    "--unlimited-storage",
+                    '--disable-user-media-security',
+                    '--use-fake-ui-for-media-stream',
+                    '--use-fake-device-for-media-stream',
+                ]
             },
             Chrome_travis_ci: {
                 base: 'Chrome',
-                flags: ['--no-sandbox', '--enable-experimental-web-platform-features', "--unlimited-storage"]
+                flags: [
+                    '--no-sandbox',
+                    '--enable-experimental-web-platform-features',
+                    "--unlimited-storage",
+                    '--disable-user-media-security',
+                    '--use-fake-ui-for-media-stream',
+                    '--use-fake-device-for-media-stream',
+                ]
             }
         },
 

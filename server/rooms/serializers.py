@@ -14,9 +14,15 @@ class PeerInfoSerializer(serializers.Serializer):
     role = serializers.CharField()
     name = serializers.CharField(source='get_display_name')
     disk_usage = serializers.DictField(required=False)
+    resources = serializers.DictField(required=False)
+    recorder_status = serializers.CharField(required=False)
 
     class Meta:
-        peer_only_fields = ['disk_usage']
+        peer_only_fields = [
+            'disk_usage',
+            'resources',
+            'recorder_status'
+        ]
 
     def to_representation(self, obj):
         '''Removes peer_only_fields from members who aren't connected'''
@@ -36,10 +42,12 @@ class MembershipSerializer(serializers.Serializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     timestamp = TimestampField(read_only=True)
-    uid = serializers.IntegerField(source='participant_id')
+    uid = serializers.IntegerField(source='participant_id', required=False)
 
     def validate_type(self, value):
-        return value == 'event'
+        if value != models.Message.TYPE.event:
+            raise serializers.ValidationError('You can only send event messages.')
+        return value
 
     class Meta:
         model = models.Message

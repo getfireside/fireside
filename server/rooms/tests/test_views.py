@@ -77,6 +77,50 @@ class TestRoomMessagesView:
     def test_create(self):
         pass
 
+@pytest.mark.django_db
+class TestRecordingsView:
+    def test_403_if_non_existent_room(self, api_client):
+        url = reverse('rooms:recordings', kwargs={'room_id': 'ZZZZZZ'})
+        response = api_client.post(url)
+        assert response.status_code == 403
+
+    def test_403_if_not_in_room(self, api_client, room, participant3,
+                                participant3_client):
+        url = reverse('rooms:recordings', kwargs={'room_id': room.id})
+        response = api_client.get(url)
+        assert response.status_code == 403
+        response2 = participant3_client.post(url)
+        assert response2.status_code == 403
+
+    def test_create_valid(self, room, api_client, user):
+        api_client.force_login(user)
+        url = reverse('rooms:recordings', kwargs={'room_id': room.id})
+        response = api_client.post(url, {
+            'id': '827f29c5-8721-4eca-8b86-5ec4c5b5c794',
+            'started': 1493823158970,
+            'ended': None,
+            'filesize': None,
+            'uid': user.participant.id,
+            'type': 'audio/wav'
+        }, format='json')
+        assert response.status_code == 201
+
+    def test_errors_invalid(self, room, api_client, user):
+        api_client.force_login(user)
+        url = reverse('rooms:recordings', kwargs={'room_id': room.id})
+        response = api_client.post(url, {
+            'id': '827f29c5-8721-4eca-8b86-5ec4c5b5c794',
+            'started': None,
+            'ended': None,
+            'filesize': None,
+            'uid': None,
+            'type': None
+        }, format='json')
+        assert response.status_code == 400
+        assert 'uid' in response.data
+        assert 'type' in response.data
+        assert 'started' in response.data
+
 
 @pytest.mark.django_db
 class TestRoomActionView:

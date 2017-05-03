@@ -3,7 +3,7 @@ import {ListStore} from 'lib/store';
 import _ from 'lodash';
 import {MESSAGE_ENCODING_KEYS, MESSAGE_TYPES_INVERSE} from 'app/rooms/constants';
 import moment from 'moment';
-import {camelizeKeys} from 'lib/util';
+import {camelizeKeys, camelize} from 'lib/util';
 
 export class Message {
     room = null;
@@ -48,6 +48,9 @@ export class Message {
 export default class MessageStore extends ListStore {
     @action addMessage(message, {sendPromise = null} = {}) {
         message = new Message({...message, store: this});
+        if (message.timestamp == null) {
+            message.timestamp = +(new Date);
+        }
         if (sendPromise) {
             // we're sending the message
             message.status = 'pending';
@@ -69,7 +72,10 @@ export default class MessageStore extends ListStore {
     }
 
     forRoom(room) {
-        return _.filter(this.items, m => m.room == room);
+        return _.sortBy(
+            _.filter(this.items, m => m.room == room),
+            x => x.timestamp
+        );
     }
 
     createItemInstance(data) {
@@ -77,7 +83,16 @@ export default class MessageStore extends ListStore {
     }
 
     updateFromServer(updates, room) {
-        updates = camelizeKeys(updates);
+        updates = _.map(updates, u => {
+            u = camelizeKeys(u);
+            if (u.type == 'e') {
+                u.payload.type = camelize(u.payload.type);
+            }
+            if (room) {
+                u.room = room;
+            }
+            return u;
+        });
         if (room) {
             updates = _.map(updates, x => _.set(x, 'room', room));
         }

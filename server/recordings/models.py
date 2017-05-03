@@ -11,7 +11,7 @@ class Recording(models.Model):
         related_name='recordings'
     )
     type = models.CharField(max_length=48)
-    filesize = models.PositiveIntegerField(default=0)
+    filesize = models.BigIntegerField(default=0, blank=True, null=True)
     started = models.DateTimeField(blank=True, null=True)
     ended = models.DateTimeField(blank=True, null=True)
 

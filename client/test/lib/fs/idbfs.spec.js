@@ -5,11 +5,6 @@ import {testDiskUsageEvents} from './quota.spec.js';
 const generateHugeBlob = (mb=1000) => new Blob([new Uint8Array(mb*1024*1024)]);
 
 describe('IDBFS', () => {
-    it('Watches disk usage correctly', function(done) {
-        let fs = new IDBFS({dbname: 'testdb'});
-        this.timeout(10000);
-        testDiskUsageEvents(fs).then(() => done()).catch(done);
-    });
     context('#open', () => {
         it('Opens the DB and creates stores and indices as necessary', async () => {
             let fs = new IDBFS({dbname: 'testdb'});
@@ -59,16 +54,22 @@ describe('IDBFS', () => {
             expect(file).to.be.an.instanceOf(IDBFile);
             fs.close();
         });
-    })
-})
+    });
+    it('Watches disk usage correctly', function(done) {
+        let fs = new IDBFS({dbname: 'testdb'});
+        this.timeout(10000);
+        testDiskUsageEvents(fs).then(() => done()).catch(done);
+    });
+});
 
 describe('IDBFile', function() {
     // in firefox sometimes it can take a while to open the DB,
     // so increase the timeout a bit
-    this.timeout(15000)
+    this.timeout(15000);
     let fs;
     beforeEach( async function() {
-        fs = new IDBFS({dbname: 'testdb'})
+        debugger;
+        fs = new IDBFS({dbname: 'testdb'});
 
         let attempts = 0;
         while (true) {
@@ -78,7 +79,7 @@ describe('IDBFile', function() {
                 break;
             }
             catch (e) {
-                console.log(`IDB open attempt ${attempts} failed... retrying`)
+                console.log(`IDB open attempt ${attempts} failed... retrying`);
                 if (e.message.indexOf('blocked') != -1) {
                     if (attempts == 10) {
                         throw(e);
@@ -91,7 +92,7 @@ describe('IDBFile', function() {
 
     afterEach( function() {
         fs.close();
-    })
+    });
 
     context('#append', () => {
 
@@ -122,9 +123,9 @@ describe('IDBFile', function() {
             // goes to shit.
             // therefore, we'll temporarily monkeypatch window.onerror to avoid this.
             let oldOnError = window.onerror;
-            window.onerror = (...args) => { console.error.apply(args) }
+            window.onerror = (...args) => { console.error.apply(args); };
             let file = await fs.getFile('/test/file2');
-            console.log("Writing a series of large blobs...")
+            console.log("Writing a series of large blobs...");
             let writes = 0;
             while (true) {
                 let hugeBlob = generateHugeBlob(50);
@@ -166,7 +167,7 @@ describe('IDBFile', function() {
                 expect(e).to.be.an.instanceOf(LookupError);
             }
 
-        })
+        });
     });
 
     context("#readEach", () => {
@@ -184,7 +185,7 @@ describe('IDBFile', function() {
             expect(blob1Contents).to.equal('1');
             expect(blob2Contents).to.equal('2');
             expect(blob3Contents).to.equal('3');
-        })
+        });
         it("Throws an error if the file doesn't exist", async () => {
             try {
                 let file = await fs.getFile('/test/new/file');
@@ -194,7 +195,7 @@ describe('IDBFile', function() {
             catch (e) {
                 expect(e).to.be.an.instanceOf(LookupError);
             }
-        })
+        });
     });
 
     context('#read', () => {
@@ -217,7 +218,7 @@ describe('IDBFile', function() {
             catch (e) {
                 expect(e).to.be.an.instanceOf(LookupError);
             }
-        })
+        });
     });
 
     context('#write', () => {
@@ -241,7 +242,7 @@ describe('IDBFile', function() {
                 expect(e).to.be.an.instanceOf(LookupError);
             }
         });
-    })
+    });
 
     it('Works reliably for large files'); // TODO: figure out the best tests for really big files
 });

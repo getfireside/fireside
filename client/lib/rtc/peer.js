@@ -1,7 +1,7 @@
-import webrtcSupport from 'webrtcSupport';
+import webrtcSupport from 'webrtcsupport';
 import PeerConnection from 'rtcpeerconnection';
 import WildEmitter from 'wildemitter';
-import FileTransfer from 'filetransfer';
+// import FileTransfer from 'filetransfer';
 import Logger from 'lib/logger';
 
 import _ from 'lodash';
@@ -17,9 +17,6 @@ class Peer extends WildEmitter {
         this.info = opts.info; // info about this peer from the signalling server
 
         this.connection = opts.connection;
-
-        // Resources represent connected cameras or mics, according to the signalling server
-        this.resources = opts.resources || {};
 
         // WebRTC stuff
         this.browserPrefix = null;

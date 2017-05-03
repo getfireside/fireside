@@ -134,8 +134,10 @@ class TestRoomConsumer:
             'info': {
                 'current_recording_id': None,
                 'role': 'g',
+                'recorder_status': None,
                 'name': 'Dave',
                 'disk_usage': None,
+                'resources': None,
                 'recordings': [RecordingSerializer(rec).data]
             }
         }
@@ -243,3 +245,40 @@ class TestRoomConsumer:
             m for m in members if m['peer_id'] == client.peer_id
         )
         assert member_data['info']['disk_usage'] == disk_usage
+
+    def test_resources_event(self, room, joined_clients, client3):
+        client, client2 = joined_clients
+        resources = {
+            'audio': True, 'video': {'resolution': [1280, 720]}
+        }
+        self.send_message(
+            room=room,
+            client=client,
+            type=Message.TYPE.event,
+            payload={
+                'type': 'update_status',
+                'data': {'resources': resources}
+            }
+        )
+        assert client.membership.resources == resources
+        msg = self.get_message(client2, room)
+        assert msg.type == Message.TYPE.event
+        assert msg.payload['type'] == 'update_status'
+        assert msg.payload['data'] == {'resources': resources}
+        assert msg.participant == client.user.participant
+
+        # check if resources present on initial message when
+        # third client joins
+        room.memberships.create(participant=client3.participant)
+        client3.send_and_consume(
+            'websocket.connect',
+            path=room.get_socket_url()
+        )
+        client3.consume('room.join')
+        msg2 = self.get_message(client3, room)
+        assert msg2.type == Message.TYPE.join
+        members = msg2.payload['members']
+        member_data = next(
+            m for m in members if m['peer_id'] == client.peer_id
+        )
+        assert member_data['info']['resources'] == resources

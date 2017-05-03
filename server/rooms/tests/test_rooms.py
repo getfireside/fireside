@@ -90,9 +90,9 @@ class TestRoom:
             assert not room.should_save_message(msg)
 
         for event_type in (
-            'recording_progress',
-            'upload_progress',
+            'update_recording',
             'update_meter',
+            'upload_progress',
         ):
             msg = room.message(type=Message.TYPE.event, payload={
                 'type': event_type,
@@ -104,6 +104,13 @@ class TestRoom:
             room.message(type=Message.TYPE.event, payload={
                 'type': 'update_status',
                 'data': {'disk_usage': {'usage': 0, 'quota': 0}}
+            })
+        )
+
+        assert not room.should_save_message(
+            room.message(type=Message.TYPE.event, payload={
+                'type': 'update_status',
+                'data': {'resources': {'video': True, 'quota': True}}
             })
         )
 
@@ -244,6 +251,8 @@ class TestRoom:
         expected_peer_dict['peer_id'] = peer_id
         expected_peer_dict['status'] = RoomMembership.STATUS.connected
         expected_peer_dict['info']['disk_usage'] = None
+        expected_peer_dict['info']['resources'] = None
+        expected_peer_dict['info']['recorder_status'] = None
 
         assert msg.type == Message.TYPE.announce
         assert msg.payload == {

@@ -14,6 +14,7 @@ export default class RoomConnection extends WildEmitter {
      * Handles the connection to the signalling server, and to the RTC peers.
      */
     @observable status = null;
+    @observable.ref stream = null;
     @observable.shallow peers = [];
 
     constructor(opts) {
@@ -121,16 +122,16 @@ export default class RoomConnection extends WildEmitter {
     addPeer(data) {
         /**
          * Set up a peer
-         * @param {obj} peer: Info received from the server about the peer
+         * @param {obj} data: Info received from the server about the peer
          */
         let peer = new Peer({
             id: data.peerId,
             uid: data.uid,
             info: data.info,
-            resources: data.resources,
             enableDataChannels: this.config.enableDataChannels,
             connection: this,
         });
+
         if (this.stream) {
             peer.addLocalStream(this.stream);
         }
@@ -146,7 +147,7 @@ export default class RoomConnection extends WildEmitter {
     }
 
     initialJoin(data) {
-        return fetchPost(this.urls.join, data);
+        return fetchPost(this.urls.join, decamelizeKeys(data));
     }
 
     send({type, payload}, {http = true} = {}) {
@@ -174,7 +175,7 @@ export default class RoomConnection extends WildEmitter {
     }
 
     runAction(name, data) {
-        return fetchPost(this.urls.action, decamelizeKeys(data));
+        return fetchPost(this.urls.action.replace(':name', decamelize(name)), decamelizeKeys(data));
     }
 
     connectStream(stream) {
@@ -195,5 +196,9 @@ export default class RoomConnection extends WildEmitter {
         this.peers = _.reject(this.peers, p => p.id == id);
         this.emit('peerRemoved', {peerId: peer.id, uid: peer.uid});
         return peer;
+    }
+
+    notifyCreatedRecording(data) {
+        return fetchPost(this.urls.recordings, decamelizeKeys(data));
     }
 }

@@ -1,4 +1,5 @@
 import {observable, action, computed, ObservableMap} from 'mobx';
+import {ROLES_INVERSE} from './constants';
 import _ from 'lodash';
 
 export class RoomMembership {
@@ -9,9 +10,19 @@ export class RoomMembership {
     @observable name = null;
     @observable.ref peer = null;
     @observable diskUsage = null;
+    @observable resources = null;
+    @observable recorderStatus = null;
 
     @computed get isSelf() {
         return this.uid === this.room.memberships.selfId;
+    }
+
+    @computed get recordings() {
+        return this.room.recordings.filter(u => u.uid == this.uid);
+    }
+
+    @computed get roleName() {
+        return ROLES_INVERSE[this.role].toLowerCase();
     }
 
     constructor({uid, room, name, currentRecordingId, role, status, peer, peerId}) {

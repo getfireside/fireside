@@ -1,11 +1,10 @@
 import {ExtendableError} from 'lib/util';
 import WildEmitter from 'WildEmitter';
-import _ from 'lodash';
 
 class FSError extends ExtendableError {
     constructor(message) {
         super(message);
-        this.name = 'FSError'
+        this.name = 'FSError';
     }
 
     static wrap(err, message) {
@@ -30,11 +29,17 @@ class FSFile {
         this.fs = fs;
     }
 
-    append(blob) {}
+    append(blob) {
 
-    write(blob, pos) {}
+    }
 
-    readEach(f, done, onerr) {}
+    write(blob, pos) {
+
+    }
+
+    readEach(f, done, onerr) {
+
+    }
 
     read() {}
 }
@@ -45,7 +50,9 @@ class FS extends WildEmitter {
         super()
     }
 
-    getFile(path, opts) {}
+    getFile(path, opts) {
+
+    }
 
     watchDiskUsage() {
         this._lastDiskUsage = null;
@@ -59,9 +66,6 @@ class FS extends WildEmitter {
             ) {
                 this._lastDiskUsage = res;
                 this.emit('diskUsageUpdate', res);
-                this.logger.log(
-                    `Disk usage update. Quota: ${res.quota}, Usage: ${res.usage}`
-                );
             }
         };
         fn();
