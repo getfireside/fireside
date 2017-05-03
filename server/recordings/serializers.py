@@ -9,7 +9,7 @@ class RecordingSerializer(serializers.ModelSerializer):
     uid = serializers.IntegerField(source='participant_id')
 
     started = TimestampField()
-    ended = TimestampField(default=None)
+    ended = TimestampField(default=None, required=False, allow_null=True)
 
     class Meta:
         model = models.Recording

@@ -134,6 +134,7 @@ class TestRoomConsumer:
             'info': {
                 'current_recording_id': None,
                 'role': 'g',
+                'recorder_status': None,
                 'name': 'Dave',
                 'disk_usage': None,
                 'resources': None,
@@ -266,7 +267,7 @@ class TestRoomConsumer:
         assert msg.payload['data'] == {'resources': resources}
         assert msg.participant == client.user.participant
 
-        # check if disk usage is present on initial message when
+        # check if resources present on initial message when
         # third client joins
         room.memberships.create(participant=client3.participant)
         client3.send_and_consume(

@@ -354,8 +354,8 @@ class Room(models.Model):
             event_type = message.payload['type']
             if event_type in (
                 'update_recording',
-                'upload_progress',
                 'update_meter',
+                'upload_progress',
             ):
                 return False
             else:
