@@ -11,12 +11,12 @@ describe("RecordingStore", function() {
         });
 
         it('Creates Recordings', () => {
-            let recording = store.create({type: 'audio/wav'});
+            let recording = store.create({type: 'audio/wav', room: {id: 2}});
             expect(recording).to.be.an.instanceOf(Recording);
         });
 
         it('Sets the ID on creation', () => {
-            let recording = store.create({type: 'audio/wav'});
+            let recording = store.create({type: 'audio/wav', room: {id: 2}});
             expect(recording).to.have.property('id');
             // id should be a uuid
             let uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -24,13 +24,13 @@ describe("RecordingStore", function() {
         });
 
         it('Adds the created recording to the store', () => {
-            let recording = store.create({type: 'audio/wav'});
+            let recording = store.create({type: 'audio/wav', room: {id: 2}});
             expect(store.get(recording.id)).to.deep.equal(recording);
         });
 
         it("Passes through any attrs to the resulting recording", () => {
-            let attrs1 = {type: 'audio/wav'};
-            let attrs2 = {started: new Date(), ended: new Date(), userId: 5};
+            let attrs1 = {type: 'audio/wav', room: {id: 2}};
+            let attrs2 = {started: new Date(), ended: new Date(), uid: 5, room: {id: 2}};
             let recording1 = store.create(attrs1);
             let recording2 = store.create(attrs2);
             expect(recording1).to.contain(attrs1);
@@ -42,8 +42,8 @@ describe("RecordingStore", function() {
         let store, rec1, rec2;
 
         beforeEach( () => {
-            rec1 = {id: 'test-id-1', type: 'audio/wav'};
-            rec2 = {id: 'test-id-2', type: 'video/webm'};
+            rec1 = {id: 'test-id-1', type: 'audio/wav', room: {id: 2}};
+            rec2 = {id: 'test-id-2', type: 'video/webm', room: {id: 2}};
             store = fixtures.generateRecordingStore(new MemFS(), [
                 rec1,
                 rec2,
@@ -62,8 +62,8 @@ describe("RecordingStore", function() {
 
     context('#delete', () => {
         it("Correctly removes recordings", () => {
-            const rec1 = {id: 'test-id-1', type: 'audio/wav'};
-            const rec2 = {id: 'test-id-2', type: 'video/webm'};
+            const rec1 = {id: 'test-id-1', type: 'audio/wav', room: {id: 2}};
+            const rec2 = {id: 'test-id-2', type: 'video/webm', room: {id: 2}};
             const store = fixtures.generateRecordingStore(new MemFS(), [
                 rec1,
                 rec2,
@@ -79,7 +79,8 @@ describe('Recording', () => {
     it('Has a duration property that returns the length in seconds', () => {
         const rec = new Recording({
             started: new Date('2017-01-01 00:00:00'),
-            stopped: new Date('2017-01-01 00:01:00'),
+            ended: new Date('2017-01-01 00:01:00'),
+            room: {id: 2},
         });
         expect(rec.duration).to.equal(60);
     });
@@ -87,17 +88,18 @@ describe('Recording', () => {
     it('Has a bitrate property that returns the average bitrate', () => {
         const rec = new Recording({
             started: new Date('2017-01-01 00:00:00'),
-            stopped: new Date('2017-01-01 00:01:00'),
-            filesize: 5*1024*1024
+            ended: new Date('2017-01-01 00:01:00'),
+            filesize: 5*1024*1024,
+            room: {id: 2},
         });
-        expect(rec.bitrate).to.equal(5*1024*1024 * 8 / 60);
+        expect(rec.bitrate).to.equal(5*1024*1024 / 60);
     });
 
     it('Generates a new filename from the directory and id on instantiation', () => {
         fixtures.setConfig('recordings.baseDir', 'testdir/');
         let rec = new Recording({
             id: 'my-id',
-            roomId: 22,
+            room: {id: 22},
             type: 'audio/wav'
         });
         expect(rec).to.have.property('filename');

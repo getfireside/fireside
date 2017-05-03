@@ -74,8 +74,8 @@ export class Recording {
 
     serialize() {
         return {
-            started: +(this.started),
-            ended: +(this.ended),
+            started: this.started && +(this.started),
+            ended: this.ended && +(this.ended),
             filesize: this.filesize,
             type: this.type,
             uid: this.uid,

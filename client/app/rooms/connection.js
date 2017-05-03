@@ -118,6 +118,7 @@ export default class RoomConnection extends WildEmitter {
             this.emit('message', message);
         }
     }
+
     addPeer(data) {
         /**
          * Set up a peer
@@ -146,7 +147,7 @@ export default class RoomConnection extends WildEmitter {
     }
 
     initialJoin(data) {
-        return fetchPost(this.urls.join, data);
+        return fetchPost(this.urls.join, decamelizeKeys(data));
     }
 
     send({type, payload}, {http = true} = {}) {

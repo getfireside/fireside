@@ -13,6 +13,7 @@ describe('HTMLFS', function() {
             let fs = new HTML5FS();
             await fs.open();
             expect(fs).to.have.property('fs');
+            fs.close();
         });
         it('Fulfils immediately if already open', async () => {
             let fs = new HTML5FS();
@@ -31,6 +32,7 @@ describe('HTMLFS', function() {
                     }
                 }, 10);
             }));
+            fs.close();
         });
     });
     context('#getFile', () => {
@@ -39,12 +41,16 @@ describe('HTMLFS', function() {
             await fs.open();
             let file = await fs.getFile('/test/2222');
             expect(file).to.be.an.instanceOf(HTML5FSFile);
+            fs.close();
         });
     });
     it('Watches disk usage correctly', function(done) {
         let fs = new HTML5FS();
         this.timeout(10000);
-        testDiskUsageEvents(fs).then(() => done()).catch(done);
+        testDiskUsageEvents(fs).then(() => {
+            fs.close();
+            done();
+        }).catch(done);
     });
 });
 
@@ -57,6 +63,9 @@ describe('HTML5FSFile', function() {
         fs = new HTML5FS();
         await fs.open();
         await fs.clear();
+    });
+    afterEach( () => {
+        fs.close();
     });
 
     context('#append', () => {

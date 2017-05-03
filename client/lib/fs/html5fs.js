@@ -99,6 +99,11 @@ export default class HTML5FS extends FS {
         });
     }
 
+    close() {
+        clearInterval(this._diskUsageTimer);
+        this.fs = null;
+    }
+
     getDiskUsage() {
         return getStorageUsage();
     }

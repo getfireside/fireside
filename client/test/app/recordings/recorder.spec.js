@@ -54,7 +54,7 @@ function captureStream(el) {
     }
 }
 
-describe.only("Recorder", function() {
+describe("Recorder", function() {
     let recorder, video, audio;
 
     // set up some AV streams we can use to test the recorder, using MediaSource

@@ -52,7 +52,7 @@ export function roomWithStores({fs, messages, recordings}) {
             {id: 'test-id-1', type: 'audio/wav', room: room, uid: 22},
             {id: 'test-id-2', type: 'video/webm', room: room, uid: 42},
         ],
-        fs: fs
+        fs: fs,
     });
 
     return room;

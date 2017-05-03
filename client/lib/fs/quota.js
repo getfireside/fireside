@@ -31,5 +31,8 @@ export function getStorageUsage() {
         ) {
             navigator.storage.estimate().then(resolve).catch(reject);
         }
+        else {
+            reject(new Error('Quota info unsupported'));
+        }
     });
 }

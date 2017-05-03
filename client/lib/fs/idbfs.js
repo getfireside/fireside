@@ -21,16 +21,16 @@ export class IDBFile extends FSFile {
         return new Promise((fulfil, reject) => {
             let store = this.fs._getObjectStore();
 
-            let req = store.add({
+            store.add({
                 filename: this.path,
                 blob: blob
             });
-            store.transaction.oncomplete = (e) => {
+            store.transaction.oncomplete = () => {
                 fulfil();
-            }
+            };
             store.transaction.onerror = (e) => {
                 reject(translateError(e.target.error));
-            }
+            };
             store.transaction.onabort = (e) => {
                 reject(translateError(e.target.error));
             };
@@ -42,7 +42,7 @@ export class IDBFile extends FSFile {
         // for now, this only works for pos=0 and we assume that we're just replacing the header blob.
         return new Promise((fulfil, reject) => {
             if (pos === 0) {
-                let index = this.fs._getObjectStore(true).index('filename');
+                this.fs._getObjectStore(true).index('filename');
                 this._getCursor(false, (evt) => {
                     let cur = evt.target.result;
                     if (cur) {
@@ -129,7 +129,7 @@ export class IDBFile extends FSFile {
 
 export default class IDBFS extends FS {
     constructor(opts) {
-        super()
+        super();
         this.dbname = opts.dbname;
         this.logger = opts.logger != null ? opts.logger : new Logger(null, 'IDBFS');
     }
@@ -137,7 +137,7 @@ export default class IDBFS extends FS {
         return new Promise((fulfil, reject) => {
             this.close();
             let req = indexedDB.deleteDatabase(this.dbname);
-            // req.onblocked = () => reject(new Error("DB couldn't be deleted as it's blocked"));
+            req.onblocked = () => reject(new Error("DB couldn't be deleted as it's blocked"));
             req.onerror = (e) => reject(e.target.error);
             req.onsuccess = () => fulfil();
         });
@@ -150,7 +150,6 @@ export default class IDBFS extends FS {
             }
 
             let openRequest = indexedDB.open(this.dbname, 1);
-            window._or = openRequest;
 
             openRequest.onupgradeneeded = function(event) {
                 let db = event.target.result;
@@ -169,18 +168,23 @@ export default class IDBFS extends FS {
 
             openRequest.onsuccess = event => {
                 this.db = event.target.result;
-                this.logger.info('FS opened.')
+                this.logger.info('FS opened.');
                 this.db.onerror = (e) => console.error(e.target.error);
                 this.db.onabort = (e) => console.error(e.target.error);
+                this.db.onversionchange = (e) => {
+                    console.error("CLOSING BECAUSE VERSION CHANGE")
+                    e.target.close();
+                };
                 this.watchDiskUsage();
                 fulfil(this);
             };
 
-            openRequest.onerror = evt => reject(translateError(e.target.error));
+            openRequest.onerror = evt => reject(translateError(evt.target.error));
         });
     }
 
     close() {
+        clearInterval(this._diskUsageTimer);
         if (this.db) {
             this.db.close();
         }
