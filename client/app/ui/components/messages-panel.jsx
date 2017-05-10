@@ -118,8 +118,6 @@ export class Message extends React.Component {
     }
     constructor(props) {
         super(props);
-        console.log('Attempted render', this.props.message);
-        console.log(this.props.message.type, this.props.message.typeName, this.props.message.payload.type);
         this.renderers = {
             join: () => <JoinMessage {...this.props} />,
             leave: () => <LeaveMessage {...this.props} />,

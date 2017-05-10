@@ -8,6 +8,7 @@ import {fetchPost, fetchJSON} from 'lib/util';
 import {Message} from 'app/messages/store';
 import {camelize, camelizeKeys, decamelize, decamelizeKeys} from 'lib/util';
 import {MESSAGE_TYPES} from './constants';
+import FileTransferManager from 'lib/rtc/filetransfer';
 
 export default class RoomConnection extends WildEmitter {
     /**
@@ -21,6 +22,7 @@ export default class RoomConnection extends WildEmitter {
         super();
         this.urls = opts.urls || {};
         this.room = opts.room;
+        this.fs = opts.fs;
         this.config = {
             enableDataChannels: opts.enableDataChannels || true,
         };
@@ -34,9 +36,11 @@ export default class RoomConnection extends WildEmitter {
 
         this.status = 'disconnected';
 
+        this.fileTransfers = new FileTransferManager(this);
+
         this.messageHandlers = {
             signalling: (message) => {
-                let peer = this.getPeer(message.payload.to);
+                let peer = this.getPeer(message.peerId);
                 if (peer) {
                     peer.receiveSignallingMessage(message.payload);
                 }
@@ -45,13 +49,16 @@ export default class RoomConnection extends WildEmitter {
                 // when another peer joins
                 let peer = this.addPeer(message.payload.peer);
                 this.emit('peerAnnounce', peer, message);
+                this.attemptResumeFiletransfers(peer);
             },
             join: (message) => {
                 // when the user connects
                 this.selfPeerId = message.payload.self.peerId;
                 for (let member of message.payload.members) {
                     if (member.peerId) {
-                        this.addPeer(member);
+                        let peer = this.addPeer(member);
+                        peer.start();
+                        this.attemptResumeFiletransfers(peer);
                     }
                 }
                 this.emit('join', message.payload, message);
@@ -142,6 +149,7 @@ export default class RoomConnection extends WildEmitter {
         else {
             this.peers.push(peer);
         }
+        peer.on('requestFileTransfer', data => this.emit('requestFileTransfer', peer, data));
         this.emit('peerAdded', peer);
         return peer;
     }
@@ -200,5 +208,22 @@ export default class RoomConnection extends WildEmitter {
 
     notifyCreatedRecording(data) {
         return fetchPost(this.urls.recordings, decamelizeKeys(data));
+    }
+
+    requestFileTransfer(fileId, peer) {
+        peer.sendSignallingMessage('requestFileTransfer', {fileId});
+        peer.once('fileTransferChannelOpen', (channel) => {
+            let receiver = this.fileTransfers.receiveFile({channel, peer, fileId, fs: this.fs});
+            receiver.on('*', (name, ...args) => this.emit(`fileTransfer.${name}`, ...args));
+        });
+    }
+
+    attemptResumeFiletransfers(peer) {
+        let receivers = this.fileTransfers.receiversForUid(peer.uid);
+        if (receivers) {
+            for (let receiver of receivers) {
+                this.requestFileTransfer(receiver.fileId, peer);
+            }
+        }
     }
 }

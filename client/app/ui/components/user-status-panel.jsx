@@ -23,12 +23,14 @@ export class UserStatusPanelItem extends React.Component {
                 <div className="info">
                     <span className='name'>{membership.name}</span>
                     <span className={`role role-${membership.roleName}`}>{membership.roleName}</span>
+                    {membership.peerStatus && <span className={`peer-status`}>{membership.peerStatus}</span>}
                 </div>
                 {
                     membership.resources ?
                     <div className="resources">
                         <span className={`video ${membership.resources.video ? '' : 'disabled'}`}>
                             {
+                                membership.resources.video &&
                                 membership.resources.video.width ?
                                 <span className="resolution">
                                     {membership.resources.video.width} x {membership.resources.video.height}

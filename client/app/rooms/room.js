@@ -12,6 +12,8 @@ export class RoomMembership {
     @observable diskUsage = null;
     @observable resources = null;
     @observable recorderStatus = null;
+    @observable peerStatus = null;
+    @observable stream = null;
 
     @computed get isSelf() {
         return this.uid === this.room.memberships.selfId;
@@ -54,7 +56,7 @@ class RoomMembershipsMap extends ObservableMap {
         return this.get(this.selfId);
     }
     @computed get others() {
-        return this.values.filter(m => m.id != this.selfId);
+        return this.values().filter(m => m.id != this.selfId);
     }
     constructor(...args) {
         return super(...args);

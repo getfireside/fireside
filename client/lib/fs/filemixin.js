@@ -61,6 +61,12 @@ const fileMixin = Base => class extends Base {
         await f.write(blob, pos);
         return;
     }
+
+    async readFileAt(pos, length) {
+        // naive for now
+        let f = await this.getFileBlob();
+        return f.slice(pos, pos+length);
+    }
 };
 
 export default fileMixin;

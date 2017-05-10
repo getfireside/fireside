@@ -7,3 +7,13 @@ export function formatBytes(bytes,decimals) {
         i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
+
+export function runDownload(url, filename) {
+    let a = document.createElement('a');
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.download = filename;
+    a.href = url;
+    a.click();
+    document.body.removeChild(a);
+}

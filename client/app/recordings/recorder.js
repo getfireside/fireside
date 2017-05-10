@@ -75,6 +75,7 @@ export default class Recorder extends WildEmitter {
      * @param {MediaStream} stream - the stream to record
      */
     setStream(stream) {
+        this.stream = stream;
         if (((this.mediaRecorder != null) && this.status === 'recording') || this.status === 'stopping') {
             // tear down
             this.mediaRecorder.stop();
@@ -99,6 +100,7 @@ export default class Recorder extends WildEmitter {
         this.currentRecording.appendBlobToFile(e.data).then( () => {
             this.emit('blobWritten', e.data.size);
             this.logger.info(`Recorded ${e.data.size} bytes to ${this.currentRecording.filename}`);
+            this.logger.info(`(New filesize: ${this.currentRecording.filesize})`);
             let now = new Date();
             this.lastBitrate = e.data.size / ((now - this.lastChunkTime) / 1000);
             this.lastChunkTime = now;
@@ -114,7 +116,7 @@ export default class Recorder extends WildEmitter {
         });
     }
 
-    onStop(e) {
+    @action onStop(e) {
         if (this.currentRecording.ended == null) {
             this.currentRecording.ended = new Date;
         }
@@ -122,9 +124,12 @@ export default class Recorder extends WildEmitter {
             this.mediaRecorder.fixWaveFile(this.currentRecording).then( () => {
                 this.logger.log("fixed wave file!");
                 this.status = 'ready';
-                this.emit('stopped', this.currentRecording);
                 setTimeout(() => {
-                    this.emit('ready');
+                    this.emit('stopped', this.currentRecording);
+                    this.logger.info(`Recording ${this.currentRecording.filename} completed\n\tlength: ${this.currentRecording.duration} secs;\n\tsize: ${this.currentRecording.filesize} bytes`);
+                    setTimeout(() => {
+                        this.setStream(this.stream);
+                    }, 250);
                 }, 250);
             }).catch( (err) => {
                 this.logger.error("problem writing wavefile header");
@@ -132,20 +137,25 @@ export default class Recorder extends WildEmitter {
                 this.logger.error(err.stack);
                 this.emit('error', {message: "Problem writing wavefile header", details: err.message, err});
                 this.status = 'ready';
-                this.emit('stopped', this.currentRecording);
                 setTimeout(() => {
-                    this.emit('ready');
+                    this.emit('stopped', this.currentRecording);
+                    this.logger.info(`Recording ${this.currentRecording.filename} completed\n\tlength: ${this.currentRecording.duration} secs;\n\tsize: ${this.currentRecording.filesize} bytes`);
+                    setTimeout(() => {
+                        this.setStream(this.stream);
+                    }, 250);
                 }, 250);
             });
         }
         else {
-            this.status = 'ready';
-            this.emit('stopped', this.currentRecording);
             setTimeout(() => {
-                this.emit('ready');
+                this.status = 'ready';
+                this.emit('stopped', this.currentRecording);
+                this.logger.info(`Recording ${this.currentRecording.filename} completed\n\tlength: ${this.currentRecording.duration} secs;\n\tsize: ${this.currentRecording.filesize} bytes`);
+                setTimeout(() => {
+                    this.setStream(this.stream);
+                }, 250);
             }, 250);
         }
-        this.logger.info(`Recording ${this.currentRecording.filename} completed\n\tlength: ${this.currentRecording.duration} secs;\n\tsize: ${this.currentRecording.filesize} bytes`);
     }
 
     /**

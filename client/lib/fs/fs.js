@@ -1,5 +1,6 @@
 import {ExtendableError} from 'lib/util';
 import WildEmitter from 'WildEmitter';
+import {clock} from 'lib/util';
 
 class FSError extends ExtendableError {
     constructor(message) {
@@ -56,7 +57,7 @@ class FS extends WildEmitter {
 
     watchDiskUsage() {
         this._lastDiskUsage = null;
-        clearInterval(this._diskUsageTimer);
+        this._lastDiskUsageUpdateTime = null;
         let fn = async () => {
             let res = await this.getDiskUsage();
             if (
@@ -64,11 +65,25 @@ class FS extends WildEmitter {
                 || this._lastDiskUsage.quota != res.quota
                 || this._lastDiskUsage.usage != res.usage
             ) {
+                if (this._lastDiskUsage && this._lastDiskUsage.usage == res.usage) {
+                    // in some cases the browser will constantly send quota updates,
+                    // which we don't need that often - unless the change is large.
+                    // let's see if it was a large change...
+                    if (Math.abs(this._lastDiskUsage.quota - res.quota) < 25*1024*1024) {
+                        // small change.
+                        // if it's been more than 30s since the last update, then we'll go ahead anyway
+                        if (new Date() - this._lastDiskUsageUpdateTime < 30000) {
+                            return;
+                        }
+                    }
+                }
                 this._lastDiskUsage = res;
+                this._lastDiskUsageUpdateTime = new Date();
                 this.emit('diskUsageUpdate', res);
             }
         };
         fn();
+        clock.on('tick', fn);
         this._diskUsageTimer = setInterval(fn, 1000);
     }
 }

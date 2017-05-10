@@ -1,4 +1,5 @@
 import * as humps from 'humps';
+import WildEmitter from 'wildemitter';
 
 export function eventListenerToPromise(object, name) {
         return new Promise(function(resolve) {
@@ -162,3 +163,20 @@ export function formatDuration(d) {
     var secs = Math.round(d % 60);
     return `${mins}m ${secs}s`;
 }
+
+export class Clock extends WildEmitter {
+    constructor(period) {
+        super();
+        this.period = period;
+        this.numberTicks = 0;
+    }
+    start() {
+        setInterval(this.tick.bind(this), this.period);
+    }
+    tick() {
+        this.numberTicks++;
+        this.emit('tick');
+    }
+}
+
+export const clock = new Clock(1000);

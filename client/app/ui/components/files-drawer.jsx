@@ -1,21 +1,70 @@
 import React from 'react';
 import {observer} from "mobx-react";
 import _ from 'lodash';
-import {formatBytes} from 'app/ui/helpers';
+import {formatBytes, runDownload} from 'app/ui/helpers';
 
 @observer
-export class RecordingInfo extends React.Component {
+export class DownloadStatusButton extends React.Component {
     async downloadClick() {
         if (this.props.membership.isSelf) {
             let url = await this.props.recording.getFileBlobURL();
-            let a = document.createElement('a');
-            a.style.display = 'none';
-            document.body.appendChild(a);
-            a.download = this.props.recording.niceFilename;
-            a.href = url;
-            a.click();
+            let filename = this.props.recording.niceFilename;
+            runDownload(url, filename);
+        }
+        else {
+            if (
+                this.props.recording.fileTransfer
+                && this.props.recording.fileTransfer.isComplete
+            ) {
+                this.props.recording.fileTransfer.getBlobURL();
+                let url = await this.props.recording.fileTransfer.getBlobURL();
+                runDownload(url, this.props.recording.niceFilename);
+            }
+            else {
+                this.props.controller.requestRecordingTransfer(this.props.recording);
+                this.props.controller.connection.on('fileTransfer.complete', async (transfer) => {
+                    if (transfer.fileId == `recording:${this.props.recording.id}`) {
+                        this.props.recording.fileTransfer.getBlobURL();
+                        let url = await this.props.recording.fileTransfer.getBlobURL();
+                        runDownload(url, this.props.recording.niceFilename);
+                    }
+                });
+            }
         }
     }
+    shouldShowButton() {
+        return (
+            this.props.membership.isSelf
+            || (
+                this.props.recording.fileTransfer == null
+                || this.props.recording.fileTransfer.isComplete
+            )
+        );
+    }
+    progressBar() {
+        return <div>
+            <progress
+                value={this.props.recording.fileTransfer.downloadedBytes}
+                max={
+                    this.props.recording.fileTransfer.metadata &&
+                    this.props.recording.fileTransfer.metadata.size
+                }
+            ></progress>
+            <b>{formatBytes(this.props.recording.fileTransfer.bitrate) + "/s"}</b>
+        </div>;
+    }
+    render() {
+        if (this.shouldShowButton()) {
+            return <button onClick={this.downloadClick.bind(this)}>Download</button>;
+        }
+        else {
+            return this.progressBar();
+        }
+    }
+}
+
+@observer
+export class RecordingInfo extends React.Component {
     render() {
         if (this.props.recording) {
             return (
@@ -25,7 +74,7 @@ export class RecordingInfo extends React.Component {
                     <p>started: {this.props.recording.startDate.format()}</p>
                     <p>duration: {this.props.recording.duration}</p>
                     <p>filesize: {this.props.recording.filesize}</p>
-                    <p><button onClick={this.downloadClick.bind(this)}>Download</button></p>
+                    <p><DownloadStatusButton {...this.props} /></p>
                 </div>
             );
         }
@@ -52,14 +101,14 @@ export default class FilesDrawer extends React.Component {
                     row = rows[j] = [];
                 }
                 row[i] = <td>
-                    <RecordingInfo recording={rec} membership={mem} />
+                    <RecordingInfo recording={rec} membership={mem} {...this.props} />
                 </td>;
             });
         });
         let tableRows = _.map(rows, row => <tr>{row}</tr>);
         let tableHeadRow = _.map(mems, mem => <td>{mem.name}</td>);
         return (
-            <div>
+            <div className="files-drawer">
                 <h3>Files drawer</h3>
                 <table>
                     <thead>

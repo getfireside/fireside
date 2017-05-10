@@ -2,9 +2,10 @@ import ReactDOM from 'react-dom';
 import React from 'react';
 
 import initFS from 'lib/fs/initfs';
+import {clock} from 'lib/util';
 import {LoggingController} from 'lib/logger';
 
-import {RecordingStore, MessageStore, UserStore} from 'app/stores';
+import {RecordingStore, MessageStore} from 'app/stores';
 import Room from 'app/rooms/room';
 import RoomController from 'app/rooms/controller';
 import UIApp from 'app/ui/components/app';
@@ -16,9 +17,12 @@ useStrict(true);
 export default class FiresideApp {
     constructor({roomData, opts}) {
         this.opts = opts;
+        this.clock = clock;
+        clock.start();
+
         this.setupLogger();
         this.setupFS();
-        this.setupStores();
+        this.setupStores({selfId: roomData.selfId});
         this.setupRoom(roomData);
     }
 
@@ -39,17 +43,22 @@ export default class FiresideApp {
             fs: this.fs,
             urls: this.opts.urls,
         });
+
+        // just a shortcut to make debugging a bit easier
+        this.roomConnection = this.roomController.connection;
+        this.recordingStore.fileTransfers = this.roomConnection.fileTransfers;
     }
 
-    setupStores() {
+    setupStores({selfId}) {
         this.recordingStore = new RecordingStore({
             fs: this.fs,
-            userStore: this.userStore
+            userStore: this.userStore,
+            selfId,
         });
         this.messageStore = new MessageStore({
             userStore: this.userStore
         });
-        this.uiStore = new UIStore({app: this})
+        this.uiStore = new UIStore({app: this});
     }
 
     setupFS() {

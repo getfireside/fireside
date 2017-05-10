@@ -6,6 +6,7 @@ import uuid from 'node-uuid';
 import config from 'app/config';
 import moment from 'moment';
 import {formatDuration} from 'lib/util';
+import {clock} from 'lib/util';
 
 let mimesMap = {
     'audio/wav': 'wav',
@@ -72,6 +73,10 @@ export class Recording {
         }
     }
 
+    @computed get fileTransfer() {
+        return this.store.fileTransfers && this.store.fileTransfers.receiverForFileId(`recording:${this.id}`);
+    }
+
     serialize() {
         return {
             started: this.started && +(this.started),
@@ -96,25 +101,31 @@ export default class RecordingStore extends ListStore {
     fs;
     directory;
     @observable time = null;
+    @observable.ref fileTransfers = null;
 
-    constructor({recordings, fs} = {}) {
+    constructor({recordings, fs, selfId} = {}) {
         super();
         this.fs = fs;
         this.time = new Date();
-        this._interval = setInterval(this.tick, 1000);
+        this.selfId = selfId;
         if (recordings) {
             this.update(recordings);
         }
+        clock.on('tick', this.tick);
     }
 
     @action.bound tick() {
         this.time = new Date();
     }
 
+    isLocal(data) {
+        return (data.uid == this.selfId || !data.id);
+    }
+
     createItemInstance(data) {
         let recording;
-        if (!data.id) {
-            recording = new LocalRecording({...data, id: uuid.v4()}, {store: this});
+        if (this.isLocal(data)) {
+            recording = new LocalRecording({...data, id: data.id || uuid.v4()}, {store: this});
         }
         else {
             recording = new Recording(data, {store: this});

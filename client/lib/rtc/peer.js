@@ -3,6 +3,7 @@ import PeerConnection from 'rtcpeerconnection';
 import WildEmitter from 'wildemitter';
 // import FileTransfer from 'filetransfer';
 import Logger from 'lib/logger';
+import {MESSAGE_TYPES} from 'app/rooms/constants';
 
 import _ from 'lodash';
 
@@ -23,6 +24,11 @@ class Peer extends WildEmitter {
         this.stream = opts.stream || null;
         this.enableDataChannels = opts.enableDataChannels || true;
         this.receiveMedia = opts.receiveMedia;
+        this.status = 'disconnected';
+
+        this.peerConnectionConfig = {
+            iceServers: [{'urls': 'stun:stun.l.google.com:19302'}],
+        };
 
         this.channels = {};
 
@@ -38,9 +44,13 @@ class Peer extends WildEmitter {
                 }
             },
 
-            offer: (offer) => { this.sendSignallingMessage('offer', offer) },
+            offer: (offer) => {
+                this.sendSignallingMessage('offer', offer);
+            },
 
-            answer: (offer) => { this.sendSignallingMessage('answer', offer) },
+            answer: (offer) => {
+                this.sendSignallingMessage('answer', offer);
+            },
 
             addStream: (event) => {
                 // let's just go ahead and replace rather than worrying about existing streams.
@@ -49,33 +59,48 @@ class Peer extends WildEmitter {
                 for (let track of this.stream.getTracks()) {
                     track.addEventListener('ended', () => {
                         if (_.every(this.stream.getTracks(), (t) => t.readyState === 'ended')) {
-                            this.endStream()
+                            this.endStream();
                         }
-                    })
+                    });
                 }
-                this.emit('streamAdded', event.steam);
+                this.emit('streamAdded', event.stream);
             },
 
             removeStream: () => {
                 this.stream = null;
-                this.emit('streamRemoved')
+                this.emit('streamRemoved');
             },
 
             addChannel: (channel) => {
-                this.emit('dataChannelAdded', channel)
+                this.emit('dataChannelAdded', channel);
                 this.channels[channel.label] = channel;
-                this._observeDataChannel(channel);
+                if (_.startsWith(channel.label, 'filetransfer:')) {
+                    this.emit('fileTransferChannelOpen', channel);
+                }
+                else {
+                    this._observeDataChannel(channel);
+                }
             },
 
             negotiationNeeded: () => {
-                // Just fire negotiation needed events for now
-                // When browser re-negotiation handling seems to work
-                // we can use this as the emit for starting the offer/answer process
-                // automatically. We'll just leave it be for now while this stabalizes.
-                this.emit('negotiationNeeded', arguments)
+                this.emit('negotiationNeeded', arguments);
+                this.start();
             },
 
             iceConnectionStateChange: () => {
+                this.logger.log(`Ice connection state changed: ${this.peerConnection.iceConnectionState}`);
+                if (_.includes(['connected', 'completed'], this.peerConnection.iceConnectionState)) {
+                    if (this.status == 'disconnected') {
+                        this.status = 'connected';
+                        this.emit('connected');
+                    }
+                }
+                else {
+                    if (this.status == 'connected') {
+                        this.status = 'disconnected';
+                        this.emit('disconnected');
+                    }
+                }
                 if (this.peerConnection.iceConnectionState == 'failed') {
                     // currently, in chrome only the initiator goes to failed
                     // so we need to signal this to the peer
@@ -87,37 +112,59 @@ class Peer extends WildEmitter {
             },
 
             signalingStateChange: () => {
-                this.emit('signalingStateChange', arguments)
+                this.emit('signalingStateChange', arguments);
             }
-        }
+        };
 
         this.signallingActions = {
             offer: (message) => {
-                this.peerConnection.handleOffer(message.payload, function (err) {
+                this.peerConnection.handleOffer(message.payload, (err) => {
                     if (err) {
-                        return; // probably log this somewhere
+                        this.logger.error(err);
+                        return; // TODO actually emit properly
                     }
-                    this.peerConnection.answer()
+                    this.emit('remoteDescriptionAdded');
+                    this.peerConnection.answer();
                 });
             },
 
-            answer: (message) => this.peerConnection.handleAnswer(message.payload),
+            requestFileTransfer: (message) => {
+                this.emit('requestFileTransfer', message.payload);
+            },
 
-            candidate: (message) => this.peerConnection.processIce(message.payload),
+            answer: (message) => {
+                this.logger.log('Handling answer');
+                this.peerConnection.handleAnswer(message.payload, () => this.emit('remoteDescriptionAdded'));
+            },
 
-            connectivityError: (message) => this.emit('connectivityError'),
+            candidate: (message) => {
+                this.logger.log('Ice candidate', message);
+                // // if remote description hasn't been set yet, then adding ice candidates
+                // // will throw an error. let's wait until it's been added, then attempt to add.
+                // if (this.peerConnection.pc.remoteDescription.type) {
+                //     this.peerConnection.processIce(message.payload);
+                // }
+                // else {
+                //     this.once('remoteDescriptionAdded', () => {
+                //         this.peerConnection.processIce(message.payload)
+                //     });
+                // }
+                this.peerConnection.processIce(message.payload);
+            },
 
-            endOfCandidates: (message) => {
+            connectivityError: () => this.emit('connectivityError'),
+
+            endOfCandidates: () => {
                 // Edge requires an end-of-candidates. Since only Edge will have mLines or tracks on the
                 // shim this will only be called in Edge.
                 var mLines = this.peerConnection.pc.peerconnection.transceivers || [];
                 for (let line of mLines) {
                     if (line.iceTransport) {
-                        line.iceTransport.addRemoteCandidate({})
+                        line.iceTransport.addRemoteCandidate({});
                     }
                 }
             }
-        }
+        };
 
         this.setupPeerConnection();
 
@@ -145,7 +192,7 @@ class Peer extends WildEmitter {
         }
 
         this.peerConnection.on('signalingStateChange', () => this.emit('signalingStateChange'));
-        this.peerConnection.on('*', () => { this.logger.log(["DEBUG PC EVENT", arguments]); });
+        this.peerConnection.on('*', (...args) => { this.logger.log(["DEBUG PC EVENT", args]); });
         this.logger.log('done setting up PC.');
 
         // this.controller.localMedia.localStreams.map((stream) => {
@@ -181,7 +228,9 @@ class Peer extends WildEmitter {
         // if we don't have one by this label, create it
         opts = opts || {};
         channel = this.channels[name] = this.peerConnection.createDataChannel(name, opts);
-        this._observeDataChannel(channel);
+        if (!_.startsWith(name, 'filetransfer:')) {
+            this._observeDataChannel(channel);
+        }
         return channel;
     }
 
@@ -201,7 +250,7 @@ class Peer extends WildEmitter {
         if (message.prefix) {
             this.browserPrefix = message.prefix;
         }
-        this.signallingActions[message.type](message)
+        this.signallingActions[message.type](message);
     }
 
     sendSignallingMessage(type, payload) {
@@ -217,8 +266,8 @@ class Peer extends WildEmitter {
             payload: payload,
             prefix: webrtcSupport.prefix
         };
+        this.connection.send({type:MESSAGE_TYPES.SIGNALLING, payload:message}, {http:false});
         this.logger.log(["SIGNALLING: SENT", message]);
-        this.connection.send(`signalling:${type}`, message);
     }
 
     sendDirectly(channel, type, payload) {
@@ -243,7 +292,7 @@ class Peer extends WildEmitter {
         return true;
     }
 
-    startStream(icerestart = false) {
+    start(icerestart = false) {
         /**
          * Attempt to open a stream with this peer.
          */
@@ -253,12 +302,12 @@ class Peer extends WildEmitter {
         // b) do a renegotiation later to add the SCTP m-line
         // Let's do (a) first...
         if (this.enableDataChannels) {
-            this.getDataChannel('simplewebrtc');
+            this.getDataChannel('rtc');
         }
 
         this.streamClosed = false;
-        let constraints = this.receiveMedia;
-        constraints.mandatory.IceRestart = icerestart;
+        let constraints = {};
+        constraints.iceRestart = icerestart;
 
         return this.peerConnection.offer(constraints, (err, sessionDescription) => {
             if (err) {

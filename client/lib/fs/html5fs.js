@@ -80,6 +80,7 @@ export default class HTML5FS extends FS {
             let init = (fs) => {
                 this.fs = fs;
                 this.watchDiskUsage();
+                this.emit('open');
                 fulfil(this);
             };
 
@@ -163,12 +164,10 @@ export default class HTML5FS extends FS {
                     if (opts.append) {
                         writer.seek(writer.length);
                     }
-                    let truncated = false;
+                    else if (opts.pos) {
+                        writer.seek(opts.pos);
+                    }
                     writer.onwriteend = function(e) {
-                        if (!truncated && !opts.append && (opts.pos == null)) {
-                            truncated = true;
-                            this.truncate(this.position);
-                        }
                         return fulfil(entry, this);
                     };
 
@@ -193,9 +192,17 @@ export default class HTML5FS extends FS {
 
     getFile(path, opts) {
         return new Promise((fulfil, reject) => {
-            let res = this.ensurePath(path);
-            res.then(() => fulfil(new HTML5FSFile(path, this)));
-            res.catch(reject);
+            let run = () => {
+                let res = this.ensurePath(path);
+                res.then(() => fulfil(new HTML5FSFile(path, this)));
+                res.catch(reject);
+            };
+            if (!this.fs) {
+                this.once('open', run);
+            }
+            else {
+                run();
+            }
         });
     }
 

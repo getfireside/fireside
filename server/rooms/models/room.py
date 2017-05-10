@@ -32,6 +32,7 @@ class RoomManager(models.Manager):
             participant=owner,
             role='o',
             joined=room.created,
+            name=owner.name or 'anonymous',
         )
         return room
 
@@ -106,6 +107,7 @@ class Room(models.Model):
         return self.message(**self.decode_message_dict(message_dict))
 
     def receive_event(self, message):
+        # TODO TEST ME TEST ME TEST ME
         assert message.type == Message.TYPE.event
         event = message.payload
         if event['type'] == 'update_status':
@@ -130,15 +132,13 @@ class Room(models.Model):
                 )
 
         if event['type'] == 'stop_recording':
-            update = recordings.serializers.RecordingSerializer(
-                data=event['data']
-            )
+            update = recordings.serializers.RecordingSerializer(data=event['data'], partial=True)
             if update.is_valid():
                 if self.recordings.filter(
                     id=event['data']['id'],
                     participant=message.participant
                 ).exists():
-                    self.recordings.filter(id=event['data']['id']).update(update.validated_data)
+                    self.recordings.filter(id=event['data']['id']).update(**update.validated_data)
 
         self.send(message)
 
@@ -157,6 +157,7 @@ class Room(models.Model):
             'payload' not in decoded or
             decoded['type'] not in Message.TYPE
         ):
+            print(message_dict)
             raise ValueError("Invalid message")
         return decoded
 

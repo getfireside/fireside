@@ -41,7 +41,11 @@
             color: orange;
             text-decoration: none;
         }
-        div.membership .role {
+        .membership.disconnected {
+            opacity: 0.5;
+            font-style: italic;
+        }
+        div.membership .role, div.membership .peer-status {
             display: inline-block;
             text-transform: uppercase;
             font-size: 0.7rem;
@@ -50,6 +54,9 @@
             margin-left: 5px;
             background: #333;
             color: white;
+        }
+        .peer-status {
+            background: darkgreen;
         }
         .room-view > .flex-container {
             flex: 1 1 auto;
@@ -84,15 +91,38 @@
             padding: 5px;
         }
         .room-view main {
-            overflow: scroll;
             position: relative;
             width: 100%;
+            display: flex;
+            flex-direction: column;
         }
         .message {
             display: flex;
         }
         .message time {
             width: 47px;
+        }
+        main .av-panel {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 auto;
+        }
+        main .av-panel .remotes {
+            display: flex;
+            flex-wrap: wrap;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2) inset;
+            background-color: rgba(0,0,0,0.1);
+            padding: 25px;
+            justify-content: center;
+            align-items: center;
+            flex: 1 1 auto;
+        }
+        main .av-panel .remotes > * {
+            flex: 0 1 75%;
+            min-width: 50%;
+        }
+        .remotemedia video {
+            width: 100%;
         }
         main .av-panel .localmedia {
             width: 20%;
@@ -104,6 +134,10 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.5);
             line-height: 0;
             border-radius: 2px;
+        }
+        main .files-drawer {
+            max-height: 200px;
+            overflow: scroll;
         }
         main .av-panel .localmedia video {
             width: 100%;
@@ -128,7 +162,7 @@
             right: 0;
             color: white;
             padding-top: 130px;
-            padding-left: 115chpx;
+            padding-left: 115px;
             font-size: 30px;
             z-index: 5;
             background: rgba(0,0,0,0.75);

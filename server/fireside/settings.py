@@ -147,3 +147,6 @@ CHANNEL_LAYERS = {
         "ROUTING": "fireside.routing.channel_routing",
     },
 }
+
+# Sessions expire in 10 years
+SESSION_COOKIE_AGE = 60*60*24*365*10

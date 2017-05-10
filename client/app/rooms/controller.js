@@ -21,6 +21,7 @@ export default class RoomController {
         this.connection = new RoomConnection({
             room: this.room,
             urls: opts.urls,
+            fs: this.fs,
         });
 
         bindEventHandlers(this);
@@ -102,6 +103,15 @@ export default class RoomController {
             diskUsage: peer.info.diskUsage,
             resources: peer.info.resources,
         });
+        let copyStatus = action(() => {
+            this.room.memberships.get(peer.uid).peerStatus = peer.status;
+        });
+        copyStatus();
+        peer.on('connected', copyStatus);
+        peer.on('disconnected', copyStatus);
+        peer.on('streamAdded', action((stream) => this.room.memberships.get(peer.uid).stream = stream));
+        peer.on('streamRemoved', action(() => this.room.memberships.get(peer.uid).stream = null));
+        this.room.memberships.get(peer.uid).stream = peer.stream;
     }
 
     @on('connection.peerRemoved')
@@ -143,14 +153,34 @@ export default class RoomController {
             name: data.self.info.name,
             uid: data.self.uid,
         });
-        this.room.recordingStore.update(_.map(data.self.info.recordings, r => {
-            r = camelizeKeys(r);
-            r.room = this.room;
-            return r;
-        }));
         let messagesData = await this.connection.getMessages({until: message.timestamp});
         this.room.updateMessagesFromServer(messagesData);
         this.openFS();
+    }
+
+    @on('connection.requestFileTransfer')
+    @action.bound
+    handleRequestFileTransfer(peer, {fileId}) {
+        if (!this.fs.fs) {
+            // FIXME - FSes need a state attribute
+            // re-call once FS is open
+            this.fs.on('open', () => this.handleRequestFileTransfer(peer, {fileId}));
+        }
+        else {
+            let recordingId = fileId.split(':')[1];
+            this.connection.fileTransfers.sendFile(peer, this.room.recordingStore.get(recordingId));
+        }
+    }
+
+    @on('connection.startReceivingFile')
+    @action.bound
+    handleStartReceivingFile() {
+
+    }
+
+    @action.bound
+    requestRecordingTransfer(recording) {
+        this.connection.requestFileTransfer(`recording:${recording.id}`, recording.membership.peer);
     }
 
     // @on('connection.event.uploadRecordingRequest')
@@ -171,7 +201,9 @@ export default class RoomController {
     @on('connection.message')
     @action.bound
     receiveMessage(message) {
-        this.room.messageStore.addMessage(message);
+        if (message.type != MESSAGE_TYPES.SIGNALLING) {
+            this.room.messageStore.addMessage(message);
+        }
         // TODO: if it's an update event, don't add it to the message store -
         // instead look for the last one
     }
