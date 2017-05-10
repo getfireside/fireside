@@ -1,5 +1,5 @@
 import {ExtendableError} from 'lib/util';
-import WildEmitter from 'WildEmitter';
+import WildEmitter from 'wildemitter';
 import {clock} from 'lib/util';
 
 class FSError extends ExtendableError {
