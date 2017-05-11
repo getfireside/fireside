@@ -1,6 +1,7 @@
 import React from 'react';
 import _ from 'lodash';
 import {observer} from 'mobx-react';
+import Textarea from 'react-textarea-autosize';
 
 @observer
 export class MessageContainer extends React.Component {
@@ -30,7 +31,10 @@ export class LeaveMessage extends React.Component {
     render() {
         return (
             <MessageContainer message={this.props.message} className="leave">
-                <div className="content"><b>{this.props.message.memberDisplayName}</b> disconnected.</div>
+                <div className="content">
+                    <b>{this.props.message.memberDisplayName}</b>
+                    {' '}disconnected.
+                </div>
             </MessageContainer>
         );
     }
@@ -42,7 +46,28 @@ export class AnnounceMessage extends React.Component {
         return (
             <MessageContainer message={this.props.message} className="announce">
                 <div className="content">
-                    <b>{this.props.message.memberDisplayName}</b> connected.
+                    <b>{this.props.message.memberDisplayName}</b>
+                    {' '}connected.
+                </div>
+            </MessageContainer>
+        );
+    }
+}
+
+@observer
+export class ChatMessage extends React.Component {
+    messageToHTML() {
+        let text = this.props.message.payload.data.text;
+        return {
+            __html: text.split('\n').join('<br />')
+        };
+    }
+    render() {
+        return (
+            <MessageContainer message={this.props.message} className="chat">
+                <div className="content">
+                    <b>{this.props.message.memberDisplayName}</b>:{' '}
+                    <div className="text" dangerouslySetInnerHTML={this.messageToHTML()}></div>
                 </div>
             </MessageContainer>
         );
@@ -75,7 +100,7 @@ export class RecordingRequestMessage extends React.Component {
 @observer
 export class RecordingStatusMessage extends React.Component {
     render() {
-        let isStartRecording = this.props.message.payload.type == 'start_recording';
+        let isStartRecording = this.props.message.payload.type == 'startRecording';
         let className;
         let messagePart;
         if (isStartRecording) {
@@ -89,7 +114,10 @@ export class RecordingStatusMessage extends React.Component {
 
         return (
             <MessageContainer message={this.props.message} className={className}>
-                <div className="content"><b>{this.props.message.memberDisplayName}</b> {messagePart}</div>
+                <div className="content">
+                    <b>{this.props.message.memberDisplayName}</b>{' '}
+                    {messagePart}
+                </div>
             </MessageContainer>
         );
     }
@@ -101,7 +129,8 @@ export class RecorderStatusMessage extends React.Component {
         return (
             <MessageContainer message={this.props.message} className='event recorder-status'>
                 <div className="content">
-                    <b>{this.props.message.memberDisplayName}</b> recorder status: {this.props.message.payload.data.recorderStatus}
+                    <b>{this.props.message.memberDisplayName}</b>
+                    {' '}recorder status: {this.props.message.payload.data.recorderStatus}
                 </div>
             </MessageContainer>
         );
@@ -147,25 +176,51 @@ export class Message extends React.Component {
 
 @observer
 export default class MessagesPanel extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = {text: ""};
+    }
     componentDidUpdate() {
         this.ul.scrollTop = this.ul.scrollHeight;
     }
-    onChatKeyDown() {
-
+    onChatKeyDown(e) {
+        if (e.keyCode == 13 && !(e.shiftKey)) {
+            this.sendMessage();
+            e.preventDefault();
+        }
+    }
+    sendMessage() {
+        let trimmed = _.trim(this.state.text);
+        if (trimmed) {
+            this.props.controller.sendEvent('chat', {text: this.state.text});
+            this.setState({text: ''});
+        }
+    }
+    onTextChange(e) {
+        this.setState({text: e.target.value});
     }
     render() {
         return (
             <div className="messages-panel panel">
                 <h2>Messages</h2>
-                <ul ref={(ul) => {this.ul = ul}}>
+                <ul ref={(ul) => {this.ul = ul;}}>
                     {_.map(this.props.room.messages, (message) => (
                         message && <li key={`${message.id}:${message.timestamp}`}>
                             <Message message={message} {...this.props} />
                         </li>
                     ))}
                 </ul>
-                <div class="chat">
-                    <textarea onKeyDown={this.onChatKeyDown.bind(this)}></textarea>
+                <div className="chat-input">
+                    <form onSubmit={this.sendMessage.bind(this)}>
+                        <Textarea
+                            onKeyDown={this.onChatKeyDown.bind(this)}
+                            onChange={this.onTextChange.bind(this)}
+                            placeholder={"Type here to send a message"}
+                            value={this.state.text}
+                        >
+                        </Textarea>
+                        <button style={{display: 'none'}}>Send</button>
+                    </form>
                 </div>
             </div>
         );

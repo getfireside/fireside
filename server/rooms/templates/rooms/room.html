@@ -4,7 +4,7 @@
     <head>
         <title>Fireside | {{ room.id }}</title>
         <link href="{% static 'dist/room.css' %}" />
-        <link href="https://fonts.googleapis.com/css?family=Muli:400,400i,700" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css?family=Muli:400,400i,700,700i" rel="stylesheet">
         <style>
         * {
             box-sizing: border-box;
@@ -71,13 +71,17 @@
         .room-view aside > * {
 
         }
-        .messages-panel {
+        .messages-panel.panel {
             flex: 1 1 auto;
             display: flex;
             flex-direction: column;
+            padding: 0;
         }
         .messages-panel ul {
             overflow: scroll;
+        }
+        .messages-panel.panel h2 {
+            margin: 0;
         }
         .panel h2 {
             text-transform: uppercase;
@@ -98,9 +102,37 @@
         }
         .message {
             display: flex;
+            padding: 1px 5px;
         }
         .message time {
             width: 47px;
+            flex-shrink: 0;
+        }
+        .message.chat .text {
+            display: inline;
+        }
+        .message.join .content,
+        .message.leave .content,
+        .message.announce .content {
+            opacity: 0.6;
+            font-style: italic;
+        }
+        .message.recording, .message.recorder-status {
+            background: #9df3ab;
+        }
+        .messages-panel .chat-input textarea {
+            width: 100%;
+            min-height: 20px;
+            max-height: 100px;
+            padding: 5px;
+            font-size: 14px;
+            font-family: Muli, Helvetica, Arial, sans-serif;
+            border: 2px solid #ccc;
+            border-radius: 2px;
+        }
+        .messages-panel .chat-input textarea:focus {
+            border-color: orange;
+            outline: none;
         }
         main .av-panel {
             display: flex;

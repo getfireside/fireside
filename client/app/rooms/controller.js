@@ -109,6 +109,7 @@ export default class RoomController {
         copyStatus();
         peer.on('connected', copyStatus);
         peer.on('disconnected', copyStatus);
+
         peer.on('streamAdded', action((stream) => this.room.memberships.get(peer.uid).stream = stream));
         peer.on('streamRemoved', action(() => this.room.memberships.get(peer.uid).stream = null));
         this.room.memberships.get(peer.uid).stream = peer.stream;
@@ -224,6 +225,7 @@ export default class RoomController {
             type: MESSAGE_TYPES.EVENT,
             payload: {type, data},
             room: this.room,
+            uid: this.room.memberships.selfId
         }, {sendPromise: promise});
     }
 
