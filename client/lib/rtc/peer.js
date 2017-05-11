@@ -84,7 +84,7 @@ class Peer extends WildEmitter {
 
             negotiationNeeded: () => {
                 this.emit('negotiationNeeded', arguments);
-                this.start();
+                // this.start();
             },
 
             iceConnectionStateChange: () => {
@@ -99,12 +99,13 @@ class Peer extends WildEmitter {
                     if (this.status == 'connected') {
                         this.status = 'disconnected';
                         this.emit('disconnected');
+                        this.start(true); //icerestart = true
                     }
                 }
                 if (this.peerConnection.iceConnectionState == 'failed') {
                     // currently, in chrome only the initiator goes to failed
                     // so we need to signal this to the peer
-                    if (this.peerConnection.pc.peerconnection.localDescription.type === 'offer') {
+                    if (this.peerConnection.pc.localDescription.type === 'offer') {
                         this.emit('iceFailed');
                         this.sendSignallingMessage('connectivityError');
                     }
