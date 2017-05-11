@@ -91,7 +91,7 @@ class JoinRoomView(APIView):
             mem = room.memberships.create(
                 participant=participant,
                 name=serializer.validated_data['name'],
-                role='g',
+                role='o' if participant == room.owner else 'g',
             )
         else:
             return Response(

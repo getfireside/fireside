@@ -27,13 +27,6 @@ class RoomManager(models.Manager):
 
     def create_with_owner(self, owner):
         room = self.create(owner=owner)
-        RoomMembership.objects.create(
-            room=room,
-            participant=owner,
-            role='o',
-            joined=room.created,
-            name=owner.name or 'anonymous',
-        )
         return room
 
 
