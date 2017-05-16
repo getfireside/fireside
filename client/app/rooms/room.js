@@ -67,15 +67,17 @@ export default class Room {
     @observable memberships = new RoomMembershipsMap;
     @observable.ref messageStore = null;
     @observable.ref recordingStore = null;
+    @observable config = {};
     id = null;
     ownerId = null;
 
-    constructor({messageStore, recordingStore, id, ownerId, selfId}) {
+    constructor({messageStore, recordingStore, id, ownerId, selfId, config}) {
         this.messageStore = messageStore;
         this.recordingStore = recordingStore;
         this.id = id;
         this.ownerId = ownerId;
         this.memberships.selfId = selfId;
+        this.config = config;
     }
 
     @computed get recordings() {

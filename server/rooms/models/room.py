@@ -5,6 +5,7 @@ import random
 from django.db import models
 from django.core.urlresolvers import reverse
 from django.utils.timezone import now
+from django.contrib.postgres.fields import JSONField
 
 from channels import Group, Channel
 from model_utils import Choices
@@ -34,8 +35,11 @@ class Room(models.Model):
     ACTION_TYPES = [
         'start_recording',
         'stop_recording',
-        'kick'
+        'kick',
+        'update_config',
     ]
+
+    ROOM_TYPES = ['audio', 'video']
 
     id = models.CharField(
         max_length=6,
@@ -48,8 +52,12 @@ class Room(models.Model):
         related_name='rooms'
     )
     created = models.DateTimeField(auto_now_add=True)
+    config = JSONField(blank=True, null=True, default=dict)
 
     objects = RoomManager()
+
+    def get_config_json(self):
+        return json.dumps(serializers.RoomConfigSerializer(self.config).data)
 
     @property
     def owner_membership(self):
@@ -243,6 +251,17 @@ class Room(models.Model):
             {'text': self.encode_message(message)},
             immediately=immediately
         )
+
+    def set_config(self, new_config):
+        self.config = new_config
+        self.save()
+        self.send(self.message(
+            type=Message.TYPE.event,
+            payload={
+                'type': 'update_config',
+                'data': new_config
+            }
+        ))
 
     def send_action_event(self, name, target_peer_id, from_peer_id,
                           from_participant, data=None):

@@ -23,9 +23,6 @@ export default class RoomConnection extends WildEmitter {
         this.urls = opts.urls || {};
         this.room = opts.room;
         this.fs = opts.fs;
-        this.config = {
-            enableDataChannels: opts.enableDataChannels || true,
-        };
 
         this.peers = [];
         this.selfPeerId = null;
@@ -47,7 +44,7 @@ export default class RoomConnection extends WildEmitter {
             },
             announce: (message) => {
                 // when another peer joins
-                let peer = this.addPeer(message.payload.peer);
+                let peer = this.addPeer(message.payload.peer, {isInitiator: false});
                 this.emit('peerAnnounce', peer, message);
                 this.attemptResumeFiletransfers(peer);
             },
@@ -56,7 +53,7 @@ export default class RoomConnection extends WildEmitter {
                 this.selfPeerId = message.payload.self.peerId;
                 for (let member of message.payload.members) {
                     if (member.peerId) {
-                        let peer = this.addPeer(member);
+                        let peer = this.addPeer(member, {isInitiator: true});
                         peer.start();
                         this.attemptResumeFiletransfers(peer);
                     }
@@ -126,7 +123,7 @@ export default class RoomConnection extends WildEmitter {
         }
     }
 
-    addPeer(data) {
+    addPeer(data, {isInitiator = false} = {}) {
         /**
          * Set up a peer
          * @param {obj} data: Info received from the server about the peer
@@ -135,8 +132,8 @@ export default class RoomConnection extends WildEmitter {
             id: data.peerId,
             uid: data.uid,
             info: data.info,
-            enableDataChannels: this.config.enableDataChannels,
             connection: this,
+            isInitiator,
         });
 
         if (this.stream) {
@@ -187,6 +184,9 @@ export default class RoomConnection extends WildEmitter {
     }
 
     connectStream(stream) {
+        if (this.stream) {
+            _.each(this.stream.getTracks(), t => t.stop());
+        }
         this.stream = stream;
         for (let peer of this.peers) {
             peer.addLocalStream(this.stream);

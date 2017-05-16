@@ -104,11 +104,11 @@ export class RecordingStatusMessage extends React.Component {
         let className;
         let messagePart;
         if (isStartRecording) {
-            className = `event event-start-recording`;
+            className = `event recording event-start-recording`;
             messagePart = "started recording";
         }
         else {
-            className = `event event-stop-recording`;
+            className = `event recording event-stop-recording`;
             messagePart = "stopped recording";
         }
 
@@ -217,6 +217,7 @@ export default class MessagesPanel extends React.Component {
                             onChange={this.onTextChange.bind(this)}
                             placeholder={"Type here to send a message"}
                             value={this.state.text}
+                            useCacheForDOMMeasurements
                         >
                         </Textarea>
                         <button style={{display: 'none'}}>Send</button>

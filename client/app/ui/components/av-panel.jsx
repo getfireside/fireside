@@ -62,6 +62,9 @@ export class LocalMedia extends React.Component {
                     videoHeight:m.videoHeight
                 });
             }
+            else {
+                this.setState({videoWidth: null, videoHeight: null});
+            }
         };
     }
     componentDidUpdate(prevProps, prevState) {
@@ -77,13 +80,17 @@ export class LocalMedia extends React.Component {
     render() {
         if (this.props.stream) {
             return (
-                <div className="localmedia">
+                <div className={`localmedia ${isVideo(this.props.stream) ? 'video' : 'audio'}`}>
                 {(
                     isVideo(this.props.stream) ?
                     <video muted ref="media"/> :
                     <audio muted ref="media"/>
                 )}
-                    <div className="resolution">{this.state.videoWidth} x {this.state.videoHeight}</div>
+                    {this.state.videoWidth &&
+                        <div className="resolution">
+                            {this.state.videoWidth} x {this.state.videoHeight}
+                        </div>
+                    }
                 </div>
             );
         }

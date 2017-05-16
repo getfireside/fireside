@@ -14,7 +14,8 @@ from .serializers import (
     MembershipSerializer,
     MessageSerializer,
     PeerActionSerializer,
-    JoinRoomSerializer
+    JoinRoomSerializer,
+    RoomConfigSerializer
 )
 from recordings.serializers import RecordingSerializer
 
@@ -120,8 +121,6 @@ class RoomMessagesView(ListAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-
-
     def get_queryset(self):
         qs = self.request.room.messages.all()
         if 'until' in self.request.query_params:
@@ -176,12 +175,25 @@ class RoomActionView(APIView):
             ),
             from_participant=self.request.participant
         )
-        return Response(status=status.HTTP_200_OK)
+        return Response(data='OK', status=status.HTTP_200_OK)
 
     def send_action(self, action_name, data):
         return self.request.room.send(
             self.request.room.message('action', data)
         )
+
+    def update_config(self):
+        serializer = RoomConfigSerializer(self.request.room.config,
+            data=self.request.data,
+            partial=True
+        )
+        if not serializer.is_valid():
+            return Response(
+                data=serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        self.request.room.set_config(serializer.validated_data)
+        return Response(data='OK', status=status.HTTP_200_OK)
 
     def start_recording(self):
         return self.base_action('start_recording')

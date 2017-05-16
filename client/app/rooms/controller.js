@@ -84,6 +84,23 @@ export default class RoomController {
         this.room.recordingStore.update([camelizeKeys(change)]);
     }
 
+    @on('connection.event.updateConfig')
+    @action.bound
+    handleUpdateConfig(newConfig) {
+        let oldConfig = {...this.room.config};
+        this.room.config = newConfig;
+        if (this.room.config.mode != oldConfig.mode) {
+            this.stopRecording();
+            if (this.connection.stream) {
+                // restart local media if started
+                this.setupLocalMedia();
+            }
+        }
+        if (this.room.config.videoBitrate != oldConfig.videoBitrate) {
+            this.stopRecording();
+        }
+    }
+
     /* ---- PEER AND JOIN EVENTS ---- */
 
     @on('connection.peerAdded')
@@ -239,6 +256,11 @@ export default class RoomController {
         return this.connection.runAction('stopRecording', {peerId:user.peerId});
     }
 
+    @action.bound
+    updateConfig(config) {
+        return this.connection.runAction('updateConfig', config);
+    }
+
     async openFS() {
         /**
          * Open the filesystem.
@@ -269,7 +291,10 @@ export default class RoomController {
     }
 
     @action
-    async setupLocalMedia({audio = true, video = true} = {}) {
+    async setupLocalMedia() {
+        let audio = true;
+        let video = this.room.config.mode == 'video';
+        debugger;
         let mediaStream = await navigator.mediaDevices.getUserMedia({
             audio,
             video: video && {
@@ -297,6 +322,12 @@ export default class RoomController {
             }));
         }
         return mediaStream;
+    }
+
+    @action stopLocalMedia() {
+        if (this.connection.stream) {
+            this.connection.stream.stop()
+        }
     }
 
     async connect() {

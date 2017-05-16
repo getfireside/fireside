@@ -72,3 +72,9 @@ class PeerActionSerializer(serializers.Serializer):
         if value.hex not in self.context['room'].get_peer_ids():
             raise serializers.ValidationError('Peer is not connected.')
         return value
+
+class RoomConfigSerializer(serializers.Serializer):
+    mode = serializers.ChoiceField(choices=['audio', 'video'], default='audio')
+    debug_mode = serializers.BooleanField(default=False)
+    video_bitrate = serializers.IntegerField(allow_null=True)
+

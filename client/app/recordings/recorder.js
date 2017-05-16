@@ -90,10 +90,10 @@ export default class Recorder extends WildEmitter {
 
     onStart(e) {
         this.logger.info('Recording started.');
-        this.emit('started', this.currentRecording);
         if (this.currentRecording.started == null) {
             this.currentRecording.started = new Date;
         }
+        this.emit('started', this.currentRecording);
     }
 
     onDataAvailable(e) {

@@ -6,7 +6,7 @@ import uuid from 'node-uuid';
 import Logger from 'lib/logger';
 import {clock} from 'lib/util';
 
-let CHUNK_SIZE = Math.pow(2, 13);
+let CHUNK_SIZE = 16000;
 let CHUNK_STATES = {
     EMPTY: 0,
     REQUESTED: 1,
@@ -90,7 +90,7 @@ class FileReceiver extends WildEmitter {
         this.channel = channel;
         this.chunkSize = CHUNK_SIZE;
         this.fromUid = uid;
-        this.numberConnections = 4;
+        this.numberConnections = 64;
         this.fs = fs;
         this.status = false;
         this.logger = logger != null ? logger : new Logger(null, 'FileReceiver');

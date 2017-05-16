@@ -28,6 +28,7 @@ class Peer extends WildEmitter {
 
         this.peerConnectionConfig = {
             iceServers: [{'urls': 'stun:stun.l.google.com:19302'}],
+            isInitiator: opts.isInitiator,
         };
 
         this.channels = {};
@@ -84,7 +85,7 @@ class Peer extends WildEmitter {
 
             negotiationNeeded: () => {
                 this.emit('negotiationNeeded', arguments);
-                // this.start();
+                this.start();
             },
 
             iceConnectionStateChange: () => {
@@ -139,7 +140,8 @@ class Peer extends WildEmitter {
             },
 
             candidate: (message) => {
-                this.logger.log('Ice candidate', message);
+                this.logger.log(['Ice candidate', message]);
+                this.logger.warn(this.peerConnection.pc.remoteDescription.type);
                 // // if remote description hasn't been set yet, then adding ice candidates
                 // // will throw an error. let's wait until it's been added, then attempt to add.
                 // if (this.peerConnection.pc.remoteDescription.type) {
@@ -293,7 +295,7 @@ class Peer extends WildEmitter {
         return true;
     }
 
-    start(icerestart = false) {
+    start(iceRestart = false) {
         /**
          * Attempt to open a stream with this peer.
          */
@@ -307,8 +309,11 @@ class Peer extends WildEmitter {
         }
 
         this.streamClosed = false;
-        let constraints = {};
-        constraints.iceRestart = icerestart;
+        let constraints = {
+            iceRestart: iceRestart,
+            offerToReceiveAudio: true,
+            offerToReceiveVideo: true,
+        };
 
         return this.peerConnection.offer(constraints, (err, sessionDescription) => {
             if (err) {

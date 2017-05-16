@@ -9,6 +9,7 @@ import MessagesPanel from './messages-panel';
 import FilesDrawer from './files-drawer';
 import AVPanel from './av-panel';
 import JoinModal from './join-modal';
+import ConfigModal from './config-modal';
 import {LocalMediaPromptOverlay, FSPromptOverlay} from './prompt-overlays';
 
 @observer
@@ -28,6 +29,7 @@ export class HostRoomView extends React.Component {
                         <FilesDrawer {...this.props} />
                     </main>
                 </div>
+                <ConfigModal {...this.props} />
             </div>
         )
     }

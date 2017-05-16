@@ -79,6 +79,7 @@
         }
         .messages-panel ul {
             overflow: scroll;
+            flex: 1 1 auto;
         }
         .messages-panel.panel h2 {
             margin: 0;
@@ -167,6 +168,9 @@
             line-height: 0;
             border-radius: 2px;
         }
+        main .av-panel .localmedia.audio {
+            display: none;
+        }
         main .files-drawer {
             max-height: 200px;
             overflow: scroll;
@@ -211,6 +215,7 @@
                     id: "{{ room.id }}",
                     ownerId: {{ room.owner.id }},
                     selfId: {{ self_uid|default:'null' }},
+                    config: {{ room.get_config_json|safe }},
                 },
                 opts: {
                     urls: {

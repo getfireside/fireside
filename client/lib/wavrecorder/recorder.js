@@ -1,4 +1,4 @@
-const WORKER_PATH = '/dist/wav-recorder-worker.js';
+const WORKER_PATH = '/static/dist/wav-recorder-worker.js';
 
 import writeWAVHeader from './writeheader.js';
 import webrtc from 'webrtcsupport';
