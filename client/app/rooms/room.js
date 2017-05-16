@@ -58,6 +58,9 @@ class RoomMembershipsMap extends ObservableMap {
     @computed get others() {
         return this.values().filter(m => m.id != this.selfId);
     }
+    @computed get connected() {
+        return this.values().filter(m => m.peerId != null);
+    }
     constructor(...args) {
         return super(...args);
     }

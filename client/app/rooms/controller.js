@@ -87,23 +87,8 @@ export default class RoomController {
         let update = camelizeKeys(change);
         update.room = this.room;
         this.room.recordingStore.update([update]);
-    }
-
-    @on('connection.event.updateConfig')
-    @action.bound
-    handleUpdateConfig(newConfig) {
-        let oldConfig = {...this.room.config};
-        this.room.config = newConfig;
-        if (this.room.config.mode != oldConfig.mode) {
-            this.stopRecording();
-            if (this.connection.stream) {
-                // restart local media if started
-                this.setupLocalMedia();
-            }
-        }
-        if (this.room.config.videoBitrate != oldConfig.videoBitrate) {
-            this.stopRecording();
-        }
+        let rec = this.room.recordingStore.get(change.id);
+        rec.membership.currentRecording = rec;
     }
 
     /* ---- PEER AND JOIN EVENTS ---- */
@@ -121,6 +106,7 @@ export default class RoomController {
             role: peer.info.role,
             currentRecordingId: peer.info.currentRecordingId,
             peer: peer,
+            peerId: peer.id,
             name: peer.info.name,
             diskUsage: peer.info.diskUsage,
             resources: peer.info.resources,
@@ -219,6 +205,23 @@ export default class RoomController {
     @action.bound
     handleStatusUpdate(change, message) {
         this.room.updateMembership(message.uid, change);
+    }
+
+    @on('connection.event.updateConfig')
+    @action.bound
+    handleUpdateConfig(newConfig) {
+        let oldConfig = {...this.room.config};
+        this.room.config = newConfig;
+        if (this.room.config.mode != oldConfig.mode) {
+            this.stopRecording();
+            if (this.connection.stream) {
+                // restart local media if started
+                this.setupLocalMedia();
+            }
+        }
+        if (this.room.config.videoBitrate != oldConfig.videoBitrate) {
+            this.stopRecording();
+        }
     }
 
     @on('connection.message')
