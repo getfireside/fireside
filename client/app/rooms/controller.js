@@ -52,7 +52,8 @@ export default class RoomController {
     @action.bound
     notifyRecordingUpdate() {
         this.connection.sendEvent('updateRecording', {
-            filesize: this.recorder.currentRecording.filesize
+            filesize: this.recorder.currentRecording.filesize,
+            id: this.recorder.currentRecording.id
         }, {http: false});
     }
 
@@ -78,10 +79,14 @@ export default class RoomController {
         this.recorder.stop();
     }
 
-    @on('connection.event.updateRecordingStatus')
+    @on('connection.event.startRecording',
+        'connection.event.updateRecording',
+        'connection.event.stopRecording')
     @action.bound
     handleRecordingStatusUpdate(change) {
-        this.room.recordingStore.update([camelizeKeys(change)]);
+        let update = camelizeKeys(change);
+        update.room = this.room;
+        this.room.recordingStore.update([update]);
     }
 
     @on('connection.event.updateConfig')
@@ -294,7 +299,6 @@ export default class RoomController {
     async setupLocalMedia() {
         let audio = true;
         let video = this.room.config.mode == 'video';
-        debugger;
         let mediaStream = await navigator.mediaDevices.getUserMedia({
             audio,
             video: video && {

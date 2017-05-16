@@ -1,7 +1,9 @@
-export function on(eventSelector) {
+export function on(...eventSelectors) {
     return function(target, key, descriptor) {
         target.__handlers = target.__handlers || {};
-        target.__handlers[eventSelector] = key;
+        for (let eventSelector of eventSelectors) {
+            target.__handlers[eventSelector] = key;
+        }
     }
 }
 

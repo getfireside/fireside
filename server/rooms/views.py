@@ -140,10 +140,8 @@ class RoomRecordingsView(ListCreateAPIView):
         return self.request.room.recordings.all()
 
     def perform_create(self, serializer):
-        serializer.save(
-            room=self.request.room,
-            participant=self.request.participant,
-        )
+        self.request.room.create_recording(**serializer.validated_data)
+
 
 
 class RoomParticipantsView(ListAPIView):
