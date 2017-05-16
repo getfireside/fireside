@@ -76,5 +76,5 @@ class PeerActionSerializer(serializers.Serializer):
 class RoomConfigSerializer(serializers.Serializer):
     mode = serializers.ChoiceField(choices=['audio', 'video'], default='audio')
     debug_mode = serializers.BooleanField(default=False)
-    video_bitrate = serializers.IntegerField(allow_null=True)
+    video_bitrate = serializers.IntegerField(allow_null=True, default=None)
 
