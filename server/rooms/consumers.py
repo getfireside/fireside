@@ -3,6 +3,7 @@ from channels.generic.websockets import JsonWebsocketConsumer
 from channels.generic import BaseConsumer
 from channels import Channel, Group
 from .models import Room, Participant, Message
+from .utils import prioritize_h264
 import functools
 
 
@@ -117,4 +118,5 @@ class RoomConsumer(BaseConsumer):
         Group(self.room.group_name).discard(self.message.reply_channel)
 
     def signalling(self, message, to, **data):
+        message.payload = prioritize_h264(message.payload)
         self.room.send(message, to_peer=to)
