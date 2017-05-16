@@ -331,7 +331,7 @@ class Room(models.Model):
             peer_id = self.set_peer_id(participant)
 
         self.connect_peer(peer_id, channel_name, participant)
-        self.announce(peer_id, participant)
+
         return peer_id
 
     def create_recording(self, **kwargs):

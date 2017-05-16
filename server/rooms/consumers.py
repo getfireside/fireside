@@ -104,8 +104,9 @@ class RoomConsumer(BaseConsumer):
                 type=Message.TYPE.join,
                 payload=initial_data
             ),
-            to_peer=self.message.channel_session['peer_id'],
+            to_peer=peer_id,
         )
+        self.room.announce(peer_id, self.participant)
         Group(self.room.group_name).add(self.message.reply_channel)
 
     def leave(self, message, **kwargs):
