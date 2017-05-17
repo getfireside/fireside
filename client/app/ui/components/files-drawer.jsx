@@ -62,8 +62,8 @@ export class DownloadStatusButton extends React.Component {
                             this.props.recording.fileTransfer &&
                             this.props.recording.fileTransfer.isComplete
                         ) ?
-                        "Download" :
-                        "Copy to Downloads folder"
+                        "Copy to Downloads folder" :
+                        "Download"
                     }
                 </button>
             );
