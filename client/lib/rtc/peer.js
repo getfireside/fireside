@@ -89,6 +89,9 @@ class Peer extends WildEmitter {
                     // only the initiator should attempt reconnect
                     this.start()
                 }
+                else {
+                    this.sendSignallingMessage('negotiationNeeded');
+                }
             },
 
             iceConnectionStateChange: () => {
@@ -162,6 +165,13 @@ class Peer extends WildEmitter {
             },
 
             connectivityError: () => this.emit('connectivityError'),
+
+            negotiationNeeded: () => {
+                if (this.peerConnection.pc.localDescription.type == 'offer') {
+                    // only the initiator should attempt reconnect
+                    this.start(); //icerestart = true
+                }
+            }
 
             endOfCandidates: () => {
                 // Edge requires an end-of-candidates. Since only Edge will have mLines or tracks on the
