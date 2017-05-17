@@ -282,7 +282,7 @@ class Peer extends WildEmitter {
             to: this.id,
             uid: this.uid,
             type: type,
-            payload: payload,
+            payload: payload || {},
             prefix: webrtcSupport.prefix
         };
         this.connection.send({type:MESSAGE_TYPES.SIGNALLING, payload:message}, {http:false});
