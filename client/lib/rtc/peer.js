@@ -171,7 +171,7 @@ class Peer extends WildEmitter {
                     // only the initiator should attempt reconnect
                     this.start(); //icerestart = true
                 }
-            }
+            },
 
             endOfCandidates: () => {
                 // Edge requires an end-of-candidates. Since only Edge will have mLines or tracks on the
