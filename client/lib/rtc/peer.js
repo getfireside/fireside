@@ -328,7 +328,7 @@ class Peer extends WildEmitter {
         });
     }
 
-    endStream(restart = false) {
+    endStream(restart = true) {
         /**
          * Close the stream.
          */
