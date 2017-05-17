@@ -45,7 +45,7 @@ export default class FileTransferManager {
             this.receivers.push(receiver);
             this.saveReceiversToLocalStorage();
         }
-        receiver.on('completed', () => this.saveReceiversToLocalStorage());
+        receiver.on('complete', () => this.saveReceiversToLocalStorage());
         receiver.start();
         return receiver;
     }
@@ -265,11 +265,13 @@ class FileReceiver extends WildEmitter {
         this.addDownloadSample(chunkBlob.size);
         if (_.every(_.values(this.chunks), v => v == CHUNK_STATES.COMPLETED)) {
             this.logger.log('Complete!');
-            runInAction(() => { this.status = STATUSES.COMPLETED; });
-            this.channel.close();
-            this.chunks = {};
-            this.saveToLocalStorage();
-            this.emit('complete', this);
+            runInAction(() => {
+                this.status = STATUSES.COMPLETED;
+                this.channel.close();
+                this.chunks = {};
+                this.saveToLocalStorage();
+                this.emit('complete', this);
+            });
         }
     }
 

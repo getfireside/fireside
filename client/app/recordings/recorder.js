@@ -81,6 +81,9 @@ export default class Recorder extends WildEmitter {
             this.mediaRecorder.stop();
             this.once('stopped', function() {
                 this.status = null;
+                if (this.mediaRecorder.destroy) {
+                    this.mediaRecorder.destroy();
+                }
                 this.setupMediaRecorder(stream);
             });
         }

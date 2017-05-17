@@ -288,6 +288,8 @@ export default class RoomController {
         let res = await this.connection.initialJoin(data);
         runInAction(() => {
             this.room.memberships.selfId = res.uid;
+            this.recorder.extraAttrs.uid = res.uid;
+            this.room.recordingStore.selfId = res.uid;
         });
         await this.initialize();
     }
@@ -333,8 +335,9 @@ export default class RoomController {
 
     @action stopLocalMedia() {
         if (this.connection.stream) {
-            this.connection.stream.stop()
+            _.each(this.connection.stream.getTracks(), t => t.stop());
         }
+        this.connection.stream = null;
     }
 
     async connect() {

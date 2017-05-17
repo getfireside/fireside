@@ -85,7 +85,10 @@ class Peer extends WildEmitter {
 
             negotiationNeeded: () => {
                 this.emit('negotiationNeeded', arguments);
-                this.start();
+                if (this.peerConnection.pc.localDescription.type == 'offer') {
+                    // only the initiator should attempt reconnect
+                    this.start()
+                }
             },
 
             iceConnectionStateChange: () => {
@@ -100,7 +103,10 @@ class Peer extends WildEmitter {
                     if (this.status == 'connected') {
                         this.status = 'disconnected';
                         this.emit('disconnected');
-                        this.start(true); //icerestart = true
+                        if (this.peerConnection.pc.localDescription.type == 'offer') {
+                            // only the initiator should attempt reconnect
+                            this.start(true); //icerestart = true
+                        }
                     }
                 }
                 if (this.peerConnection.iceConnectionState == 'failed') {

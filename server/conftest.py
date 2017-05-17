@@ -54,6 +54,7 @@ def room(user, user2):
     room = Room.objects.create_with_owner(
         owner=user.participant
     )
+    room.memberships.create(participant=user.participant)
     room.memberships.create(participant=user2.participant)
     return room
 
@@ -85,6 +86,7 @@ def recording2(room, user2):
 @pytest.fixture
 def empty_room(user):
     room = Room.objects.create_with_owner(owner=user.participant)
+    room.memberships.create(participant=user.participant)
     return room
 
 

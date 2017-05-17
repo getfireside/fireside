@@ -383,7 +383,7 @@ class Room(models.Model):
         return self.get_absolute_url() + "socket"
 
     def get_full_socket_url(self):
-        return "ws://localhost:8000" + self.get_socket_url()
+        return "wss://firesidelocal.ngrok.io" + self.get_socket_url()
 
     def get_absolute_url(self):
         return reverse('rooms:room', kwargs={'room_id': self.id})

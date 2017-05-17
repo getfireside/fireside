@@ -1,25 +1,37 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {observer} from "mobx-react";
-import {runInAction} from 'mobx';
+import {runInAction, action} from 'mobx';
 import {isVideo} from 'lib/util';
 import _ from 'lodash';
+
+import AudioVisualizer from './audio-visualizer';
 
 @observer
 export default class AVPanel extends React.Component {
     async onStartClick() {
-        runInAction( () => {
-            this.props.uiStore.localMediaPromptShowing = true;
-        });
+        let needToShowPrompt = null;
+        setTimeout(action(() => {
+            if (needToShowPrompt == null) {
+                this.props.uiStore.localMediaPromptShowing = true;
+            }
+        }), 200);
         await this.props.controller.setupLocalMedia();
         runInAction( () => {
+            needToShowPrompt = false;
             this.props.uiStore.localMediaPromptShowing = false;
         });
+    }
+    onStopClick() {
+        this.props.controller.stopLocalMedia();
     }
     render() {
         return (
             <div className='av-panel'>
-                <button onClick={this.onStartClick.bind(this)} disabled={this.props.controller.connection.stream != null}>Start local media</button>
+                {this.props.controller.connection.stream == null ?
+                    <button onClick={this.onStartClick.bind(this)}>Start local media</button> :
+                    <button onClick={this.onStopClick.bind(this)}>Stop local media</button>
+                }
                 <LocalMedia stream={this.props.controller.connection.stream} onResourceUpdate={this.props.controller.updateResources} />
                 <div className="remotes">
                     {this.getRemoteMedia()}
@@ -46,26 +58,28 @@ export class LocalMedia extends React.Component {
     }
     setStream() {
         let m = ReactDOM.findDOMNode(this.refs.media);
-        m.srcObject = this.props.stream;
-        m.onloadedmetadata = () => {
-            m.play();
-            if (m.nodeName == 'VIDEO') {
-                this.props.onResourceUpdate({
-                    video: {
-                        width: m.videoWidth,
-                        height: m.videoHeight
-                    },
-                    audio:true
-                });
-                this.setState({
-                    videoWidth: m.videoWidth,
-                    videoHeight:m.videoHeight
-                });
-            }
-            else {
-                this.setState({videoWidth: null, videoHeight: null});
-            }
-        };
+        if (m) {
+            m.srcObject = this.props.stream;
+            m.onloadedmetadata = () => {
+                m.play();
+                if (m.nodeName == 'VIDEO') {
+                    this.props.onResourceUpdate({
+                        video: {
+                            width: m.videoWidth,
+                            height: m.videoHeight
+                        },
+                        audio:true
+                    });
+                    this.setState({
+                        videoWidth: m.videoWidth,
+                        videoHeight:m.videoHeight
+                    });
+                }
+                else {
+                    this.setState({videoWidth: null, videoHeight: null});
+                }
+            };
+        }
     }
     componentDidUpdate(prevProps, prevState) {
         if (this.props.stream != prevProps.stream) {
@@ -84,7 +98,10 @@ export class LocalMedia extends React.Component {
                 {(
                     isVideo(this.props.stream) ?
                     <video muted ref="media"/> :
-                    <audio muted ref="media"/>
+                    <div>
+                        <AudioVisualizer stream={this.props.stream} />
+                        <audio ref="media"/>
+                    </div>
                 )}
                     {this.state.videoWidth &&
                         <div className="resolution">
@@ -112,10 +129,12 @@ export class RemoteMedia extends React.Component {
     }
     setStream() {
         let m = ReactDOM.findDOMNode(this.refs.media);
-        m.srcObject = this.props.stream;
-        m.onloadedmetadata = () => {
-            m.play();
-        };
+        if (m) {
+            m.srcObject = this.props.stream;
+            m.onloadedmetadata = () => {
+                m.play();
+            };
+        }
     }
     render() {
         if (this.props.stream) {
@@ -123,8 +142,12 @@ export class RemoteMedia extends React.Component {
                 <div className="remotemedia">
                 {(
                     isVideo(this.props.stream) ?
-                    <video muted ref="media"/> :
-                    <audio muted ref="media"/>
+                    <video ref="media"/> : (
+                        <div>
+                            <AudioVisualizer stream={this.props.stream} />
+                            <audio ref="media"/>
+                        </div>
+                    )
                 )}
                 </div>
             );

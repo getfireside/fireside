@@ -55,7 +55,18 @@ export class DownloadStatusButton extends React.Component {
     }
     render() {
         if (this.shouldShowButton()) {
-            return <button onClick={this.downloadClick.bind(this)}>Download</button>;
+            return (
+                <button onClick={this.downloadClick.bind(this)}>
+                    {
+                        (
+                            this.props.recording.fileTransfer &&
+                            this.props.recording.fileTransfer.isComplete
+                        ) ?
+                        "Download" :
+                        "Copy to Downloads folder"
+                    }
+                </button>
+            );
         }
         else {
             return this.progressBar();

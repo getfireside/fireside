@@ -89,7 +89,7 @@ class JoinRoomView(APIView):
             context={'participant': participant}
         )
         if serializer.is_valid():
-            mem = room.memberships.create(
+            room.memberships.create(
                 participant=participant,
                 name=serializer.validated_data['name'],
                 role='o' if participant == room.owner else 'g',
@@ -99,7 +99,7 @@ class JoinRoomView(APIView):
                 data=serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST
             )
-        return Response({'uid': mem.id}, status=status.HTTP_200_OK)
+        return Response({'uid': participant.id}, status=status.HTTP_200_OK)
 
 
 class RoomMessagesView(ListAPIView):

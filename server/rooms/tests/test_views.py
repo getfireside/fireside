@@ -4,9 +4,18 @@ from rooms.models import Message, Room
 import re
 
 
-@pytest.mark.skip
+@pytest.mark.django_db
 class TestRoomJoinView:
-    pass
+    def test_returns_participant_id(self, api_client, empty_room, user2):
+        url = reverse('rooms:join', kwargs={'room_id': empty_room.id})
+        api_client.force_login(user2)
+        response = api_client.post(url, {
+            'name': 'test'
+        }, format='json')
+        assert empty_room.memberships.filter(
+            participant=user2.participant
+        ).exists()
+        assert response.data == {'uid': user2.participant.id}
 
 
 @pytest.mark.django_db
