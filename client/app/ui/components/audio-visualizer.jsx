@@ -3,16 +3,19 @@ import ReactDOM from 'react-dom';
 import {observer} from "mobx-react";
 
 var SMOOTHING = 0.8;
-var FFT_SIZE = 2048;
+var FFT_SIZE = 512;
 var WIDTH = 640;
 var HEIGHT = 480;
+
+let audioContext = new AudioContext();
 
 @observer
 export default class AudioVisualizer extends React.Component {
     constructor(props) {
         super(props);
         this.state = {};
-        this.audioContext = new AudioContext();
+
+        this.audioContext = audioContext;
         this.draw = this.draw.bind(this);
     }
     setup() {

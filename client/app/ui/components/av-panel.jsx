@@ -100,7 +100,7 @@ export class LocalMedia extends React.Component {
                     <video muted ref="media"/> :
                     <div>
                         <AudioVisualizer stream={this.props.stream} />
-                        <audio ref="media"/>
+                        <audio ref="media" muted/>
                     </div>
                 )}
                     {this.state.videoWidth &&
