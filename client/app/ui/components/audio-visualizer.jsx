@@ -32,9 +32,6 @@ export default class AudioVisualizer extends React.Component {
         requestAnimationFrame(this.draw);
     }
     draw() {
-        if (this.closed) {
-            return;
-        }
         this.analyser.smoothingTimeConstant = SMOOTHING;
         this.analyser.fftSize = FFT_SIZE;
         this.analyser.getByteFrequencyData(this.freqs);
@@ -78,10 +75,6 @@ export default class AudioVisualizer extends React.Component {
         if (this.props.stream) {
             this.setup();
         }
-    }
-    componentWillUnmount() {
-        this.closed = true;
-        this.context.close();
     }
     render() {
         return (
