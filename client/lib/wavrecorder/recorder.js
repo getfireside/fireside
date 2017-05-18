@@ -5,12 +5,13 @@ import webrtc from 'webrtcsupport';
 
 import { fileToArrayBuffer } from 'lib/fs/util';
 
+let audioContext = new webrtc.AudioContext();
+
 export default class WAVAudioRecorder {
     constructor(stream, cfg) {
         this.config = cfg || {};
 
         let bufferLen = this.config.bufferLen || 4096;
-        let audioContext = new webrtc.AudioContext();
         let source = audioContext.createMediaStreamSource(stream);
 
         this.recording = false;

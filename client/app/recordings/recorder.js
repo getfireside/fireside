@@ -34,9 +34,40 @@ export default class Recorder extends WildEmitter {
         this.store = opts.store;
         this.recordingPeriod = opts.recordingPeriod;
         this.extraAttrs = opts.extraAttrs || {};
+        this.videoCodecs = [
+            'video/x-matroska;codecs=avc1',
+            'video/webm;codecs=avc1',
+            'video/x-matroska;codecs=vp9',
+            'video/webm;codecs=vp9',
+            'video/webm;codecs=vp8',
+        ];
+        this.supportedVideoCodecs = _.filter(this.videoCodecs, c => MediaRecorder.isTypeSupported(c));
         // this.roomId = opts.roomId;
 
         this.logger = opts.logger != null ? opts.logger : new Logger(null, 'Recorder');
+    }
+
+    getVideoMimeType() {
+        return this.supportedVideoCodecs[0];
+    }
+
+    getVideoBitrate() {
+        if (this.videoBitrate == null) {
+            return this.videoResolution[0] * this.videoResolution[1] * 2 * 0.07 * 30;
+        }
+        else {
+            return this.videoBitrate;
+        }
+    }
+
+    getVideoResolution(stream) {
+        return new Promise( (resolve) => {
+            let v = document.createElement('video');
+            v.srcObject = stream;
+            v.onloadedmetadata = () => {
+                resolve([v.videoWidth, v.videoHeight]);
+            };
+        });
     }
 
     /**
@@ -46,10 +77,13 @@ export default class Recorder extends WildEmitter {
      * @private
      * @param {MediaStream} stream - the stream to record
      */
-    setupMediaRecorder(stream) {
+    async setupMediaRecorder(stream) {
         if (isVideo(stream)) {
+            this.videoResolution = await this.getVideoResolution(stream);
             this.mediaRecorder = new MediaRecorder(stream, {
-                videoBitsPerSecond: 5*1024*1024
+                mimeType: this.getVideoMimeType(),
+                videoBitsPerSecond: this.getVideoBitrate(),
+                audioBitsPerSecond: 320*1024,
             });
         }
         else {
@@ -169,7 +203,7 @@ export default class Recorder extends WildEmitter {
     start() {
         if (this.status === 'ready') {
             this.currentRecording = this.createRecording({
-                type: this.mediaRecorder instanceof WAVAudioRecorder ? 'audio/wav' : 'video/webm'
+                type: this.mediaRecorder instanceof WAVAudioRecorder ? 'audio/wav' : this.mediaRecorder.mimeType
             });
             this.status = 'started';
             this.logger.info('STATUS = "started"');

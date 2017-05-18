@@ -304,20 +304,35 @@ export default class RoomController {
     async setupLocalMedia() {
         let audio = true;
         let video = this.room.config.mode == 'video';
-        let mediaStream = await navigator.mediaDevices.getUserMedia({
-            audio,
-            video: video && {
-                optional: [
-                    {minWidth: 320},
-                    {minWidth: 640},
-                    {minWidth: 1024},
-                    {minWidth: 1280},
-                    {minWidth: 1920},
-                    {minWidth: 2560},
-                    {minWidth: 3840},
-                ]
-            }
-        });
+        let mediaStream;
+        if (_.includes(navigator.userAgent, 'Firefox')) {
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+                audio,
+                video: {
+                    height: {
+                        min: 240,
+                        ideal: 2160,
+                        max: 2160
+                    }
+                }
+            });
+        }
+        else {
+            mediaStream = await navigator.mediaDevices.getUserMedia({
+                audio,
+                video: video && {
+                    optional: [
+                        {minHeight: 240},
+                        {minHeight: 480},
+                        {minHeight: 576},
+                        {minHeight: 720},
+                        {minHeight: 1080},
+                        {minHeight: 1440},
+                        {minHeight: 2160},
+                    ]
+                }
+            });
+        }
         runInAction( () => {
             this.recorder.setStream(mediaStream);
             this.connection.connectStream(mediaStream);

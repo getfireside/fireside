@@ -11,7 +11,8 @@ import {clock} from 'lib/util';
 let mimesMap = {
     'audio/wav': 'wav',
     'video/webm': 'webm',
-    'audio/ogg': 'ogg'
+    'video/x-matroska': 'mkv',
+    'audio/ogg': 'ogg',
 };
 
 export class Recording {
@@ -56,7 +57,7 @@ export class Recording {
     }
 
     getFileExt() {
-        return mimesMap[this.type];
+        return mimesMap[this.type.split(';')[0]];
     }
 
     generateFilename() {
