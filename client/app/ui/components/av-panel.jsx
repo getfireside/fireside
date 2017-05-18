@@ -130,11 +130,10 @@ export class RemoteMedia extends React.Component {
         }
     }
     setStream() {
-        let m = ReactDOM.findDOMNode(this.refs.media);
-        if (m) {
-            m.srcObject = this.props.stream;
-            m.onloadedmetadata = () => {
-                m.play();
+        if (this.mediaEl) {
+            this.mediaEl.srcObject = this.props.stream;
+            this.mediaEl.onloadedmetadata = () => {
+                this.mediaEl.play();
             };
         }
     }
@@ -144,10 +143,10 @@ export class RemoteMedia extends React.Component {
                 <div className="remotemedia">
                 {(
                     isVideo(this.props.stream) ?
-                    <video ref="media"/> : (
+                    <video ref={(media) => { this.mediaEl = media; }}/> : (
                         <div>
                             <AudioVisualizer stream={this.props.stream} />
-                            <audio ref="media"/>
+                            <audio ref={(media) => { this.mediaEl = media; }} />
                         </div>
                     )
                 )}
