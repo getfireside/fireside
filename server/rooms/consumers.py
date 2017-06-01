@@ -33,7 +33,7 @@ class RoomSocketConsumer(JsonWebsocketConsumer):
         })
 
     def receive(self, text, **kwargs):
-        decoded = Room.decode_message_dict(text)
+        decoded = Message.decode_message_dict(text)
         decoded['reply_channel'] = self.message.content['reply_channel']
         decoded['room_id'] = self.kwargs['id']
         decoded['participant_id'] = \
@@ -87,7 +87,7 @@ class RoomConsumer(BaseConsumer):
 
     def join(self, message, **kwargs):
         initial_data = self.room.get_initial_data()
-        peer_id = self.message.channel_session['peer_id'] = self.room.join(
+        peer_id = self.message.channel_session['peer_id'] = self.room.connect(
             self.participant,
             channel_name=self.message.reply_channel.name
         )
@@ -105,7 +105,7 @@ class RoomConsumer(BaseConsumer):
                 type=Message.TYPE.join,
                 payload=initial_data
             ),
-            to_peer=peer_id,
+            to_peer_id=peer_id,
         )
         self.room.announce(peer_id, self.participant)
         Group(self.room.group_name).add(self.message.reply_channel)
@@ -118,5 +118,5 @@ class RoomConsumer(BaseConsumer):
         Group(self.room.group_name).discard(self.message.reply_channel)
 
     def signalling(self, message, to, **data):
-        message.payload = prioritize_h264(message.payload)
-        self.room.send(message, to_peer=to)
+        # message.payload = prioritize_h264(message.payload)
+        self.room.send(message, to_peer_id=to)

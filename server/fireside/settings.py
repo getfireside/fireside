@@ -25,7 +25,9 @@ TEST = False
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = ['firesidelocal.ngrok.io']
+HOSTNAME = 'firesidelocal.ngrok.io'
+ALLOWED_HOSTS = [HOSTNAME]
+
 
 # Application definition
 
@@ -44,9 +46,9 @@ INSTALLED_APPS = [
     'allauth',
     'allauth.account',
 
-    'accounts',
-    'rooms',
-    'recordings',
+    'accounts.apps.AccountsConfig',
+    'rooms.apps.RoomsConfig',
+    'recordings.apps.RecordingsConfig',
 ]
 
 MIDDLEWARE_CLASSES = [

@@ -215,7 +215,7 @@
                     id: "{{ room.id }}",
                     ownerId: {{ room.owner.id }},
                     selfId: {{ self_uid|default:'null' }},
-                    config: {{ room.get_config_json|safe }},
+                    config: {{ config_json|safe }},
                 },
                 opts: {
                     urls: {

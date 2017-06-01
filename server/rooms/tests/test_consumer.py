@@ -37,9 +37,11 @@ def joined_clients(room, client, client2):
     client.send_and_consume('websocket.connect', path=room.get_socket_url())
     client.consume('room.join')
     client.peer_id = client.receive()['p']['self']['peer_id']
+    client.receive() # consume announce message
     client2.send_and_consume('websocket.connect', path=room.get_socket_url())
     client2.consume('room.join')
     client2.peer_id = client2.receive()['p']['self']['peer_id']
+    client2.receive() # consume announce message
     client.receive()
     client.membership = room.memberships.get(
         participant=client.user.participant
@@ -56,7 +58,7 @@ class TestRoomConsumer:
     def send_message(self, client, room, **kwargs):
         msg = room.message(**kwargs)
         client.send_and_consume('websocket.receive', {
-            'text': room.encode_message(msg),
+            'text': msg.encode(),
             'path': room.get_socket_url(),
         })
         # just consuming the websocket alone isn't enough
@@ -66,7 +68,7 @@ class TestRoomConsumer:
     def get_message(self, client, room):
         res = client.receive()
         if res is not None:
-            return room.decode_message(res)
+            return Message.decode(res)
         else:
             return None
 
@@ -77,7 +79,7 @@ class TestRoomConsumer:
         )
         client.consume('room.join')
 
-        # should receive only a join message
+        # should receive a join message then an announce message
         # members should contain both disconnected and connected members
         msg = self.get_message(client, room)
         assert msg.type == Message.TYPE.join
@@ -102,12 +104,36 @@ class TestRoomConsumer:
             'status': 0,
             'uid': 2
         }]
+        assert msg.payload['config'] == {
+            'mode': 'audio',
+            'video_bitrate': None,
+            'debug_mode': False
+        }
 
         joined_peer1 = msg.payload['self']
         assert 'peer_id' in joined_peer1
         assert joined_peer1['uid'] == room.owner.id
         assert joined_peer1['info']['name'] == 'HAL'
         assert joined_peer1['info']['role'] == 'o'
+
+        msg = self.get_message(client, room)
+        assert msg.type == Message.TYPE.announce
+        expected_peer = {
+            'uid': client.user.participant.id,
+            'peer_id': joined_peer1['peer_id'],
+            'status': RoomMembership.STATUS.connected,
+            'info': {
+                'current_recording_id': None,
+                'role': 'o',
+                'recorder_status': None,
+                'name': 'HAL',
+                'disk_usage': None,
+                'resources': None,
+                'recordings': []
+            }
+        }
+        assert msg.payload['peer'] == expected_peer
+        assert msg.participant == client.user.participant
 
         # now let's join another client, with a recording
         rec = Recording.objects.create(
@@ -125,8 +151,8 @@ class TestRoomConsumer:
         client2.consume('room.join')
 
         # make sure client1 received announce
-        msg2 = self.get_message(client, room)
-        assert msg2.type == Message.TYPE.announce
+        msg = self.get_message(client, room)
+        assert msg.type == Message.TYPE.announce
 
         expected_peer2 = {
             'uid': client2.user.participant.id,
@@ -141,16 +167,16 @@ class TestRoomConsumer:
                 'recordings': [RecordingSerializer(rec).data]
             }
         }
-        assert msg2.payload['peer'].items() >= expected_peer2.items()
+        assert msg.payload['peer'].items() >= expected_peer2.items()
 
         # and then that client2 got a proper join message too
-        msg3 = self.get_message(client2, room)
-        assert msg3.type == Message.TYPE.join
-        peer1_data = msg3.payload['members'][0]
+        msg = self.get_message(client2, room)
+        assert msg.type == Message.TYPE.join
+        peer1_data = msg.payload['members'][0]
 
-        assert len(msg3.payload['members']) == 2
+        assert len(msg.payload['members']) == 2
         assert (
-            msg3.payload['members'][0]['status'] ==
+            msg.payload['members'][0]['status'] ==
             RoomMembership.STATUS.connected
         )
         assert joined_peer1['peer_id'] == peer1_data['peer_id']

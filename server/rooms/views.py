@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from django.views.generic import DetailView, View
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
+import json
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -33,7 +34,7 @@ class HasRoomAccess(BasePermission):
         except Participant.DoesNotExist:
             return False
         request.participant = participant
-        return room.can_access(participant)
+        return room.is_member(participant)
 
 
 class IsRoomAdmin(BasePermission):
@@ -62,6 +63,7 @@ class RoomView(DetailView):
         ctx = super().get_context_data(**ctx)
         # TODO refactor me
         ctx['self_uid'] = None
+        ctx['config_json'] = json.dumps(self.object.get_config())
         try:
             participant = Participant.objects.from_request(self.request)
         except Participant.DoesNotExist:
@@ -111,10 +113,13 @@ class RoomMessagesView(ListAPIView):
         if serializer.is_valid():
             message = Message(**serializer.validated_data)
             message.participant = request.participant
-            message.peer_id = request.room.get_peer_id(request.participant)
+            message.peer_id = request.room.peers.for_participant(request.participant).id
             print(message.__dict__)
             request.room.receive_event(message)
-            return Response({'id': message.id}, status=status.HTTP_200_OK)
+            return Response({
+                'id': message.id,
+                'timestamp': message.timestamp.timestamp() * 1000
+            }, status=status.HTTP_200_OK)
         else:
             return Response(
                 data=serializer.errors,
@@ -132,6 +137,7 @@ class RoomMessagesView(ListAPIView):
             )
         return qs
 
+
 class RoomRecordingsView(ListCreateAPIView):
     permission_classes = (HasRoomAccess,)
     serializer_class = RecordingSerializer
@@ -141,7 +147,6 @@ class RoomRecordingsView(ListCreateAPIView):
 
     def perform_create(self, serializer):
         self.request.room.create_recording(**serializer.validated_data)
-
 
 
 class RoomParticipantsView(ListAPIView):
@@ -168,9 +173,9 @@ class RoomActionView(APIView):
         peer_id = serializer.validated_data['peer_id']
         getattr(self.request.room, action_name)(
             target_peer_id=peer_id.hex,
-            from_peer_id=self.request.room.get_peer_id(
+            from_peer_id=self.request.room.peers.for_participant(
                 self.request.participant
-            ),
+            ).id,
             from_participant=self.request.participant
         )
         return Response(data='OK', status=status.HTTP_200_OK)

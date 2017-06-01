@@ -54,11 +54,18 @@ class MessageSerializer(serializers.ModelSerializer):
         fields = ('id', 'uid', 'type', 'payload', 'timestamp', 'peer_id')
 
 
+class RoomConfigSerializer(serializers.Serializer):
+    mode = serializers.ChoiceField(choices=['audio', 'video'], default='audio')
+    debug_mode = serializers.BooleanField(default=False)
+    video_bitrate = serializers.IntegerField(allow_null=True, default=None)
+
+
 class InitialRoomDataSerializer(serializers.Serializer):
     members = MembershipSerializer(
-        source='get_memberships_with_peer_ids',
+        source='peers.get_memberships_with_peer_ids',
         many=True
     )
+    config = RoomConfigSerializer()
 
 
 class JoinRoomSerializer(serializers.Serializer):
@@ -69,12 +76,6 @@ class PeerActionSerializer(serializers.Serializer):
     peer_id = serializers.UUIDField(format='hex')
 
     def validate_peer_id(self, value):
-        if value.hex not in self.context['room'].get_peer_ids():
+        if value.hex not in self.context['room'].peers.ids:
             raise serializers.ValidationError('Peer is not connected.')
         return value
-
-class RoomConfigSerializer(serializers.Serializer):
-    mode = serializers.ChoiceField(choices=['audio', 'video'], default='audio')
-    debug_mode = serializers.BooleanField(default=False)
-    video_bitrate = serializers.IntegerField(allow_null=True, default=None)
-

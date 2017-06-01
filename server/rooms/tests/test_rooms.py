@@ -17,9 +17,7 @@ class TestRoomManager:
     def test_create_with_owner(self, user, participant3):
         room1 = Room.objects.create_with_owner(user.participant)
         assert room1.owner == user.participant
-        mem1 = room1.memberships.get()
-        assert mem1.participant == user.participant
-        assert mem1.role == mem1.ROLE.owner
+        assert room1.memberships.count() == 0
 
         room2 = Room.objects.create_with_owner(participant3)
         assert room2.owner == participant3
@@ -30,42 +28,16 @@ class TestRoom:
         assert not room.is_admin(user2.participant)
         assert room.is_admin(user.participant)
 
+    def test_is_member(self, room, user, user2, participant3):
+        assert room.is_member(user.participant)
+        assert room.is_member(user2.participant)
+        assert not room.is_member(participant3)
+
     def test_is_valid_action(self, room):
         for action in room.ACTION_TYPES:
             assert room.is_valid_action(action)
         assert not room.is_valid_action('some_invalid_action')
         assert not room.is_valid_action(None)
-
-    def test_encode_message(self, room):
-        for type, type_name in Message.TYPE:
-            res = room.encode_message(room.message(
-                type=type,
-                payload={'foo': 'bar'}
-            ))
-            assert isinstance(res, str)
-            data = json.loads(res)
-            assert data['t'] == type
-            assert data['p'] == {'foo': 'bar'}
-        with pytest.raises(ValueError, message='Invalid message'):
-            room.encode_message(Message())
-        with pytest.raises(ValueError, message='Invalid message'):
-            room.encode_message(Message(type=type))
-        with pytest.raises(ValueError, message='Invalid message'):
-            room.encode_message(Message(payload={2: 3}))
-
-    def test_decode_message(self, room):
-        for type, type_name in Message.TYPE:
-            msg = room.decode_message({'t': type, 'p': {'foo': 'bar'}})
-            assert msg.type == type
-            assert msg.payload == {'foo': 'bar'}
-            assert msg.room == room
-
-        with pytest.raises(ValueError, message='Invalid message'):
-            room.decode_message({'t': 'fake', 'p': {'foo': 'bar'}})
-        with pytest.raises(ValueError, message='Invalid message'):
-            room.decode_message({'a': 'b', 'c': 'd'})
-        with pytest.raises(ValueError, message='Invalid message'):
-            room.decode_message(None)
 
     def test_message(self, empty_room):
         msg = empty_room.message(type='t', payload={'foo': 'bar'})
@@ -145,103 +117,33 @@ class TestRoom:
         assert set(room.connected_memberships) == set(room.memberships.all())
 
     @pytest.mark.usefixtures('redisdb')
-    def test_join_new_participant(self, empty_room, participant3, mocker):
-        m1 = mocker.patch('rooms.models.Room.connect_peer')
-        m2 = mocker.patch('rooms.models.Room.announce')
+    def test_connect(self, empty_room, user, participant3):
         empty_room.memberships.create(
             participant=participant3
         )
-        peer_id = empty_room.join(
-            participant3,
-            channel_name='test_channel_name'
+        peer_id = empty_room.connect(
+            participant=user.participant,
+            channel_name='xxx'
+        )
+        peer2_id = empty_room.connect(
+            participant=participant3,
+            channel_name='yyy'
         )
         assert isinstance(peer_id, str)
-        assert peer_id == empty_room.get_peer_id(participant3)
-        mem = empty_room.memberships.get(
+        assert peer_id == empty_room.peers.for_participant(user.participant).id
+        assert peer2_id == empty_room.peers.for_participant(participant3).id
+        mem = empty_room.connected_memberships.get(
             participant=participant3
         )
         assert mem.role == mem.ROLE.guest
+        assert empty_room.connected_memberships.filter(participant=user.participant).exists()
+        assert empty_room.peers[peer_id]['channel'] == 'xxx'
 
-        m1.assert_called_once_with(peer_id, 'test_channel_name', participant3)
-        m2.assert_called_once_with(peer_id, participant3)
-
-    @pytest.mark.usefixtures('redisdb')
-    def test_join_existing_participant(self, room, user, mocker):
-        m1 = mocker.patch('rooms.models.Room.connect_peer')
-        m2 = mocker.patch('rooms.models.Room.announce')
-        peer_id = room.join(user.participant, channel_name='test_channel_name')
-        assert isinstance(peer_id, str)
-        assert peer_id == room.get_peer_id(user.participant)
-        mem = room.memberships.get(
-            participant=user.participant
-        )
-        assert mem.role == mem.ROLE.owner
-
-        m1.assert_called_once_with(
-            peer_id,
-            'test_channel_name',
-            user.participant
-        )
-        m2.assert_called_once_with(peer_id, user.participant)
-
-    @pytest.mark.usefixtures('redisdb')
-    def test_get_and_set_peer_id(self, room, participant3):
-        peer_id = room.set_peer_id(participant3)
-        assert isinstance(peer_id, str)
-        assert len(peer_id) == 32
-        assert room.get_peer_id(participant3) == peer_id
-        assert room.get_peer_id(room.owner) is None
-
-    @pytest.mark.usefixtures('redisdb')
-    def test_connect_peer(self, room, user, mocker):
-        m1 = mocker.patch('rooms.models.Room.set_peer_data')
-        peer_id = '443ecc03b59f46809854a965defb2d03'
-        room.connect_peer(
-            peer_id,
-            'peer_channel_name',
-            participant=user.participant
-        )
-        m1.assert_called_once_with(
-            peer_id,
-            'channel',
-            'peer_channel_name',
-        )
-        assert redis_conn.hget(
-            f'rooms:{room.id}:peers',
-            peer_id
-        ) == str(user.participant.id)
-
-    @pytest.mark.usefixtures('redisdb')
-    def test_disconnect_peer(self, room, user, mocker):
-        peer_id = '443ecc03b59f46809854a965defb2d03'
-        room.connect_peer(
-            peer_id,
-            'peer_channel_name',
-            participant=user.participant
-        )
-        room.disconnect_peer(peer_id)
-        assert not redis_conn.hexists(
-            f'rooms:{room.id}:peers',
-            peer_id
-        )
-        assert not redis_conn.exists(f'rooms:{room.id}:peers:{peer_id}')
-
-    @pytest.mark.usefixtures('redisdb')
-    def test_get_and_set_peer_data(self, empty_room):
-        testdata = {'foo': 'bar', 'foo2': 231}
-        peer_id = '443ecc03b59f46809854a965defb2d03'
-        empty_room.set_peer_data(peer_id, 'test', testdata)
-        assert redis_conn.hget(
-            f'rooms:{empty_room.id}:peers:{peer_id}',
-            'test'
-        ) == json.dumps(testdata)
-        assert empty_room.get_peer_data(peer_id, 'test') == testdata
-        assert empty_room.get_peer_data(peer_id, 'non-existent') is None
 
     @pytest.mark.usefixtures('redisdb')
     def test_announce(self, room, recording, recording2, participant3, mocker):
+        peer_id = room.connect(room.owner, 'xxx')
         m = mocker.patch('rooms.models.Room.send')
-        peer_id = '443ecc03b59f46809854a965defb2d03'
         room.announce(peer_id, room.owner)
         assert m.call_count == 1
         msg = m.call_args[0][0]
@@ -261,7 +163,7 @@ class TestRoom:
 
     def test_create_recording(self, room, mocker):
         send_mock = mocker.patch('rooms.models.Room.send')
-        peer_id = room.set_peer_id(room.owner)
+        peer_id = room.connect(room.owner, channel_name='')
         rec = room.create_recording(
             started=now(),
             participant=room.owner,
@@ -294,8 +196,8 @@ class TestRoomSend:
     @pytest.fixture
     def send_mocks(self, mocker):
         mocker.channel_for_peer = mocker.patch(
-            'rooms.models.Room.channel_for_peer',
-            autospec=True
+            'rooms.peers.Peer.channel',
+            new_callable=mocker.PropertyMock
         )
         mocker.group_class = mocker.patch(
             'rooms.models.room.Group',
@@ -322,8 +224,8 @@ class TestRoomSend:
         assert send_mocks.should_save_message.called
         send_mocks.group_class.assert_called_once_with(room.group_name)
         assert send_mocks.group_class.method_calls == [mocker.call().send({
-            'text': room.encode_message(msg1)
-        }, immediately=True)]
+            'text': msg1.encode()
+        })]
         send_mocks.add_message.assert_called_once_with(msg1)
 
     def test_send_default_no_save(self, room, mocker, send_mocks):
@@ -343,8 +245,8 @@ class TestRoomSend:
         room.send(msg2, save=True)
         assert not send_mocks.channel_for_peer.called
         assert send_mocks.group_class.method_calls == [mocker.call().send({
-            'text': room.encode_message(msg2)
-        }, immediately=True)]
+            'text': msg2.encode()
+        })]
         assert not send_mocks.should_save_message.called
         send_mocks.add_message.assert_called_once_with(msg2)
 
@@ -352,19 +254,19 @@ class TestRoomSend:
     def test_send_action(self):
         pass
 
-    def test_send_to_individual(self, room, mocker, send_mocks):
+    def test_send_to_individual(self, room, user2, mocker, send_mocks):
         msg3 = room.message(type='event', payload={
             'type': 'requestStartRecording',
             'data': {'requester': {'id': '443ecc03b59f46809854a965defb2d03'}}
         })
-        to_id = '444ecc03b59f46809854a965defb2d03'
-        room.send(msg3, to_peer=to_id)
+        to_id = room.connect(user2.participant, 'xxx')
+        room.send(msg3, to_peer_id=to_id)
         assert send_mocks.channel_for_peer.mock_calls[0] == \
-            mocker.call(room, to_id)
+            mocker.call()
         assert send_mocks.channel_for_peer.mock_calls[1] == \
             mocker.call().send({
-                'text': room.encode_message(msg3)
-            }, immediately=True)
+                'text': msg3.encode()
+            })
         assert len(send_mocks.channel_for_peer.mock_calls) == 2
         assert not send_mocks.group_class.called
         assert not send_mocks.should_save_message.called

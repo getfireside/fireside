@@ -26,3 +26,9 @@ def prioritize_h264(data):
     data['payload']['sdp'] = sdp.replace(m.group(0), m_prioritized)
     print(data['payload']['sdp'])
     return data
+
+def register_room_event_handler(f):
+    from .models.room import Room
+    """Decorator to register function `f` as an event handler"""
+    Room.event_handlers[f.__name__] = f
+    return f
