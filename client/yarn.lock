@@ -4212,6 +4212,10 @@ rechoir@^0.6.2:
   dependencies:
     resolve "^1.1.6"
 
+reconnecting-websocket@^3.0.3:
+  version "3.0.3"
+  resolved "https://registry.yarnpkg.com/reconnecting-websocket/-/reconnecting-websocket-3.0.3.tgz#69dcf183da484f1e6c137321a0058bf94423cb58"
+
 redent@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/redent/-/redent-1.0.0.tgz#cf916ab1fd5f1f16dfb20822dd6ec7f730c2afde"

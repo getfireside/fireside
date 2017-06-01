@@ -35,7 +35,7 @@ export default class Recorder extends WildEmitter {
         this.recordingPeriod = opts.recordingPeriod;
         this.extraAttrs = opts.extraAttrs || {};
         this.videoCodecs = [
-            'video/x-matroska;codecs=avc1',
+            // 'video/x-matroska;codecs=avc1',
             'video/webm;codecs=avc1',
             'video/x-matroska;codecs=vp9',
             'video/webm;codecs=vp9',

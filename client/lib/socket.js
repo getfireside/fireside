@@ -1,4 +1,5 @@
 import WildEmitter from "wildemitter";
+import ReconnectingWebSocket from "reconnecting-websocket";
 
 export default class Socket extends WildEmitter {
     /**
@@ -8,25 +9,29 @@ export default class Socket extends WildEmitter {
     constructor(opts) {
         super()
         this.status = 'closed';
-        this.url = opts.url
+        this.url = opts.url;
     }
 
     open() {
-        this.ws = new WebSocket(this.url)
-        this.status = 'connecting'
+        this.ws = new ReconnectingWebSocket(this.url, undefined, {
+            maxReconnectInterval: 10000,
+            timeoutInterval: 5000,
+            debug: true,
+        });
+        this.status = 'connecting';
         this.ws.onopen = (event) => {
-            this.status = 'open'
-            this.emit('open', event)
-        }
+            this.status = 'open';
+            this.emit('open', event);
+        };
 
         this.ws.onmessage = (event) => {
-            var msg = JSON.parse(event.data)
-            this.emit('message', msg)
-        }
+            var msg = JSON.parse(event.data);
+            this.emit('message', msg);
+        };
         this.ws.onclose = (event) => {
-            this.status = 'closed'
+            this.status = 'closed';
             this.emit('close', event)
-        }
+        };
     }
 
     send(data) {
@@ -34,6 +39,6 @@ export default class Socket extends WildEmitter {
     }
 
     close() {
-        this.ws.close()
+        this.ws.close();
     }
 }

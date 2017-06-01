@@ -181,10 +181,21 @@ export default class RoomController {
         }
     }
 
-    @on('connection.startReceivingFile')
+    @on('connection.fileTransfer.progress')
     @action.bound
-    handleStartReceivingFile() {
+    handleFileReceiveProgress(transfer, progress) {
+        this.connection.sendEvent('updateUploadProgress', {
+            id: transfer.fileId.split(':')[1],
+            ...progress,
+        }, {http: false});
+    }
 
+    @on('connection.fileTransfer.complete')
+    @action.bound
+    handleFileReceiveComplete(transfer) {
+        this.connection.sendEvent('uploadComplete', {
+            id: transfer.fileId.split(':')[1]
+        }, {http: false});
     }
 
     @action.bound
