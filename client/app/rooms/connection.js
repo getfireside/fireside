@@ -2,6 +2,7 @@ import WildEmitter from 'wildemitter';
 import _ from 'lodash';
 import {observable} from 'mobx';
 
+import Logger from 'lib/logger';
 import Peer from 'lib/rtc/peer';
 import Socket from 'lib/socket';
 import {fetchPost, fetchJSON} from 'lib/util';
@@ -33,6 +34,7 @@ export default class RoomConnection extends WildEmitter {
 
         this.status = 'disconnected';
 
+        this.logger = new Logger(opts.logger, "connection");
         this.fileTransfers = new FileTransferManager(this);
 
         this.messageHandlers = {
@@ -133,6 +135,7 @@ export default class RoomConnection extends WildEmitter {
             uid: data.uid,
             info: data.info,
             connection: this,
+            logger: this.logger,
             isInitiator,
         });
 

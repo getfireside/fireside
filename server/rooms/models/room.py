@@ -281,7 +281,7 @@ class Room(models.Model):
             if event_type in (
                 'update_recording',
                 'update_meter',
-                'upload_progress',
+                'update_upload_progress',
             ):
                 return False
             else:

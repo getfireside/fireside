@@ -38,7 +38,7 @@ class MemFS extends FS {
             opts = {}
         }
         this.dbname = opts.dbname || 'testdb';
-        this.logger = opts.logger || new Logger();
+        this.logger = new Logger(opts.logger, 'MemFS');
         this.db = {}
     }
     open() {

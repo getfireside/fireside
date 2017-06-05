@@ -52,6 +52,7 @@ const fileMixin = Base => class extends Base {
                 this.filesize = 0;
             }
             this.filesize += blob.size;
+            this._fileSizeDirty = false;
         });
     }
 

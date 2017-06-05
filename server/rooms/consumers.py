@@ -91,6 +91,7 @@ class RoomConsumer(BaseConsumer):
             self.participant,
             channel_name=self.message.reply_channel.name
         )
+        print(peer_id)
         mem = self.room.memberships.get(participant=self.participant)
         initial_data['self'] = {
             'peer_id': peer_id,

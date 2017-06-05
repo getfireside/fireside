@@ -1,16 +1,17 @@
 import { observable, action, runInAction } from "mobx";
-import { bindEventHandlers, on } from 'lib/actions';
+import { bindEventHandlers, on, throttle } from 'lib/actions';
 
 import RoomConnection from './connection';
 import Recorder from 'app/recordings/recorder';
 import {MESSAGE_TYPES, MEMBER_STATUSES} from 'app/rooms/constants';
 import _ from 'lodash';
+import Logger from 'lib/logger';
 import {camelizeKeys} from 'lib/util';
 
 export default class RoomController {
     constructor(opts = {}) {
         this.room = opts.room;
-        this.logger = opts.logger;
+        this.logger = new Logger(opts.logger, 'controller');
         this.fs = opts.fs;
 
         this.recorder = new Recorder({
@@ -22,6 +23,7 @@ export default class RoomController {
             room: this.room,
             urls: opts.urls,
             fs: this.fs,
+            logger: opts.logger
         });
 
         bindEventHandlers(this);
@@ -183,6 +185,7 @@ export default class RoomController {
 
     @on('connection.fileTransfer.progress')
     @action.bound
+    @throttle(500)
     handleFileReceiveProgress(transfer, progress) {
         this.connection.sendEvent('updateUploadProgress', {
             id: transfer.fileId.split(':')[1],

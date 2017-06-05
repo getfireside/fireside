@@ -72,7 +72,7 @@ export default class HTML5FS extends FS {
     constructor(opts) {
         super();
         opts = opts || {};
-        this.logger = opts.logger != null ? opts.logger : new Logger(null, 'HTML5FS');
+        this.logger = new Logger(opts.logger, 'HTML5FS');
     }
 
     open() {

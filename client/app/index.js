@@ -62,7 +62,7 @@ export default class FiresideApp {
     }
 
     setupFS() {
-        this.fs = initFS({dbname: 'fireside-fs'});
+        this.fs = initFS({dbname: 'fireside-fs', logger: this.logger});
     }
 
     getRootElement() {

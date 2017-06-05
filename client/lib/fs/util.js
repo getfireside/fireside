@@ -8,7 +8,11 @@ export function fileToArrayBuffer(blob) {
             reject(e);
         };
         reader.readAsArrayBuffer(blob);
-    })
+    });
+}
+
+export function stringToArrayBuffer(str) {
+    return new TextEncoder("utf-8").encode(str);
 }
 
 export function estimateFreeSpace() {

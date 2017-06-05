@@ -3,8 +3,8 @@
     'react',
     ["env", {
       "targets": {
-        "chrome": 56,
-        "firefox": 54
+        "chrome": 57,
+        "firefox": 52,
       },
       "debug": true,
       "exclude": ["transform-regenerator"],

@@ -44,7 +44,7 @@ export default class Recorder extends WildEmitter {
         this.supportedVideoCodecs = _.filter(this.videoCodecs, c => MediaRecorder.isTypeSupported(c));
         // this.roomId = opts.roomId;
 
-        this.logger = opts.logger != null ? opts.logger : new Logger(null, 'Recorder');
+        this.logger = new Logger(opts.logger, 'Recorder');
     }
 
     getVideoMimeType() {

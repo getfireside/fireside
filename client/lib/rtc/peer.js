@@ -33,7 +33,7 @@ class Peer extends WildEmitter {
 
         this.channels = {};
 
-        this.logger = opts.logger != null ? opts.logger : new Logger(null, 'Peer');
+        this.logger = new Logger(opts.logger, `Peer:${this.id}`);
 
         this.peerConnectionActions = {
             ice: (candidate) => {
@@ -149,7 +149,7 @@ class Peer extends WildEmitter {
             },
 
             candidate: (message) => {
-                this.logger.log(['Ice candidate', message]);
+                this.logger.log('Ice candidate', message);
                 this.logger.warn(this.peerConnection.pc.remoteDescription.type);
                 // // if remote description hasn't been set yet, then adding ice candidates
                 // // will throw an error. let's wait until it's been added, then attempt to add.
@@ -211,7 +211,7 @@ class Peer extends WildEmitter {
         }
 
         this.peerConnection.on('signalingStateChange', () => this.emit('signalingStateChange'));
-        this.peerConnection.on('*', (...args) => { this.logger.log(["DEBUG PC EVENT", args]); });
+        this.peerConnection.on('*', (...args) => { this.logger.debug("DEBUG PC EVENT", ...args); });
         this.logger.log('done setting up PC.');
 
         // this.controller.localMedia.localStreams.map((stream) => {
@@ -286,7 +286,7 @@ class Peer extends WildEmitter {
             prefix: webrtcSupport.prefix
         };
         this.connection.send({type:MESSAGE_TYPES.SIGNALLING, payload:message}, {http:false});
-        this.logger.log(["SIGNALLING: SENT", message]);
+        this.logger.debug("SIGNALLING: SENT", message);
     }
 
     sendDirectly(channel, type, payload) {
@@ -300,7 +300,7 @@ class Peer extends WildEmitter {
             payload: payload
         };
 
-        this.logger.log(["sending via datachannel", channel, type, message]);
+        this.logger.log("sending via datachannel", channel, type, message);
 
         let dc = this.getDataChannel(channel);
         if (dc.readyState !== 'open') {
@@ -315,7 +315,7 @@ class Peer extends WildEmitter {
         /**
          * Attempt to open a stream with this peer.
          */
-        this.logger.log(["trying to start", this.id]);
+        this.logger.log("trying to start");
         // well, the webrtc api requires that we either
         // a) create a datachannel a priori
         // b) do a renegotiation later to add the SCTP m-line
@@ -333,7 +333,7 @@ class Peer extends WildEmitter {
 
         return this.peerConnection.offer(constraints, (err, sessionDescription) => {
             if (err) {
-                this.logger.error(['error!', err]);
+                this.logger.error('RTC error!', err);
             }
         });
     }
@@ -360,7 +360,7 @@ class Peer extends WildEmitter {
         if (this.closed) {
             return;
         }
-        this.logger.log([this.id, "leaving"]);
+        this.logger.log("leaving");
         this.endStream();
         this.closed = true;
         this.releaseGroup();

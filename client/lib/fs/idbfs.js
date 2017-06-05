@@ -131,7 +131,7 @@ export default class IDBFS extends FS {
     constructor(opts) {
         super();
         this.dbname = opts.dbname;
-        this.logger = opts.logger != null ? opts.logger : new Logger(null, 'IDBFS');
+        this.logger = this.logger = new Logger(opts.logger, 'HTML5FS');
     }
     clear() {
         return new Promise((fulfil, reject) => {
@@ -172,7 +172,6 @@ export default class IDBFS extends FS {
                 this.db.onerror = (e) => console.error(e.target.error);
                 this.db.onabort = (e) => console.error(e.target.error);
                 this.db.onversionchange = (e) => {
-                    console.error("CLOSING BECAUSE VERSION CHANGE")
                     e.target.close();
                 };
                 this.watchDiskUsage();
