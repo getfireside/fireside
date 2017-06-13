@@ -24,6 +24,7 @@ export class Recording {
     room = null;
     id = null;
     @observable blobUrl = null;
+    @observable lastBitrate;
 
     @computed get niceFilename() {
         let name = this.membership.name;
@@ -77,7 +78,7 @@ export class Recording {
     @computed get fileTransfer() {
         return this.store.fileTransfers && this.store.fileTransfers.receiverForFileId(`recording:${this.id}`);
     }
-
+ 
     serialize() {
         return {
             started: this.started && +(this.started),

@@ -3,8 +3,8 @@ var path = require('path');
 module.exports = {
   context: path.resolve(__dirname),
   entry: {
-    main: './index.js',
-    "wav-recorder-worker": './lib/wavrecorder/worker.js'
+    main: './src/index.js',
+    "wav-recorder-worker": './src/lib/wavrecorder/worker.js'
   },
   output: {
     filename: '[name].js',
@@ -16,7 +16,7 @@ module.exports = {
         test: /\.(js|jsx)$/,
         exclude: /node_modules/,
         use: [
-          'babel-loader',
+          'babel-loader?cacheDirectory=true',
         ],
       }
     ]
@@ -25,13 +25,13 @@ module.exports = {
   resolve: {
       extensions: ['.js', '.jsx'],
       modules: [
-          __dirname,
+          "src",
           "node_modules"
       ]
   },
   resolveLoader: {
       modules: [
-          __dirname,
+          "src",
           'node_modules'
       ]
   }

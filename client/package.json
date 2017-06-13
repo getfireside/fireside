@@ -26,7 +26,7 @@
     "jasmine": "^2.5.3",
     "jasmine-core": "^2.5.2",
     "jest": "^19.0.2",
-    "karma": "^1.6.0",
+    "karma": "^1.7.0",
     "karma-chrome-launcher": "^2.0.0",
     "karma-cli": "^1.0.1",
     "karma-coverage": "^1.1.1",

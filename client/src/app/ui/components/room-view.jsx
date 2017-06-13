@@ -21,7 +21,6 @@ export class HostRoomView extends React.Component {
                 <div className="flex-container">
                     <aside>
                         <UserStatusPanel {...this.props} />
-                        <RecordingStatusPanel {...this.props} />
                         <MessagesPanel {...this.props} />
                     </aside>
                     <main>

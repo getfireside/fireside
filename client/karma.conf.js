@@ -1,4 +1,5 @@
 path = require('path')
+webpack = require('webpack');
 
 // Karma configuration
 module.exports = function(config) {
@@ -44,7 +45,7 @@ module.exports = function(config) {
                         test: /\.(js|jsx)$/,
                         exclude: /node_modules/,
                         use: [
-                            'babel-loader',
+                            'babel-loader?cacheDirectory=true',
                         ],
                     },
                     // {
@@ -58,20 +59,25 @@ module.exports = function(config) {
             resolve: {
                 extensions: ['.js', '.jsx', '.spec.js'],
                 modules: [
-                    __dirname,
+                    "src",
                     "node_modules"
                 ]
             },
             resolveLoader: {
                 modules: [
-                    __dirname,
+                    "src",
                     'node_modules'
                 ]
-            }
+            },
             // karma watches the test entry points
             // (you don't need to specify the entry option)
             // webpack watches dependencies
             // webpack configuration
+            plugins: [
+              new webpack.LoaderOptionsPlugin({
+                debug: true
+              })
+            ]
         },
 
         webpackMiddleware: {

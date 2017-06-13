@@ -41,4 +41,9 @@ export default class Socket extends WildEmitter {
     close() {
         this.ws.close();
     }
+
+    restart() {
+        this.close();
+        this.open();
+    }
 }

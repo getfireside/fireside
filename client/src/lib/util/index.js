@@ -158,10 +158,15 @@ export function isVideo(stream) {
     return stream.getVideoTracks().length > 0;
 }
 
-export function formatDuration(d) {
+export function formatDuration(d, {format = "hms"} = {}) {
     var mins = Math.floor(d / 60);
     var secs = Math.round(d % 60);
-    return `${mins}m ${secs}s`;
+    if (format == "hms") {
+        return `${mins}m ${secs}s`;
+    }
+    else if (format == "stopwatch") {
+        return `${pad(mins, 2, '0')}:${pad(secs, 2, '0')}`;
+    }
 }
 
 export class Clock extends WildEmitter {
@@ -180,3 +185,7 @@ export class Clock extends WildEmitter {
 }
 
 export const clock = new Clock(1000);
+
+export function calculateBitrate(pixels) {
+    return pixels * 2 * 0.07 * 30;
+}

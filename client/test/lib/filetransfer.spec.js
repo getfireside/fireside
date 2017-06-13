@@ -39,7 +39,7 @@ function whenTrue(cond, every=50) {
     });
 }
 
-describe.only("FileReceiver", () => {
+describe("FileReceiver", () => {
     context('Initial setup', () => {
 
     });

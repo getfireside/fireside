@@ -1,27 +1,41 @@
 import RecordingStore from 'app/recordings/store';
-import UserStore from 'app/users/store';
 import MessageStore from 'app/messages/store';
 import Room, {RoomMembership} from 'app/rooms/room';
 import config from 'app/config';
 import _ from 'lodash';
 
 export function roomWithStores({fs, messages, recordings}) {
-    let room = new Room({id: '6UQbFa', ownerId: 42, selfId: 42});
+    let room = new Room({id: '6UQbFa', ownerId: 42, selfId: 22, config: {'mode': 'video'}});
 
     room.memberships.set(22, new RoomMembership({
         room: room,
         name: 'Dave Bowman',
         uid: 22,
+        status: 0,
+        diskUsage: null,
+        resources: null,
+        recorderStatus: null,
+        peerId: null
     }));
     room.memberships.set(42, new RoomMembership({
         room: room,
         name: 'HAL 9000',
         uid: 42,
+        status: 1,
+        diskUsage: null,
+        resources: null,
+        recorderStatus: null,
+        peerId: 'aaaa',
     }));
     room.memberships.set(132, new RoomMembership({
         room: room,
         name: 'Frank Poole',
         uid: 132,
+        status: 0,
+        diskUsage: null,
+        resources: null,
+        recorderStatus: null,
+        peerId: null
     }));
 
     room.messageStore = new MessageStore({messages: messages || [

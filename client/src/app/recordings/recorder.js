@@ -4,7 +4,7 @@ import WAVAudioRecorder from 'lib/wavrecorder/recorder';
 import { Logger } from 'lib/logger';
 import { observable, action } from 'mobx';
 import _ from 'lodash';
-import { isVideo } from 'lib/util';
+import { isVideo, calculateBitrate } from 'lib/util';
 
 /**
  * Manages the recording of a single stream.
@@ -15,8 +15,6 @@ export default class Recorder extends WildEmitter {
      * @param {Store} opts.store - a store instance that will be used to create new recordings,
      * attached to a filesystem instance
      */
-
-
     @observable status = null;
     @observable currentRecording = null;
     @observable lastBitrate = null;
@@ -24,8 +22,7 @@ export default class Recorder extends WildEmitter {
     @observable diskUsage = null;
 
     constructor(opts) {
-        let defaults =
-            {recordingPeriod: 1000};
+        let defaults = {recordingPeriod: 1000};
 
         opts = _.extend({}, defaults, opts);
 
@@ -35,9 +32,7 @@ export default class Recorder extends WildEmitter {
         this.recordingPeriod = opts.recordingPeriod;
         this.extraAttrs = opts.extraAttrs || {};
         this.videoCodecs = [
-            // 'video/x-matroska;codecs=avc1',
             'video/webm;codecs=avc1',
-            'video/x-matroska;codecs=vp9',
             'video/webm;codecs=vp9',
             'video/webm;codecs=vp8',
         ];
@@ -53,7 +48,7 @@ export default class Recorder extends WildEmitter {
 
     getVideoBitrate() {
         if (this.videoBitrate == null) {
-            return this.videoResolution[0] * this.videoResolution[1] * 2 * 0.07 * 30;
+            return calculateBitrate(this.videoResolution[0] * this.videoResolution[1]);
         }
         else {
             return this.videoBitrate;

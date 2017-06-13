@@ -5,6 +5,7 @@
         <title>Fireside | {{ room.id }}</title>
         <link href="{% static 'dist/room.css' %}" />
         <link href="https://fonts.googleapis.com/css?family=Muli:400,400i,700,700i" rel="stylesheet">
+        <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
         <style>
         * {
             box-sizing: border-box;
@@ -41,22 +42,64 @@
             color: orange;
             text-decoration: none;
         }
+        .membership {
+            margin-bottom: 5px;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            padding: 5px;
+            font-size: 12px;
+        }
+        .user-status-panel li:last-child .membership {
+            border: none;
+        }
         .membership.disconnected {
             opacity: 0.5;
             font-style: italic;
         }
-        div.membership .role, div.membership .peer-status {
-            display: inline-block;
-            text-transform: uppercase;
-            font-size: 0.7rem;
-            padding: 2px;
-            line-height: 1;
-            margin-left: 5px;
-            background: #333;
-            color: white;
+        .membership .name {
+            font-size: 14px;
         }
-        .peer-status {
-            background: darkgreen;
+        .membership .topline {
+            display: flex;
+        }
+        .membership .resources {
+            display: inline;
+        }
+        .membership .info {
+            flex-grow: 1;
+            align-items: baseline;
+        }
+        .membership .recording-status {
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .membership .disk .bar {
+            background: rgba(0,0,0,0.1);
+            height: 4px;
+        }
+        .membership .disk .bar > span {
+            background: black;
+            height: 4px;
+            display: block;
+        }
+        .membership .disk .info {
+            display: flex;
+        }
+        .membership .disk .info .time-left {
+            flex-grow: 1;
+        }
+        .membership > .recording {
+            display: flex;
+            align-items: baseline;
+        }
+        .membership > .recording > .status {
+            flex-grow: 1;
+        }
+        .membership > .recording .bitrate {
+            font-style: italic;
+            font-size: 10px;
+        }
+        .membership > .recording .size {
+            font-weight: bold;
         }
         .room-view > .flex-container {
             flex: 1 1 auto;
@@ -67,6 +110,7 @@
             background: white;
             display: flex;
             flex-direction: column;
+            min-width: 250px;
         }
         .room-view aside > * {
 
@@ -168,9 +212,6 @@
             line-height: 0;
             border-radius: 2px;
         }
-        main .av-panel .localmedia.audio {
-            display: none;
-        }
         main .files-drawer {
             max-height: 200px;
             overflow: scroll;
@@ -189,6 +230,18 @@
             padding: 2px 2px 1px;
             border-top-left-radius: 4px;
             line-height: 1;
+        }
+        .toggle-local-media {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            border: 2px solid rgba(0,0,0,0.5);
+            border-radius: 2px;
+            font-family: inherit;
+            text-transform: lowercase;
+            background: transparent;
+            color: #444;
+            font-weight: bold;
         }
         .overlay {
             position: absolute;

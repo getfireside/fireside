@@ -1,6 +1,7 @@
 import {observable, action, computed, ObservableMap} from 'mobx';
 import {ROLES_INVERSE} from './constants';
 import _ from 'lodash';
+import {calculateBitrate} from 'lib/util';
 
 export class RoomMembership {
     @observable.ref currentRecording = null;
@@ -25,6 +26,31 @@ export class RoomMembership {
 
     @computed get roleName() {
         return ROLES_INVERSE[this.role].toLowerCase();
+    }
+
+    @computed get approxMinutesLeft() {
+        if (!this.diskUsage) {
+            return null;
+        }
+        let freeSpace = this.diskUsage.quota - this.diskUsage.usage;
+        let bitrate;
+        if (this.room.config.mode == 'audio') {
+            bitrate = 176375; // stereo wav @ 44.1khz
+        }
+        else {
+            if (this.room.config.video_bitrate == null) {
+                let numPixels;
+                if (this.resources && this.resources.video) {
+                    numPixels = this.resources.video.width * this.resources.video.height;
+                }
+                else {
+                    numPixels = 1280 * 720;
+                }
+                bitrate = 128000 + calculateBitrate(numPixels);
+            }
+        }
+        return (freeSpace / bitrate) / 60;
+
     }
 
     constructor({uid, room, name, currentRecordingId, role, status, peer, peerId}) {

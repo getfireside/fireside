@@ -34,6 +34,7 @@ export default class RoomController {
     @on('recorder.*')
     @action.bound
     updateRecorderStatus(eventName) {
+        // TESTS EXIST
         if (_.includes(['ready', 'started', 'stopping', 'stopped'], eventName)) {
             this.room.memberships.self.recorderStatus = this.recorder.status;
             this.sendEvent('updateStatus', {
@@ -45,6 +46,7 @@ export default class RoomController {
     @on('recorder.started')
     @action.bound
     notifyCreatedRecording(recording) {
+        // TESTS EXIST
         this.room.memberships.self.currentRecordingId = this.recorder.currentRecording.id;
         this.room.memberships.self.currentRecording = this.recorder.currentRecording;
         this.connection.notifyCreatedRecording(recording.serialize());
@@ -53,6 +55,7 @@ export default class RoomController {
     @on('recorder.blobWritten')
     @action.bound
     notifyRecordingUpdate() {
+        // TESTS EXIST
         this.connection.sendEvent('updateRecording', {
             filesize: this.recorder.currentRecording.filesize,
             id: this.recorder.currentRecording.id
@@ -62,6 +65,7 @@ export default class RoomController {
     @on('recorder.stopped')
     @action.bound
     notifyRecordingComplete(recording) {
+        // TESTS EXIST
         this.sendEvent('stopRecording', {
             id: recording.id,
             filesize: recording.filesize,
@@ -72,12 +76,14 @@ export default class RoomController {
     @on('connection.event.requestStartRecording')
     @action.bound
     startRecording() {
+        // TESTS EXIST
         this.recorder.start();
     }
 
     @on('connection.event.requestStopRecording')
     @action.bound
     stopRecording() {
+        // TESTS EXIST
         this.recorder.stop();
     }
 
@@ -86,6 +92,7 @@ export default class RoomController {
         'connection.event.stopRecording')
     @action.bound
     handleRecordingStatusUpdate(change) {
+        // TESTS EXIST
         let update = camelizeKeys(change);
         update.room = this.room;
         this.room.recordingStore.update([update]);
@@ -98,6 +105,7 @@ export default class RoomController {
     @on('connection.peerAdded')
     @action.bound
     handlePeerAdded(peer) {
+        // TESTS EXIST
         this.room.recordingStore.update(_.map(peer.info.recordings, r => {
             r = camelizeKeys(r);
             r.room = this.room;
@@ -128,6 +136,7 @@ export default class RoomController {
     @on('connection.peerRemoved')
     @action.bound
     handlePeerRemoved({uid}) {
+        // TESTS EXIST
         this.room.updateMembership(uid, {
             status: MEMBER_STATUSES.DISCONNECTED,
             peerId: null,
@@ -138,6 +147,7 @@ export default class RoomController {
     @on('connection.join')
     @action.bound
     async handleJoinRoom(data, message) {
+        // TESTS EXIST
         _.each(
             data.members,
             (m) => {
@@ -164,7 +174,15 @@ export default class RoomController {
             name: data.self.info.name,
             uid: data.self.uid,
         });
-        let messagesData = await this.connection.getMessages({until: message.timestamp});
+        let messagesData;
+        try {
+            messagesData = await this.connection.getMessages({until: message.timestamp});
+        }
+        catch (err) {
+            this.logger.error(err);
+            this.connection.restart();
+            return;
+        }
         this.room.updateMessagesFromServer(messagesData);
         this.openFS();
     }
@@ -172,6 +190,8 @@ export default class RoomController {
     @on('connection.requestFileTransfer')
     @action.bound
     handleRequestFileTransfer(peer, {fileId}) {
+        // TODO: ADD TESTS
+        // TODO: adjust for HTTP if necessary
         if (!this.fs.fs) {
             // FIXME - FSes need a state attribute
             // re-call once FS is open
@@ -187,6 +207,8 @@ export default class RoomController {
     @action.bound
     @throttle(500)
     handleFileReceiveProgress(transfer, progress) {
+        // TODO: ADD TESTS
+        // TODO: adjust for HTTP if necessary
         this.connection.sendEvent('updateUploadProgress', {
             id: transfer.fileId.split(':')[1],
             ...progress,
@@ -196,6 +218,8 @@ export default class RoomController {
     @on('connection.fileTransfer.complete')
     @action.bound
     handleFileReceiveComplete(transfer) {
+        // TODO: ADD TESTS
+        // TODO: adjust for HTTP if necessary
         this.connection.sendEvent('uploadComplete', {
             id: transfer.fileId.split(':')[1]
         }, {http: false});
@@ -218,12 +242,14 @@ export default class RoomController {
     @on('connection.event.updateStatus')
     @action.bound
     handleStatusUpdate(change, message) {
+        // TESTS EXIST
         this.room.updateMembership(message.uid, change);
     }
 
     @on('connection.event.updateConfig')
     @action.bound
     handleUpdateConfig(newConfig) {
+        // TODO: ADD TESTS
         let oldConfig = {...this.room.config};
         this.room.config = newConfig;
         if (this.room.config.mode != oldConfig.mode) {
@@ -241,6 +267,7 @@ export default class RoomController {
     @on('connection.message')
     @action.bound
     receiveMessage(message) {
+        // TESTS EXIST
         if (message.type != MESSAGE_TYPES.SIGNALLING) {
             this.room.messageStore.addMessage(message);
         }
@@ -251,6 +278,7 @@ export default class RoomController {
     @on('fs.diskUsageUpdate')
     @action.bound
     handleLocalDiskUsageUpdate(diskUsage) {
+        // TESTS EXIST
         this.room.memberships.self.diskUsage = diskUsage;
         this.connection.sendEvent('updateStatus', {diskUsage}, {http: false});
     }
@@ -259,6 +287,7 @@ export default class RoomController {
 
     @action.bound
     sendEvent(type, data) {
+        // TESTS EXIST
         let promise = this.connection.sendEvent(type, data, {http:true});
         return this.room.messageStore.addMessage({
             type: MESSAGE_TYPES.EVENT,
@@ -270,16 +299,19 @@ export default class RoomController {
 
     @action.bound
     requestStartRecording(user) {
+        // TESTS EXIST
         return this.connection.runAction('startRecording', {peerId:user.peerId});
     }
 
     @action.bound
     requestStopRecording(user) {
+        // TESTS EXIST
         return this.connection.runAction('stopRecording', {peerId:user.peerId});
     }
 
     @action.bound
     updateConfig(config) {
+        // TODO: ADD TESTS
         return this.connection.runAction('updateConfig', config);
     }
 
@@ -299,6 +331,7 @@ export default class RoomController {
 
     @action
     async initialJoin(data) {
+        // TODO: ADD TESTS
         let res = await this.connection.initialJoin(data);
         runInAction(() => {
             this.room.memberships.selfId = res.uid;
@@ -310,12 +343,14 @@ export default class RoomController {
 
     @action.bound
     updateResources(data) {
+        // TESTS EXIST
         this.room.memberships.self.resources = data;
         this.connection.sendEvent('updateStatus', {resources:data}, {http:false});
     }
 
     @action
     async setupLocalMedia() {
+        // TESTS EXIST
         let audio = true;
         let video = this.room.config.mode == 'video';
         let mediaStream;
@@ -363,6 +398,7 @@ export default class RoomController {
     }
 
     @action stopLocalMedia() {
+        // TODO: ADD TESTS
         if (this.connection.stream) {
             _.each(this.connection.stream.getTracks(), t => t.stop());
         }

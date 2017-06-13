@@ -31,6 +31,10 @@ export default class RoomConnection extends WildEmitter {
 
         this.socket = new Socket({url: this.urls.socket});
         this.socket.on('message', this.handleSocketMessage.bind(this));
+        this.socket.on('close', () => {
+            this.emit('disconnect');
+            this.status = 'disconnected'
+        });
 
         this.status = 'disconnected';
 
@@ -39,18 +43,21 @@ export default class RoomConnection extends WildEmitter {
 
         this.messageHandlers = {
             signalling: (message) => {
+                // TESTS EXIST
                 let peer = this.getPeer(message.peerId);
                 if (peer) {
                     peer.receiveSignallingMessage(message.payload);
                 }
             },
             announce: (message) => {
+                // TESTS EXIST
                 // when another peer joins
                 let peer = this.addPeer(message.payload.peer, {isInitiator: false});
                 this.emit('peerAnnounce', peer, message);
                 this.attemptResumeFiletransfers(peer);
             },
             join: (message) => {
+                // TESTS EXIST
                 // when the user connects
                 this.selfPeerId = message.payload.self.peerId;
                 for (let member of message.payload.members) {
@@ -63,11 +70,13 @@ export default class RoomConnection extends WildEmitter {
                 this.emit('join', message.payload, message);
             },
             leave: (message) => {
+                // TESTS EXIST
                 // when another peer leaves
                 let peer = this.removePeer(message.payload.id);
                 this.emit('peerLeave', peer, message);
             },
             event: (message) => {
+                // TESTS EXIST
                 if (!this.selfPeerId || message.peerId != this.selfPeerId) {
                     this.emit(`event.${message.payload.type}`, message.payload.data, message);
                 }
@@ -76,11 +85,13 @@ export default class RoomConnection extends WildEmitter {
     }
 
     onConnect() {
+        // TESTS EXIST
         this.status = 'connected';
         this.emit('connect');
     }
 
     connect() {
+        // TESTS EXIST
         /**
          * Open the websocket and connect
          */
@@ -92,7 +103,12 @@ export default class RoomConnection extends WildEmitter {
         }
     }
 
+    restart() {
+        this.socket.restart();
+    }
+
     getMessages({until}) {
+        // TODO: ADD TESTS
         let url;
         if (until) {
             url = `${this.urls.messages}?until=${until}`;
@@ -104,6 +120,7 @@ export default class RoomConnection extends WildEmitter {
     }
 
     handleSocketMessage(message) {
+        // TESTS EXIST
         /**
          * Dispatches a message received from the socket.
          * @private
@@ -126,6 +143,8 @@ export default class RoomConnection extends WildEmitter {
     }
 
     addPeer(data, {isInitiator = false} = {}) {
+        // TESTS EXIST
+        // TODO: UPDATE TEST
         /**
          * Set up a peer
          * @param {obj} data: Info received from the server about the peer
@@ -155,10 +174,12 @@ export default class RoomConnection extends WildEmitter {
     }
 
     initialJoin(data) {
+        // TESTS EXIST
         return fetchPost(this.urls.join, decamelizeKeys(data));
     }
 
     send({type, payload}, {http = true} = {}) {
+        // TESTS EXIST
         let decamelized = decamelizeKeys(payload);
         if (http) {
             return fetchPost(this.urls.messages, {
@@ -175,6 +196,7 @@ export default class RoomConnection extends WildEmitter {
     }
 
     sendEvent(type, data, {http = true} = {}) {
+        // TESTS EXIST
         let toSend = {type: MESSAGE_TYPES.EVENT, payload: {
             type: decamelize(type),
             data: data
@@ -183,10 +205,12 @@ export default class RoomConnection extends WildEmitter {
     }
 
     runAction(name, data) {
+        // TESTS EXIST
         return fetchPost(this.urls.action.replace(':name', decamelize(name)), decamelizeKeys(data));
     }
 
     connectStream(stream) {
+        // TESTS EXIST
         if (this.stream) {
             _.each(this.stream.getTracks(), t => t.stop());
         }
@@ -198,10 +222,12 @@ export default class RoomConnection extends WildEmitter {
     }
 
     getPeer(id) {
+        // TODO: ADD TEST
         return _.find(this.peers, p => p.id == id);
     }
 
     removePeer(id) {
+        // TODO: ADD TEST
         let peer = this.getPeer(id);
         peer.end();
         this.peers = _.reject(this.peers, p => p.id == id);
@@ -210,10 +236,12 @@ export default class RoomConnection extends WildEmitter {
     }
 
     notifyCreatedRecording(data) {
+        // TESTS EXIST
         return fetchPost(this.urls.recordings, decamelizeKeys(data));
     }
 
     requestFileTransfer(fileId, peer) {
+        // TODO: ADD TEST
         peer.sendSignallingMessage('requestFileTransfer', {fileId});
         peer.once('fileTransferChannelOpen', (channel) => {
             let receiver = this.fileTransfers.receiveFile({channel, peer, fileId, fs: this.fs});
@@ -222,6 +250,7 @@ export default class RoomConnection extends WildEmitter {
     }
 
     attemptResumeFiletransfers(peer) {
+        // TODO: ADD TEST
         let receivers = this.fileTransfers.receiversForUid(peer.uid);
         if (receivers) {
             for (let receiver of receivers) {

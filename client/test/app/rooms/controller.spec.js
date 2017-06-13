@@ -2,8 +2,9 @@ import RoomController from 'app/rooms/controller';
 import {MESSAGE_TYPES, MEMBER_STATUSES} from 'app/rooms/constants';
 import MemFS from 'lib/fs/memfs';
 import {Recording} from 'app/recordings/store';
+import {sleep} from 'lib/util/async';
 
-describe("RoomController", function() {
+describe.only("RoomController", function() {
     let rc = null;
     beforeEach( () => {
         let fs = new MemFS;
@@ -69,7 +70,7 @@ describe("RoomController", function() {
                 rc.recorder.emit('blobWritten');
                 expect(rc.connection.sendEvent).to.have.been.calledWith(
                     'updateRecording',
-                    {filesize: 1856},
+                    {id: rec.id, filesize: 1856},
                     {http: false}
                 );
             });
@@ -104,27 +105,119 @@ describe("RoomController", function() {
             });
 
             it('On remote recording status update, pass through to recording store', () => {
-                sinon.stub(rc.room.recordingStore, 'update');
-                rc.connection.emit('event.updateRecordingStatus', {
-                    foo_name: 'bar'
-                });
-                expect(rc.room.recordingStore.update).to.have.been.calledWith([{fooName: 'bar'}]);
+                sinon.spy(rc.room.recordingStore, 'update');
+                rc.room.recordingStore.create(rec);
+                for (let eventType of ['startRecording', 'updateRecording', 'stopRecording']) {
+                    rc.connection.emit(`event.${eventType}`, {
+                        uid: 22,
+                        id: 'aaaa',
+                        type: 'video/webm',
+                        filesize: 100000,
+                    });
+                    expect(rc.room.recordingStore.update).to.have.been.calledWith([{
+                        room: rc.room,
+                        uid: 22,
+                        id: 'aaaa',
+                        type: 'video/webm',
+                        filesize: 100000,
+                    }]);
+                }
             });
         });
 
         context('On join', () => {
-            it('Adds members');
-            it('Updates self');
-            it('Gets and updates messages from server');
-            it('Tries to open the FS');
+            let message;
+            beforeEach( () => {
+                message = {
+                    payload: {
+                        members: _.map(rc.room.memberships.values(), (m, i) => ({
+                            uid: m.uid,
+                            info: {
+                                role: m.role,
+                                name: m.name,
+                                diskUsage: m.diskUsage,
+                                resources: m.resources,
+                                recorderStatus: m.recorderStatus,
+                                recordings: []
+                            },
+                            peerId: m.peerId,
+                        })),
+                        self: {
+                            name: rc.room.memberships.values()[0].name,
+                            info: {role: rc.room.memberships.values()[0].role},
+                            peerId: 'bbbb',
+                            uid: rc.room.memberships.values()[0].uid
+                        }
+                    },
+                    timestamp: +(new Date()),
+                }
+            });
+            it('Adds members', async () => {
+                let spy = sinon.spy(rc.room, 'updateMembership');
+                rc.connection.emit('join', message.payload, message);
+                await sleep(10);
+                expect(spy.args).to.have.lengthOf(4);
+                _.each(message.payload.members, (m, i) => {
+                    expect(spy.args[i][0]).to.equal(m.uid);
+                    expect(spy.args[i][1]).to.deep.equal({
+                        status: m.peerId ? MEMBER_STATUSES.CONNECTED : MEMBER_STATUSES.DISCONNECTED,
+                        role: m.info.role,
+                        name: m.info.name,
+                        uid: m.uid,
+                        diskUsage: m.info.diskUsage,
+                        resources: m.info.resources,
+                        recorderStatus: m.info.recorderStatus,
+                    })
+                });
+            });
+            it('Updates self', async () => {
+                let spy = sinon.spy(rc.room, 'updateMembership');
+                rc.connection.emit('join', message.payload, message);
+                await sleep(10);
+                let args = spy.args[spy.args.length-1];
+                expect(args[0]).to.equal(message.payload.self.uid);
+                expect(args[1]).to.deep.equal({
+                    status: 1,
+                    role: message.payload.self.info.role,
+                    peerId: message.payload.self.peerId,
+                    name: message.payload.self.info.name,
+                    uid: message.payload.self.uid,
+                })
+            });
+            it('Gets and updates messages from server', async () => {
+                let stub = sinon.stub(rc.connection, 'getMessages');
+                stub.resolves([{id: 213}, {id: 214}]);
+                let stub2 = sinon.stub(rc.room, 'updateMessagesFromServer');
+                rc.connection.emit('join', message.payload, message);
+                await sleep(10);
+                expect(stub).to.have.been.calledWith({until: message.timestamp});
+                expect(stub2).to.have.been.calledWith([{id: 213}, {id: 214}]);
+            });
+            it('If getting messages fails, restarts connection', async () => {
+                let stub = sinon.stub(rc.connection, 'getMessages');
+                let stub2 = sinon.stub(rc.connection, 'restart');
+                stub.rejects();
+                rc.connection.emit('join', message.payload, message);
+                await sleep(10);
+                expect(stub2.calledOnce).to.be.true;
+            })
+            it('Tries to open the FS', async () => {
+                let stub = sinon.stub(rc.connection, 'getMessages');
+                stub.resolves([{id: 213}, {id: 214}]);
+                let stub2 = sinon.stub(rc, 'openFS');
+                rc.connection.emit('join', message.payload, message);
+                await sleep(10);
+                expect(stub2.calledOnce).to.be.true;
+            });
         });
 
         it("When a peer joins, updates everything correctly", () => {
             sinon.stub(rc.room.recordingStore, 'update');
             sinon.stub(rc.room, 'updateMembership');
             let peer = {
-                id: 2,
+                id: 'aaaa',
                 uid: 22,
+                on: () => null,
                 info: {
                     name: "Test user",
                     role: 'guest',
@@ -141,6 +234,7 @@ describe("RoomController", function() {
                 },
                 currentRecordingId: "test-rec-22",
             };
+            sinon.stub(peer, 'on');
             rc.connection.emit('peerAdded', peer);
             expect(rc.room.recordingStore.update).calledWith([{
                 id: 'test-rec-22',
@@ -152,6 +246,7 @@ describe("RoomController", function() {
                 uid: 22,
             }]);
             expect(rc.room.updateMembership).calledWith(peer.uid, {
+                peerId: peer.id,
                 status: MEMBER_STATUSES.CONNECTED,
                 role: peer.info.role,
                 currentRecordingId: peer.info.currentRecordingId,

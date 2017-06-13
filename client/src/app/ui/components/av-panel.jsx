@@ -26,11 +26,16 @@ export default class AVPanel extends React.Component {
         this.props.controller.stopLocalMedia();
     }
     render() {
+        let resourceText = (
+            this.props.controller.room.mode == "video" ?
+            "camera + mic" :
+            "camera"
+        );
         return (
             <div className='av-panel'>
                 {this.props.controller.connection.stream == null ?
-                    <button onClick={this.onStartClick.bind(this)}>Start local media</button> :
-                    <button onClick={this.onStopClick.bind(this)}>Stop local media</button>
+                    <button class='toggle-local-media' onClick={this.onStartClick.bind(this)}>Start {resourceText}</button> :
+                    <button class='toggle-local-media' onClick={this.onStopClick.bind(this)}>Stop {resourceText}</button>
                 }
                 <LocalMedia stream={this.props.controller.connection.stream} onResourceUpdate={this.props.controller.updateResources} />
                 <div className="remotes">
@@ -99,9 +104,7 @@ export class LocalMedia extends React.Component {
                     isVideo(this.props.stream) ?
                     <video muted ref="media"/> :
                     <div>
-                        {
-                            // <AudioVisualizer stream={this.props.stream} />
-                        }
+                        <AudioVisualizer stream={this.props.stream} />
                         <audio ref="media" muted/>
                     </div>
                 )}
