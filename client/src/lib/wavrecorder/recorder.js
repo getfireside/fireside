@@ -54,7 +54,7 @@ export default class WAVAudioRecorder {
                 this.ondataavailable(e.data);
             }
             if (e.data.isLast && this.onstop != null) {
-                this.onstop()
+                this.onstop();
             }
         };
     }
@@ -88,12 +88,8 @@ export default class WAVAudioRecorder {
     }
 
     async destroy() {
-        if (this.context) {
-            await this.context.close();
-            console.log("Destroyed audioContext successfully")
-        }
         if (this.worker) {
-            this.worker.terminate()
+            this.worker.terminate();
         }
     }
 }

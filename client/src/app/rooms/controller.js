@@ -1,5 +1,6 @@
 import { observable, action, runInAction } from "mobx";
-import { bindEventHandlers, on, throttle } from 'lib/actions';
+import { bindEventHandlers, on} from 'lib/actions';
+import { throttle } from 'lodash-decorators';
 
 import RoomConnection from './connection';
 import Recorder from 'app/recordings/recorder';
@@ -76,14 +77,12 @@ export default class RoomController {
     @on('connection.event.requestStartRecording')
     @action.bound
     startRecording() {
-        // TESTS EXIST
         this.recorder.start();
     }
 
     @on('connection.event.requestStopRecording')
     @action.bound
     stopRecording() {
-        // TESTS EXIST
         this.recorder.stop();
     }
 
@@ -189,26 +188,40 @@ export default class RoomController {
 
     @on('connection.requestFileTransfer')
     @action.bound
-    handleRequestFileTransfer(peer, {fileId}) {
-        // TODO: ADD TESTS
-        // TODO: adjust for HTTP if necessary
-        if (!this.fs.fs) {
-            // FIXME - FSes need a state attribute
+    handleRequestFileTransfer(peer, {fileId, mode}) {
+        if (!this.fs.isOpen) {
             // re-call once FS is open
             this.fs.on('open', () => this.handleRequestFileTransfer(peer, {fileId}));
         }
         else {
             let recordingId = fileId.split(':')[1];
-            this.connection.fileTransfers.sendFile(peer, this.room.recordingStore.get(recordingId));
+            let rec = this.room.recordingStore.get(recordingId);
+            if (rec == null || !rec.filesize) {
+                this.connection.sendEvent('error', {
+                    type: 'recordingDoesNotExist',
+                    message: "The requested recording is not present on this client's disk"
+                })
+            }
+
+            if (mode == 'p2p') {
+                this.connection.fileTransfers.sendFileToPeer(peer, rec);
+            }
+            else {
+                this.connection.fileTransfers.uploadFile(rec, {mode});
+            }
         }
     }
 
     @on('connection.fileTransfer.progress')
     @action.bound
+    handleFileTransferProgress(transfer, progress) {
+        // moved to separate function due to issues with combining all
+        // 3 decorators
+        return this.throttledFileTransferProgress(transfer, progress);
+    }
+
     @throttle(500)
-    handleFileReceiveProgress(transfer, progress) {
-        // TODO: ADD TESTS
-        // TODO: adjust for HTTP if necessary
+    throttledFileTransferProgress(transfer, progress) {
         this.connection.sendEvent('updateUploadProgress', {
             id: transfer.fileId.split(':')[1],
             ...progress,
@@ -217,12 +230,10 @@ export default class RoomController {
 
     @on('connection.fileTransfer.complete')
     @action.bound
-    handleFileReceiveComplete(transfer) {
-        // TODO: ADD TESTS
-        // TODO: adjust for HTTP if necessary
+    handleFileTransferComplete(transfer) {
         this.connection.sendEvent('uploadComplete', {
             id: transfer.fileId.split(':')[1]
-        }, {http: false});
+        }, {http: true});
     }
 
     @action.bound
@@ -230,26 +241,17 @@ export default class RoomController {
         this.connection.requestFileTransfer(`recording:${recording.id}`, recording.membership.peer);
     }
 
-    // @on('connection.event.uploadRecordingRequest')
-    // @action.bound
-    // async uploadRecordingToHost(recordingId) {
-    //     let blob = await this.room.recordingStore.get(recordingId).getFileBlob();
-    //     this.connection.startFileUpload(this.room.owner, blob);
-    // }
-
     /* ---- MESSAGES AND EVENTS ---- */
 
     @on('connection.event.updateStatus')
     @action.bound
     handleStatusUpdate(change, message) {
-        // TESTS EXIST
         this.room.updateMembership(message.uid, change);
     }
 
     @on('connection.event.updateConfig')
     @action.bound
     handleUpdateConfig(newConfig) {
-        // TODO: ADD TESTS
         let oldConfig = {...this.room.config};
         this.room.config = newConfig;
         if (this.room.config.mode != oldConfig.mode) {
@@ -259,7 +261,7 @@ export default class RoomController {
                 this.setupLocalMedia();
             }
         }
-        if (this.room.config.videoBitrate != oldConfig.videoBitrate) {
+        else if (this.room.config.videoBitrate != oldConfig.videoBitrate) {
             this.stopRecording();
         }
     }
@@ -267,7 +269,6 @@ export default class RoomController {
     @on('connection.message')
     @action.bound
     receiveMessage(message) {
-        // TESTS EXIST
         if (message.type != MESSAGE_TYPES.SIGNALLING) {
             this.room.messageStore.addMessage(message);
         }
@@ -278,7 +279,6 @@ export default class RoomController {
     @on('fs.diskUsageUpdate')
     @action.bound
     handleLocalDiskUsageUpdate(diskUsage) {
-        // TESTS EXIST
         this.room.memberships.self.diskUsage = diskUsage;
         this.connection.sendEvent('updateStatus', {diskUsage}, {http: false});
     }
@@ -287,7 +287,6 @@ export default class RoomController {
 
     @action.bound
     sendEvent(type, data) {
-        // TESTS EXIST
         let promise = this.connection.sendEvent(type, data, {http:true});
         return this.room.messageStore.addMessage({
             type: MESSAGE_TYPES.EVENT,
@@ -299,31 +298,24 @@ export default class RoomController {
 
     @action.bound
     requestStartRecording(user) {
-        // TESTS EXIST
         return this.connection.runAction('startRecording', {peerId:user.peerId});
     }
 
     @action.bound
     requestStopRecording(user) {
-        // TESTS EXIST
         return this.connection.runAction('stopRecording', {peerId:user.peerId});
     }
 
     @action.bound
     updateConfig(config) {
-        // TODO: ADD TESTS
         return this.connection.runAction('updateConfig', config);
     }
 
     async openFS() {
-        /**
-         * Open the filesystem.
-         */
         await this.fs.open();
     }
 
     async initialize() {
-        // set up the storage here
         if (this.room.memberships.selfId != null) {
             await this.connect();
         }
@@ -331,7 +323,6 @@ export default class RoomController {
 
     @action
     async initialJoin(data) {
-        // TODO: ADD TESTS
         let res = await this.connection.initialJoin(data);
         runInAction(() => {
             this.room.memberships.selfId = res.uid;
@@ -343,14 +334,12 @@ export default class RoomController {
 
     @action.bound
     updateResources(data) {
-        // TESTS EXIST
         this.room.memberships.self.resources = data;
         this.connection.sendEvent('updateStatus', {resources:data}, {http:false});
     }
 
     @action
     async setupLocalMedia() {
-        // TESTS EXIST
         let audio = true;
         let video = this.room.config.mode == 'video';
         let mediaStream;
@@ -398,7 +387,6 @@ export default class RoomController {
     }
 
     @action stopLocalMedia() {
-        // TODO: ADD TESTS
         if (this.connection.stream) {
             _.each(this.connection.stream.getTracks(), t => t.stop());
         }

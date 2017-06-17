@@ -76,11 +76,15 @@ describe("Recorder", function() {
                 if (recorder) {
                     await recorder.destroy();
                 }
+                // set up a clean recorder instance with a test FS before each test
                 recorder = new Recorder({
-                    // set up a clean recorder instance with a test FS before each test
                     store: fixtures.generateRecordingStore(window.fs),
-                    extraAttrs: {room: {id: '6UQbFa'}}
+                    extraAttrs: {room: {id: '6UQbFa'}},
+                    wavWorkerPath: '/dist/wav-recorder-worker.js'
                 });
+                // getVideoResolution doesn't work as these aren't getUserMedia streams:
+                // stub it out
+                sinon.stub(recorder, 'getVideoResolution').resolves([1280, 720]);
                 if (recordingType === 'audio') {
                     media = audio;
                 }
@@ -97,16 +101,16 @@ describe("Recorder", function() {
                 recorder.setupMediaRecorder(captureStream(media));
             });
 
-            it('Sets up the correct underlying MediaRecorder dependent on the stream type', () => {
-                recorder.setupMediaRecorder(captureStream(media));
+            it('Sets up the correct underlying MediaRecorder dependent on the stream type', async () => {
+                await recorder.setStream(captureStream(media));
                 let expectedType = recordingType == 'audio' ? WAVRecorder : MediaRecorder;
                 expect(recorder.mediaRecorder).to.be.an.instanceof(expectedType);
             });
 
             context('Once the recording starts', () => {
 
-                beforeEach(() => {
-                    recorder.setupMediaRecorder(captureStream(media));
+                beforeEach(async () => {
+                    await recorder.setStream(captureStream(media));
                 });
 
                 it('Emits a start event and sets the status correctly', (done) => {
@@ -123,7 +127,7 @@ describe("Recorder", function() {
                     recorder.on('started', () => {
                         expect(spy).to.have.been.calledOnce;
                         expect(spy).to.have.been.calledWithMatch({
-                            type: recordingType == 'audio' ? 'audio/wav' : 'video/webm'
+                            type: recordingType == 'audio' ? 'audio/wav' : recorder.getVideoMimeType()
                         });
                         done();
                     });
@@ -190,8 +194,8 @@ describe("Recorder", function() {
                     }, time);
                 };
 
-                beforeEach(() => {
-                    recorder.setupMediaRecorder(captureStream(media));
+                beforeEach(async () => {
+                    await recorder.setStream(captureStream(media));
                     recorder.start();
                     media.play();
                 });
@@ -209,11 +213,10 @@ describe("Recorder", function() {
                 });
 
                 it('Once finished, emits a stop event', (done) => {
-                    stop(() => {
-                        recorder.on('stopped', () => {
-                            done();
-                        });
+                    recorder.on('stopped', () => {
+                        done();
                     });
+                    stop();
                 });
 
                 it('Sets the status to ready and emits a ready event', (done) => {

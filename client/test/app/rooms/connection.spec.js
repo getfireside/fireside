@@ -1,8 +1,11 @@
 /* eslint-disable no-undef */
 
 import RoomConnection from 'app/rooms/connection';
+import Peer from 'lib/rtc/peer';
+import MemFS from 'lib/fs/memfs';
 import * as util from 'lib/util';
 import {decamelizeKeys} from 'lib/util';
+import WildEmitter from 'wildemitter';
 
 let peer1 = {
     peerId: 1,
@@ -47,7 +50,10 @@ describe("RoomConnection", function() {
     let rc = null;
     context('Socket events', () => {
         beforeEach( () => {
-            rc = new RoomConnection({});
+            localStorage.clear();
+            let fs = new MemFS;
+            let room = fixtures.roomWithStores({fs: fs});
+            rc = new RoomConnection({room: room});
             sinon.stub(rc.socket, 'open');
             sinon.stub(rc.socket, 'send');
         });
@@ -155,8 +161,8 @@ describe("RoomConnection", function() {
             rc.addPeer(peer1);
             let peer = rc.addPeer(peer2);
             sinon.stub(peer, 'receiveSignallingMessage');
-            let payload = {to: 2, foo: {bar: 'baz'}};
-            rc.socket.emit('message', {t: 's', p: payload});
+            let payload = {to: 1, from: 2, foo: {bar: 'baz'}};
+            rc.socket.emit('message', {t: 's', p: payload, P: peer.id});
             expect(peer.receiveSignallingMessage).to.have.been.calledWith(payload);
         });
 
@@ -216,7 +222,13 @@ describe("RoomConnection", function() {
             rc.addPeer(peer1);
         });
 
-        it('addPeer also adds existing local stream to peer');
+        it('addPeer also adds existing local stream to peer', () => {
+            let stub = sinon.stub(Peer.prototype, 'addLocalStream');
+            rc.stream = {testStream: true};
+            rc.addPeer(peer1);
+            expect(stub.calledWith(rc.stream));
+            stub.restore();
+        });
 
         it('Removes peers correcly on leave', (done) => {
             rc.status = 'connected';
@@ -271,24 +283,101 @@ describe("RoomConnection", function() {
         });
     });
 
+    context('General API', () => {
+        beforeEach(() => {
+            localStorage.clear();
+            let fs = new MemFS;
+            let room = fixtures.roomWithStores({fs: fs});
+            rc = new RoomConnection({
+                urls: {
+                    messages: '/test/messages/url/',
+                    recordings: '/test/recordings/url/',
+                    action: '/test/actions/url/:name/',
+                    join: '/test/join/url/',
+                },
+                room: room
+            });
+        });
+
+        it('getPeer retrieves peers by ID', () => {
+            rc.peers = [{id: 3}, {id: 4}];
+            expect(rc.getPeer(3)).to.equal(rc.peers[0]);
+            expect(rc.getPeer(4)).to.equal(rc.peers[1]);
+            expect(rc.getPeer(5)).to.be.undefined;
+        })
+
+        it('removePeer calls peer.end and deletes the peer', () => {
+            rc.peers = [{id: 3, end: () => null}, {id: 4, end: () => null}];
+            let stub = sinon.stub(rc.peers[0], 'end');
+            let removedPeer = rc.peers[0];
+            expect(rc.removePeer(3)).to.equal(removedPeer);
+            expect(rc.peers).to.have.lengthOf(1);
+            expect(rc.peers[0].id).to.equal(4);
+            expect(stub).to.have.been.calledOnce;
+        });
+
+        it('requestFileTransfer sends a signalling message', (done) => {
+            let peer = new Peer(peer2);
+            sinon.stub(peer, 'sendSignallingMessage');
+            rc.requestFileTransfer('testFileId', peer, {mode: 'http'});
+
+            expect(peer.sendSignallingMessage).to.have.been.calledWith('requestFileTransfer', {
+                fileId: 'testFileId',
+                mode: 'http'
+            });
+            peer.sendSignallingMessage.reset();
+
+            rc.requestFileTransfer('testFileId', peer, {mode: 'p2p'});
+            let testReceiver = new WildEmitter();
+            sinon.stub(rc.fileTransfers, 'receiveFile').returns(testReceiver);
+            let testChannel = {testChannelObject: true};
+            peer.emit('fileTransferChannelOpen', testChannel);
+
+            expect(rc.fileTransfers.receiveFile).to.have.been.calledWith({
+                channel: testChannel,
+                peer: peer,
+                fileId: 'testFileId',
+                fs: rc.fs
+            });
+            rc.on('fileTransfer.testEvent', done);
+            testReceiver.emit('testEvent');
+        });
+
+        it('attemptResumeFileTransfers resumes all file transfers for a peer', () => {
+            sinon.stub(rc.fileTransfers, 'receiversForUid').returns([{fileId: 2}, {fileId: 3}]);
+            sinon.stub(rc, 'requestFileTransfer');
+            let peer = {uid: 22};
+            rc.attemptResumeFileTransfers(peer);
+            expect(rc.fileTransfers.receiversForUid).to.have.been.calledWith(peer.uid);
+            expect(rc.requestFileTransfer.args[0]).to.deep.equal([2, peer]);
+            expect(rc.requestFileTransfer.args[1]).to.deep.equal([3, peer]);
+        });
+    });
+
     context('Actions', () => {
         beforeEach( () => {
-            rc = new RoomConnection({urls: {
-                messages: '/test/messages/url/',
-                recordings: '/test/recordings/url/',
-                action: '/test/actions/url/:name/',
-                join: '/test/join/url/',
-            }});
+            localStorage.clear();
+            let fs = new MemFS;
+            let room = fixtures.roomWithStores({fs: fs});
+            rc = new RoomConnection({
+                urls: {
+                    messages: '/test/messages/url/',
+                    recordings: '/test/recordings/url/',
+                    action: '/test/actions/url/:name/',
+                    join: '/test/join/url/',
+                },
+                room: room
+            });
             sinon.stub(rc.socket, 'send');
-            sinon.stub(util, 'fetchPost', () => 'fakePromise');
+            sinon.stub(util, 'fetchPost').resolves("fakePromise");
         });
 
         afterEach( () => {
             util.fetchPost.restore();
         });
 
-        it('initialJoin POSTs join data to the server', () => {
-            let res = rc.initialJoin({foo: 'bar', fooBar: 2});
+        it('initialJoin POSTs join data to the server', async () => {
+            let res = await rc.initialJoin({foo: 'bar', fooBar: 2});
             expect(util.fetchPost).to.have.been.calledWith(rc.urls.join, {
                 foo: 'bar',
                 foo_bar: 2
@@ -296,8 +385,8 @@ describe("RoomConnection", function() {
             expect(res).to.equal('fakePromise');
         });
 
-        it('runAction POSTs an action to the server and returns a promise', () => {
-            let res = rc.runAction('actionName', {foo: 'bar', fooBar: 2});
+        it('runAction POSTs an action to the server and returns a promise', async () => {
+            let res = await rc.runAction('actionName', {foo: 'bar', fooBar: 2});
             expect(util.fetchPost).to.have.been.calledWith('/test/actions/url/action_name/', {
                 foo: 'bar',
                 foo_bar: 2
@@ -332,9 +421,9 @@ describe("RoomConnection", function() {
             });
         });
 
-        it('sendEvent(..., {http: true}) sends events over HTTP and returns a promise', () => {
+        it('sendEvent(..., {http: true}) sends events over HTTP and returns a promise', async () => {
             rc.status = 'connected';
-            let res = rc.sendEvent('testEvent2', {foo: 'bar'}, {http: true});
+            let res = await rc.sendEvent('testEvent2', {foo: 'bar'}, {http: true});
             expect(util.fetchPost).to.have.been.calledWith(rc.urls.messages, {
                 type: 'e',
                 payload: {
@@ -359,13 +448,29 @@ describe("RoomConnection", function() {
             });
         });
 
-        it('notifyCreatedRecording posts to the recordings url', () => {
-            let res = rc.notifyCreatedRecording({foo: 'bar', fooBar: 2});
+        it('notifyCreatedRecording posts to the recordings url', async () => {
+            let res = await rc.notifyCreatedRecording({foo: 'bar', fooBar: 2});
             expect(util.fetchPost).to.have.been.calledWith(rc.urls.recordings, {
                 foo: 'bar',
                 foo_bar: 2
             });
             expect(res).to.equal('fakePromise');
+        });
+
+        it('getMessages fetches messages, optionally with until attribute', () => {
+            sinon.stub(util, 'fetchJSON').resolves({messages: []});
+            rc.getMessages();
+            expect(util.fetchJSON).to.have.been.calledWith('/test/messages/url/');
+            util.fetchJSON.reset();
+            let d = +(new Date);
+            rc.getMessages({until: d});
+            expect(util.fetchJSON).to.have.been.calledWith(`/test/messages/url/?until=${d}`);
+        });
+
+        it('Has a restart method that restarts the socket', () => {
+            sinon.stub(rc.socket, 'restart');
+            rc.restart();
+            expect(rc.socket.restart).to.have.been.calledOnce;
         });
     });
 });

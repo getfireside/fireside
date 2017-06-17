@@ -27,10 +27,13 @@ export default class FileTransferManager {
         this.senders = [];
         this.logger = connection.logger || new Logger(null, 'FileTransferManager');
     }
-    sendFile(peer, file) {
+    sendFileToPeer(peer, file) {
         let channel = peer.getDataChannel('filetransfer:' + uuid(), {ordered:true});
         let sender = new FileSender({peer, channel, file, logger: this.logger});
         this.senders.push(sender);
+    }
+    uploadFile(file, {mode = 'http'}) {
+
     }
     @action receiveFile({channel, peer, fileId}) {
         let receiver = this.receiverForFileId(fileId);

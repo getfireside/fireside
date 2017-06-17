@@ -25,14 +25,8 @@ module.exports = {
   resolve: {
       extensions: ['.js', '.jsx'],
       modules: [
-          "src",
+          path.resolve(__dirname, "src"),
           "node_modules"
       ]
   },
-  resolveLoader: {
-      modules: [
-          "src",
-          'node_modules'
-      ]
-  }
 }

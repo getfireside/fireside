@@ -36,6 +36,7 @@ export default class Recorder extends WildEmitter {
             'video/webm;codecs=vp9',
             'video/webm;codecs=vp8',
         ];
+        this.wavWorkerPath = opts.wavWorkerPath;
         this.supportedVideoCodecs = _.filter(this.videoCodecs, c => MediaRecorder.isTypeSupported(c));
         // this.roomId = opts.roomId;
 
@@ -83,7 +84,9 @@ export default class Recorder extends WildEmitter {
         }
         else {
             this.mediaRecorder = new WAVAudioRecorder(stream, {
-                logger: this.logger
+                logger: this.logger,
+                timeslice: this.recordingPeriod,
+                workerPath: this.wavWorkerPath,
             });
         }
 
@@ -116,8 +119,9 @@ export default class Recorder extends WildEmitter {
                 this.setupMediaRecorder(stream);
             });
         }
-
-        this.setupMediaRecorder(stream);
+        else {
+            return this.setupMediaRecorder(stream);
+        }
     }
 
     onStart(e) {
@@ -207,7 +211,7 @@ export default class Recorder extends WildEmitter {
         }
         else {
             this.logger.warn("Not ready to start.");
-            setTimeout(this.start, 250);
+            setTimeout(() => this.start(), 250);
         }
     }
 

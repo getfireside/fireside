@@ -57,27 +57,16 @@ module.exports = function(config) {
                 ]
             },
             resolve: {
-                extensions: ['.js', '.jsx', '.spec.js'],
+                extensions: ['.js', '.jsx'],
                 modules: [
-                    "src",
+                    path.resolve(__dirname, "src"),
                     "node_modules"
-                ]
-            },
-            resolveLoader: {
-                modules: [
-                    "src",
-                    'node_modules'
                 ]
             },
             // karma watches the test entry points
             // (you don't need to specify the entry option)
             // webpack watches dependencies
             // webpack configuration
-            plugins: [
-              new webpack.LoaderOptionsPlugin({
-                debug: true
-              })
-            ]
         },
 
         webpackMiddleware: {

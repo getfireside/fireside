@@ -1,4 +1,5 @@
 import * as quota from 'lib/fs/quota';
+import { sleep } from 'lib/util/async';
 
 describe('Quota functions', () => {
     // afterEach(() => {
@@ -92,24 +93,19 @@ describe('Quota functions', () => {
 });
 
 export async function testDiskUsageEvents(fs) {
-    let sleep = (n) => new Promise(resolve => {
-        setTimeout(resolve, n);
-    });
-    let genPromise = (d) => new Promise(resolve => {
-        setTimeout(() => resolve(d), 0);
-    });
     let events = [];
     let stub = sinon.stub(quota, 'getStorageUsage');
     try {
-        stub.onCall(0).returns(genPromise({usage: 0, quota: 1024}));
-        stub.onCall(1).returns(genPromise({usage: 0, quota: 1024}));
-        stub.onCall(2).returns(genPromise({usage: 0, quota: 1024}));
-        stub.onCall(3).returns(genPromise({usage: 512, quota: 2048}));
-        stub.onCall(4).returns(genPromise({usage: 512, quota: 1024}));
-        stub.onCall(5).returns(genPromise({usage: 500, quota: 1024}));
-        stub.returns(genPromise({usage: 500, quota: 1024}));
+        stub.onCall(0).resolves({usage: 0, quota: 1024});
+        stub.onCall(1).resolves({usage: 0, quota: 1024});
+        stub.onCall(2).resolves({usage: 0, quota: 1024});
+        stub.onCall(3).resolves({usage: 512, quota: 2048});
+        stub.onCall(4).resolves({usage: 512, quota: 1024});
+        stub.onCall(5).resolves({usage: 500, quota: 1024});
+        stub.resolves({usage: 500, quota: 1024});
         fs.on('diskUsageUpdate', res => events.push(res));
         await fs.open();
+        console.log(events);
         await sleep(100);
         expect(events).to.have.length(1);
         expect(events[0]).to.deep.equal({usage: 0, quota: 1024});

@@ -55,7 +55,7 @@ describe('IDBFS', () => {
             fs.close();
         });
     });
-    it('Watches disk usage correctly', function(done) {
+    xit('Watches disk usage correctly', function(done) {
         let fs = new IDBFS({dbname: 'testdb'});
         this.timeout(10000);
         testDiskUsageEvents(fs).then(() => done()).catch(done);
@@ -113,7 +113,7 @@ describe('IDBFile', function() {
             expect(blobContents).to.equal('abcdefgh');
         });
 
-        it("Throws an error if there's not enough space", async function() {
+        xit("Throws an error if there's not enough space", async function() {
             this.timeout(0);
             // this is hideous:
             // in Firefox, IDB seems to also unavoidably throw a QuotaExceededError on window

@@ -4,7 +4,7 @@ import MemFS from 'lib/fs/memfs';
 import {Recording} from 'app/recordings/store';
 import {sleep} from 'lib/util/async';
 
-describe.only("RoomController", function() {
+describe("RoomController", function() {
     let rc = null;
     beforeEach( () => {
         let fs = new MemFS;
@@ -93,15 +93,15 @@ describe.only("RoomController", function() {
             });
 
             it('On start recording request, attempt to start recording.', () => {
-                sinon.stub(rc.recorder, 'start');
+                let stub = sinon.stub(rc.recorder, 'start');
                 rc.connection.emit('event.requestStartRecording');
-                expect(rc.recorder.start.calledOnce).to.be.true;
+                expect(stub).to.have.been.calledOnce;
             });
 
             it('On stop recording request, attempt to stop recording.', () => {
-                sinon.stub(rc.recorder, 'stop');
+                let stub = sinon.stub(rc.recorder, 'stop');
                 rc.connection.emit('event.requestStopRecording');
-                expect(rc.recorder.stop.calledOnce).to.be.true;
+                expect(stub).to.have.been.calledOnce;
             });
 
             it('On remote recording status update, pass through to recording store', () => {
@@ -294,6 +294,94 @@ describe.only("RoomController", function() {
                 'updateStatus', {diskUsage}, {http:false}
             );
         });
+
+        it('When config update is received, updates config and processes changes as necessary', () => {
+            rc.room.config = {mode: 'audio', videoBitrate: null};
+            rc.connection.stream = true;
+
+            let stub1 = sinon.stub(rc, 'stopRecording');
+            let stub2 = sinon.stub(rc, 'setupLocalMedia');
+
+            let newConfig1 = {videoBitrate: 200, mode: 'video'};
+            rc.connection.emit('event.updateConfig', newConfig1);
+
+            expect(rc.room.config).to.deep.equal(newConfig1);
+            expect(stub1).to.have.been.calledOnce;
+            expect(stub2).to.have.been.calledOnce;
+            stub1.reset();
+            stub2.reset();
+
+            let newConfig2 = {videoBitrate: 300, mode: 'video'};
+            rc.connection.emit('event.updateConfig', newConfig2);
+
+            expect(rc.room.config).to.deep.equal(newConfig2);
+            expect(stub1).to.have.been.calledOnce;
+            expect(stub2).not.to.have.been.called;
+            stub1.reset();
+            stub2.reset();
+
+            let newConfig3 = {videoBitrate: 300, mode: 'video'};
+            rc.connection.emit('event.updateConfig', newConfig3);
+            expect(stub1).not.to.have.been.called;
+            expect(stub2).not.to.have.been.called;
+        })
+
+        it('Starts a file transfer on request recording transfer', () => {
+            let peer = {id: 22}
+            let fileId = 'recording:test-id-1';
+            let rec = rc.room.recordingStore.get('test-id-1');
+            rec.filesize = 44;
+
+            let stub = sinon.stub(rc.connection.fileTransfers);
+            rc.connection.emit('requestFileTransfer', peer, {fileId, mode: 'p2p'});
+            expect(rc.connection.fileTransfers.sendFileToPeer).to.have.been.calledWith(peer, rec);
+            expect(rc.connection.fileTransfers.sendFileToPeer).to.have.been.calledOnce;
+            expect(rc.connection.fileTransfers.uploadFile).not.to.have.been.called;
+            rc.connection.fileTransfers.uploadFile.reset();
+            rc.connection.fileTransfers.sendFileToPeer.reset();
+            rc.connection.emit('requestFileTransfer', peer, {fileId, mode: 'http'});
+            expect(rc.connection.fileTransfers.uploadFile).to.have.been.calledWith(rec, {mode: 'http'});
+            expect(rc.connection.fileTransfers.uploadFile).to.have.been.calledOnce;
+            expect(rc.connection.fileTransfers.sendFileToPeer).not.to.have.been.called;
+        })
+
+        it('Emits progress events on file transfer progress', () => {
+            sinon.stub(rc.connection, 'sendEvent');
+            let transfer = {fileId: 'recording:test231'};
+            debugger
+            rc.connection.emit('fileTransfer.progress', transfer, {bytes: 3, total: 5});
+            expect(rc.connection.sendEvent).to.have.been.calledWith('updateUploadProgress', {
+                id: 'test231',
+                bytes: 3,
+                total: 5
+            }, {http:false});
+        })
+
+         it('Emits upload complete event on file transfer completion', () => {
+            sinon.stub(rc.connection, 'sendEvent');
+            let transfer = {fileId: 'recording:test231'};
+            rc.connection.emit('fileTransfer.complete', transfer);
+            expect(rc.connection.sendEvent).to.have.been.calledWith('uploadComplete', {
+                id: 'test231',
+            }, {http: true});
+        })
+
+        it('Throttles progress events', async () => {
+            sinon.stub(rc.connection, 'sendEvent');
+            let transfer = {fileId: 'recording:test231'};
+            for (let i = 1; i <= 10; ++i) {
+                rc.connection.emit('fileTransfer.progress', transfer, {bytes: i, total: 15});
+            }
+            expect(rc.connection.sendEvent).to.have.callCount(1);
+            await sleep(600);
+            rc.connection.emit('fileTransfer.progress', transfer, {bytes: 11, total: 15});
+            await sleep(300);
+            rc.connection.emit('fileTransfer.progress', transfer, {bytes: 12, total: 15});
+            expect(rc.connection.sendEvent).to.have.callCount(3);
+            await sleep(260);
+            rc.connection.emit('fileTransfer.progress', transfer, {bytes: 13, total: 15});
+            expect(rc.connection.sendEvent).to.have.callCount(4);
+        })
     });
 
     context('Actions', () => {
@@ -339,6 +427,22 @@ describe.only("RoomController", function() {
             rc.connection.runAction.reset();
         });
 
+        it('requestRecordingTransfer passed through to connection', () => {
+            sinon.stub(rc.connection, 'requestFileTransfer');
+            let recording = {
+                id: 'test523',
+                membership: {
+                    peer: {foo: 'bar'}
+                }
+            };
+            rc.requestRecordingTransfer(recording);
+            expect(rc.connection.requestFileTransfer).to.have.been.calledOnce;
+            expect(rc.connection.requestFileTransfer).to.have.been.calledWith(
+                `recording:${recording.id}`,
+                recording.membership.peer
+            );
+        })
+
         it('updateResources sends updateStatus event over the socket', () => {
             sinon.stub(rc.connection, 'sendEvent');
             rc.updateResources({
@@ -361,6 +465,18 @@ describe.only("RoomController", function() {
                 },
                 {http: false}
             );
+        });
+
+        it('initialJoin sets selfId correctly', async () => {
+            let stub = sinon.stub(rc.connection, 'initialJoin');
+            stub.resolves({uid: 124213});
+            let stub2 = sinon.stub(rc, 'connect');
+            stub2.resolves();
+            await rc.initialJoin({name:'testName'});
+            expect(rc.room.memberships.selfId).to.equal(124213);
+            expect(rc.recorder.extraAttrs.uid).to.equal(124213);
+            expect(rc.room.recordingStore.selfId).to.equal(124213);
+            expect(stub2).to.have.been.calledOnce;
         });
 
         context('setupLocalMedia', () => {
@@ -391,4 +507,23 @@ describe.only("RoomController", function() {
             });
         });
     });
+    it('stopLocalMedia ends all tracks', () => {
+        let tracks = [{stop: () => null}, {stop: () => null}];
+        rc.connection.stream = {getTracks: () => null}
+        let stub = sinon.stub(rc.connection.stream, 'getTracks');
+        stub.returns(tracks);
+        let stop1 = sinon.stub(tracks[0], 'stop');
+        let stop2 = sinon.stub(tracks[1], 'stop');
+        rc.stopLocalMedia();
+        expect(stub).to.have.been.calledOnce;
+        expect(stop1).to.have.been.calledOnce;
+        expect(stop2).to.have.been.calledOnce;
+        expect(rc.connection.stream).to.be.null;
+    });
+    it('updateConfig passes through to connection', () => {
+        let stub = sinon.stub(rc.connection, 'runAction');
+        let config = {1: 2, foo: 'bar'}
+        rc.updateConfig(config);
+        expect(stub).to.have.been.calledWith('updateConfig', config);
+    })
 });

@@ -43,40 +43,35 @@ export default class RoomConnection extends WildEmitter {
 
         this.messageHandlers = {
             signalling: (message) => {
-                // TESTS EXIST
                 let peer = this.getPeer(message.peerId);
                 if (peer) {
                     peer.receiveSignallingMessage(message.payload);
                 }
             },
             announce: (message) => {
-                // TESTS EXIST
                 // when another peer joins
                 let peer = this.addPeer(message.payload.peer, {isInitiator: false});
                 this.emit('peerAnnounce', peer, message);
-                this.attemptResumeFiletransfers(peer);
+                this.attemptResumeFileTransfers(peer);
             },
             join: (message) => {
-                // TESTS EXIST
                 // when the user connects
                 this.selfPeerId = message.payload.self.peerId;
                 for (let member of message.payload.members) {
                     if (member.peerId) {
                         let peer = this.addPeer(member, {isInitiator: true});
                         peer.start();
-                        this.attemptResumeFiletransfers(peer);
+                        this.attemptResumeFileTransfers(peer);
                     }
                 }
                 this.emit('join', message.payload, message);
             },
             leave: (message) => {
-                // TESTS EXIST
                 // when another peer leaves
                 let peer = this.removePeer(message.payload.id);
                 this.emit('peerLeave', peer, message);
             },
             event: (message) => {
-                // TESTS EXIST
                 if (!this.selfPeerId || message.peerId != this.selfPeerId) {
                     this.emit(`event.${message.payload.type}`, message.payload.data, message);
                 }
@@ -85,13 +80,11 @@ export default class RoomConnection extends WildEmitter {
     }
 
     onConnect() {
-        // TESTS EXIST
         this.status = 'connected';
         this.emit('connect');
     }
 
     connect() {
-        // TESTS EXIST
         /**
          * Open the websocket and connect
          */
@@ -107,8 +100,7 @@ export default class RoomConnection extends WildEmitter {
         this.socket.restart();
     }
 
-    getMessages({until}) {
-        // TODO: ADD TESTS
+    getMessages({until} = {}) {
         let url;
         if (until) {
             url = `${this.urls.messages}?until=${until}`;
@@ -120,7 +112,6 @@ export default class RoomConnection extends WildEmitter {
     }
 
     handleSocketMessage(message) {
-        // TESTS EXIST
         /**
          * Dispatches a message received from the socket.
          * @private
@@ -144,7 +135,6 @@ export default class RoomConnection extends WildEmitter {
 
     addPeer(data, {isInitiator = false} = {}) {
         // TESTS EXIST
-        // TODO: UPDATE TEST
         /**
          * Set up a peer
          * @param {obj} data: Info received from the server about the peer
@@ -222,12 +212,10 @@ export default class RoomConnection extends WildEmitter {
     }
 
     getPeer(id) {
-        // TODO: ADD TEST
         return _.find(this.peers, p => p.id == id);
     }
 
     removePeer(id) {
-        // TODO: ADD TEST
         let peer = this.getPeer(id);
         peer.end();
         this.peers = _.reject(this.peers, p => p.id == id);
@@ -236,20 +224,20 @@ export default class RoomConnection extends WildEmitter {
     }
 
     notifyCreatedRecording(data) {
-        // TESTS EXIST
         return fetchPost(this.urls.recordings, decamelizeKeys(data));
     }
 
-    requestFileTransfer(fileId, peer) {
-        // TODO: ADD TEST
-        peer.sendSignallingMessage('requestFileTransfer', {fileId});
-        peer.once('fileTransferChannelOpen', (channel) => {
-            let receiver = this.fileTransfers.receiveFile({channel, peer, fileId, fs: this.fs});
-            receiver.on('*', (name, ...args) => this.emit(`fileTransfer.${name}`, ...args));
-        });
+    requestFileTransfer(fileId, peer, {mode = 'p2p'}) {
+        if (mode == 'p2p') {
+            peer.once('fileTransferChannelOpen', (channel) => {
+                let receiver = this.fileTransfers.receiveFile({channel, peer, fileId, fs: this.fs});
+                receiver.on('*', (name, ...args) => this.emit(`fileTransfer.${name}`, ...args));
+            });
+        }
+        peer.sendSignallingMessage('requestFileTransfer', {fileId, mode});
     }
 
-    attemptResumeFiletransfers(peer) {
+    attemptResumeFileTransfers(peer) {
         // TODO: ADD TEST
         let receivers = this.fileTransfers.receiversForUid(peer.uid);
         if (receivers) {

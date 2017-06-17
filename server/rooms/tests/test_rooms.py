@@ -64,7 +64,7 @@ class TestRoom:
         for event_type in (
             'update_recording',
             'update_meter',
-            'upload_progress',
+            'update_upload_progress',
         ):
             msg = room.message(type=Message.TYPE.event, payload={
                 'type': event_type,

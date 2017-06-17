@@ -41,6 +41,9 @@ class MemFS extends FS {
         this.logger = new Logger(opts.logger, 'MemFS');
         this.db = {}
     }
+    get isOpen() {
+        return true;
+    }
     open() {
         return new Promise((fulfil, reject) => {
             fulfil(this);

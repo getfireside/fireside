@@ -142,6 +142,9 @@ export default class IDBFS extends FS {
             req.onsuccess = () => fulfil();
         });
     }
+    get isOpen() {
+        return this.db != null;
+    }
     open() {
         return new Promise((fulfil, reject) => {
             if (this.db) {

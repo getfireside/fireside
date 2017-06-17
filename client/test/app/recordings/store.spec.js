@@ -30,7 +30,7 @@ describe("RecordingStore", function() {
 
         it("Passes through any attrs to the resulting recording", () => {
             let attrs1 = {type: 'audio/wav', room: {id: 2}};
-            let attrs2 = {started: new Date(), ended: new Date(), uid: 5, room: {id: 2}};
+            let attrs2 = {type: 'video/webm', started: new Date(), ended: new Date(), uid: 5, room: {id: 2}};
             let recording1 = store.create(attrs1);
             let recording2 = store.create(attrs2);
             expect(recording1).to.contain(attrs1);

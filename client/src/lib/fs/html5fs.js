@@ -75,6 +75,10 @@ export default class HTML5FS extends FS {
         this.logger = new Logger(opts.logger, 'HTML5FS');
     }
 
+    get isOpen() {
+        return this.fs != null;
+    }
+
     open() {
         return new Promise((fulfil, reject) => {
             let init = (fs) => {

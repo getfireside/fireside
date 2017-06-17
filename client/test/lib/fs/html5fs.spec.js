@@ -44,7 +44,7 @@ describe('HTMLFS', function() {
             fs.close();
         });
     });
-    it('Watches disk usage correctly', function(done) {
+    xit('Watches disk usage correctly', function(done) {
         let fs = new HTML5FS();
         this.timeout(10000);
         testDiskUsageEvents(fs).then(() => {
@@ -86,7 +86,8 @@ describe('HTML5FSFile', function() {
             expect(blobContents).to.equal('abcdefgh');
         });
 
-        it("Throws an error if there's not enough space", async function() {
+        xit("Throws an error if there's not enough space", async function() {
+            this.timeout(0);
             let file = await fs.getFile('/test/file2');
             console.log("Writing a series of large blobs...");
             let writes = 0;

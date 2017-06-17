@@ -7,14 +7,6 @@ export function on(...eventSelectors) {
     }
 }
 
-export function throttle(time) {
-    return (target, key, descriptor) => ({
-        ...descriptor,
-        value() {
-            return _.throttle(descriptor.value, time);
-        }
-    })
-}
 
 export function bindEventHandlers(obj) {
     for (let eventSelector in obj.__handlers) {
