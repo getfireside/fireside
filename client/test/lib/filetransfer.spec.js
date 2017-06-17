@@ -1,6 +1,6 @@
-import FileReceiver from 'lib/rtc/filetransfer/receiver';
-import FileSender from 'lib/rtc/filetransfer/sender';
-import {default as FileTransferManager, CHUNK_SIZE, CHUNKS_PER_BLOCK, STATUSES} from 'lib/rtc/filetransfer';
+import FileReceiver from 'lib/filetransfer/p2p/receiver';
+import FileSender from 'lib/filetransfer/p2p/sender';
+import {default as FileTransferManager, CHUNK_SIZE, CHUNKS_PER_BLOCK, STATUSES} from 'lib/filetransfer';
 import MemFS from 'lib/fs/memfs';
 import {action} from 'mobx';
 import {blobToString} from 'lib/util';

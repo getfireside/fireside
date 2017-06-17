@@ -3,7 +3,7 @@
 import RoomConnection from 'app/rooms/connection';
 import Peer from 'lib/rtc/peer';
 import MemFS from 'lib/fs/memfs';
-import * as util from 'lib/util';
+import * as http from 'lib/http';
 import {decamelizeKeys} from 'lib/util';
 import WildEmitter from 'wildemitter';
 
@@ -369,16 +369,16 @@ describe("RoomConnection", function() {
                 room: room
             });
             sinon.stub(rc.socket, 'send');
-            sinon.stub(util, 'fetchPost').resolves("fakePromise");
+            sinon.stub(http, 'fetchPost').resolves("fakePromise");
         });
 
         afterEach( () => {
-            util.fetchPost.restore();
+            http.fetchPost.restore();
         });
 
         it('initialJoin POSTs join data to the server', async () => {
             let res = await rc.initialJoin({foo: 'bar', fooBar: 2});
-            expect(util.fetchPost).to.have.been.calledWith(rc.urls.join, {
+            expect(http.fetchPost).to.have.been.calledWith(rc.urls.join, {
                 foo: 'bar',
                 foo_bar: 2
             });
@@ -387,7 +387,7 @@ describe("RoomConnection", function() {
 
         it('runAction POSTs an action to the server and returns a promise', async () => {
             let res = await rc.runAction('actionName', {foo: 'bar', fooBar: 2});
-            expect(util.fetchPost).to.have.been.calledWith('/test/actions/url/action_name/', {
+            expect(http.fetchPost).to.have.been.calledWith('/test/actions/url/action_name/', {
                 foo: 'bar',
                 foo_bar: 2
             });
@@ -424,7 +424,7 @@ describe("RoomConnection", function() {
         it('sendEvent(..., {http: true}) sends events over HTTP and returns a promise', async () => {
             rc.status = 'connected';
             let res = await rc.sendEvent('testEvent2', {foo: 'bar'}, {http: true});
-            expect(util.fetchPost).to.have.been.calledWith(rc.urls.messages, {
+            expect(http.fetchPost).to.have.been.calledWith(rc.urls.messages, {
                 type: 'e',
                 payload: {
                     type: 'test_event_2',
@@ -450,7 +450,7 @@ describe("RoomConnection", function() {
 
         it('notifyCreatedRecording posts to the recordings url', async () => {
             let res = await rc.notifyCreatedRecording({foo: 'bar', fooBar: 2});
-            expect(util.fetchPost).to.have.been.calledWith(rc.urls.recordings, {
+            expect(http.fetchPost).to.have.been.calledWith(rc.urls.recordings, {
                 foo: 'bar',
                 foo_bar: 2
             });
@@ -458,13 +458,13 @@ describe("RoomConnection", function() {
         });
 
         it('getMessages fetches messages, optionally with until attribute', () => {
-            sinon.stub(util, 'fetchJSON').resolves({messages: []});
+            sinon.stub(http, 'fetchJSON').resolves({messages: []});
             rc.getMessages();
-            expect(util.fetchJSON).to.have.been.calledWith('/test/messages/url/');
-            util.fetchJSON.reset();
+            expect(http.fetchJSON).to.have.been.calledWith('/test/messages/url/');
+            http.fetchJSON.reset();
             let d = +(new Date);
             rc.getMessages({until: d});
-            expect(util.fetchJSON).to.have.been.calledWith(`/test/messages/url/?until=${d}`);
+            expect(http.fetchJSON).to.have.been.calledWith(`/test/messages/url/?until=${d}`);
         });
 
         it('Has a restart method that restarts the socket', () => {

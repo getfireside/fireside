@@ -3,7 +3,7 @@ import {observable, action, runInAction, computed} from 'mobx';
 import WildEmitter from 'wildemitter';
 import Logger from 'lib/logger';
 
-import {CHUNK_SIZE, CHUNKS_PER_BLOCK, STATUSES} from './index';
+import {CHUNK_SIZE, CHUNKS_PER_BLOCK, STATUSES} from '../index';
 import {clock} from 'lib/util';
 import {formatBytes} from 'app/ui/helpers';
 
@@ -24,7 +24,7 @@ export default class FileReceiver extends WildEmitter {
         this.logger = new Logger(logger, `FileReceiver:${fileId}`);
         this.loadFromLocalStorage();
         this.numDownloadedChunks = 0;
-        this.downloadSamples = []; // for measuring bitrate;
+        this.downloadSamples = []; // for measuring bitrate
         this.block = [];
         if (channel) {
             this.status = STATUSES.INPROGRESS;
@@ -187,7 +187,7 @@ export default class FileReceiver extends WildEmitter {
                 total: this.metadata.size,
             });
             this.addDownloadSample(chunkBlob.size);
-        })
+        });
     }
 
     saveToLocalStorage() {
@@ -247,3 +247,4 @@ export default class FileReceiver extends WildEmitter {
         return this.file.append(blob);
     }
 }
+

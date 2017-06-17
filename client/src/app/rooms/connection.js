@@ -5,11 +5,11 @@ import {observable} from 'mobx';
 import Logger from 'lib/logger';
 import Peer from 'lib/rtc/peer';
 import Socket from 'lib/socket';
-import {fetchPost, fetchJSON} from 'lib/util';
+import {fetchPost, fetchJSON} from 'lib/http';
 import {Message} from 'app/messages/store';
 import {camelize, camelizeKeys, decamelize, decamelizeKeys} from 'lib/util';
 import {MESSAGE_TYPES} from './constants';
-import FileTransferManager from 'lib/rtc/filetransfer';
+import FileTransferManager from 'lib/filetransfer';
 
 export default class RoomConnection extends WildEmitter {
     /**

@@ -37,7 +37,7 @@ describe('Quota functions', () => {
             });
             it('Should resolve immediately', async () => {
                 let req = await quota.requestStorageQuota();
-                assert(req).is.undefined;
+                expect(req).to.be.undefined;
             });
         });
     });

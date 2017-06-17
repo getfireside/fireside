@@ -1,6 +1,6 @@
 import {fileToArrayBuffer} from 'lib/fs/util';
 import Logger from 'lib/logger';
-import {CHUNK_SIZE, CHUNKS_PER_BLOCK} from './index';
+import {CHUNK_SIZE, CHUNKS_PER_BLOCK} from '../index';
 
 export default class FileSender {
     static encodeChunk(index, chunk) {
