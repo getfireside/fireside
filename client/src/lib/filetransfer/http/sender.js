@@ -71,7 +71,7 @@ export class HttpFileSender extends WildEmitter {
                 }
                 else {
                     this.emit('error', err);
-                    break;
+                    throw err;
                 }
             }
         }
