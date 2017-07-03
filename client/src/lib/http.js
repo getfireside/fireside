@@ -60,7 +60,9 @@ export const fetchPost = async (url, data, method = 'POST') => {
             return responseData;
         }
         else {
-            throw new Error(responseData);
+            let err = new Error(JSON.stringify(responseData));
+            err.data = responseData;
+            throw err;
         }
     }
     else {
@@ -85,7 +87,9 @@ export const fetchJSON = async (url, data) => {
             return responseData;
         }
         else {
-            throw new Error(responseData);
+            let err = new Error(JSON.stringify(responseData));
+            err.data = responseData;
+            throw err;
         }
     }
     else {

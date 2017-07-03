@@ -58,6 +58,7 @@ class RoomConfigSerializer(serializers.Serializer):
     mode = serializers.ChoiceField(choices=['audio', 'video'], default='audio')
     debug_mode = serializers.BooleanField(default=False)
     video_bitrate = serializers.IntegerField(allow_null=True, default=None)
+    http_upload_enabled = serializers.BooleanField(default=True, read_only=True)
 
 
 class InitialRoomDataSerializer(serializers.Serializer):

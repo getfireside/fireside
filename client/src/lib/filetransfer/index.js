@@ -17,25 +17,37 @@ export const STATUSES = {
 
 import FileReceiver from './p2p/receiver';
 import FileSender from './p2p/sender';
+import {FrSdFileSender} from './http/sender.js';
 
 export default class FileTransferManager {
     @observable.shallow receivers = []; // p2p receivers
     @observable.shallow senders = []; // both p2p and http senders
 
-    constructor(connection) {
+    constructor(connection, {getFileById}) {
+        this.getFileById = getFileById;
         this.room = connection.room;
         this.fs = connection.fs;
-        this.receivers = this.loadFromLocalStorage();
+        this.loadFromLocalStorage();
         this.logger = connection.logger || new Logger(null, 'FileTransferManager');
     }
+
     sendFileToPeer(peer, file) {
         let channel = peer.getDataChannel('filetransfer:' + uuid(), {ordered: true});
         let sender = new FileSender({peer, channel, file, logger: this.logger});
         this.senders.push(sender);
     }
-    uploadFile(file, {mode = 'http'}) {
 
+    uploadFile(file, {fileId}) {
+        let sender = new FrSdFileSender({
+            fileId: fileId,
+            file: file,
+            logger: this.logger
+        });
+        sender.startUpload();
+        this.senders.push(sender);
+        return sender;
     }
+
     @action receiveFile({channel, peer, fileId}) {
         let receiver = this.receiverForFileId(fileId);
         if (receiver) {
@@ -65,27 +77,36 @@ export default class FileTransferManager {
                     status: r.status == STATUSES.COMPLETED ? r.status : STATUSES.DISCONNECTED,
                     type: 'p2pReceiver'
                 })) +
-                _.map(_.filter(this.senders, x => x instanceof HTTPFileSender), s => ({
+                _.map(_.filter(this.senders, x => x instanceof FrSdFileSender), s => ({
                     status: s.status == STATUSES.COMPLETED ? s.status : STATUSES.DISCONNECTED,
                     type: 'httpSender',
+                    fileId: s.fileId,
                 }))
             ),
         );
     }
     loadFromLocalStorage() {
         let res = localStorage.getItem(`filetransfer:forRoom:${this.room.id}`);
-        if (res) {
-            return _.map(JSON.parse(res), data => {
-                if (data.type == 'p2pReceiver') {
-                    return new FileReceiver({fs: this.fs, ...data, logger: this.logger});
-                }
-                else if (data.type == 'httpSender') {
-                    return new HTTPFileSender({fs: this.fs, ...data, logger: this.logger});
-                }
-            });
+        this.receivers = [];
+        this.senders = [];
+        if (!res) {
+            return;
         }
-        else {
-            return [];
+        for (let data of JSON.parse(res)) {
+            if (data.type == 'p2pReceiver') {
+                this.receivers.push(new FileReceiver({
+                    fs: this.fs,
+                    logger: this.logger,
+                    ...data,
+                }));
+            }
+            else if (data.type == 'httpSender') {
+                this.senders.push(new FrSdFileSender({
+                    getFileById: this.getFileById,
+                    ...data,
+                    logger: this.logger
+                }));
+            }
         }
     }
     receiverForFileId(fileId) {

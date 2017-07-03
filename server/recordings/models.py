@@ -1,4 +1,5 @@
 from django.db import models
+from mimetypes import guess_extension
 import uuid
 
 
@@ -14,6 +15,21 @@ class Recording(models.Model):
     filesize = models.BigIntegerField(default=0, blank=True, null=True)
     started = models.DateTimeField(blank=True, null=True)
     ended = models.DateTimeField(blank=True, null=True)
+
+    @property
+    def download_filename(self):
+        name = self.room.memberships.get(participant=self.participant).get_display_name()
+        duration = str(self.duration // 60) + 'h' + str(self.duration % 60) + 'm'
+        date = self.started.strftime('%Y-%m-%d')
+        return f'{date} - {name} - {duration}.{self.file_ext}'
+
+    @property
+    def file_ext(self):
+        return guess_extension(self.type.split(';')[0])
+
+    @property
+    def duration(self):
+        return (self.ended - self.started).total_seconds()
 
     class Meta:
         get_latest_by = 'started'

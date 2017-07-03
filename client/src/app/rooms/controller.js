@@ -24,7 +24,8 @@ export default class RoomController {
             room: this.room,
             urls: opts.urls,
             fs: this.fs,
-            logger: opts.logger
+            logger: opts.logger,
+            getFileById: (fileId) => this.getFileById(fileId),
         });
 
         bindEventHandlers(this);
@@ -72,6 +73,11 @@ export default class RoomController {
             filesize: recording.filesize,
             ended: +(recording.ended)
         });
+        if (this.room.config.httpUploadEnabled) {
+            this.connection.uploadFile(recording, {
+                fileId: 'recording:' + recording.id
+            })
+        }
     }
 
     @on('connection.event.requestStartRecording')
@@ -399,5 +405,13 @@ export default class RoomController {
 
     get self() {
         return this.room.userStore.self;
+    }
+
+    getFileById(fileId) {
+        let [type, id] = fileId.split(':');
+        if (type == 'recording') {
+            return this.room.recordingStore.get(id);
+        }
+        throw new Error('Invalid file ID supplied');
     }
 }

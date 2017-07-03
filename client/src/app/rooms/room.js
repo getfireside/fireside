@@ -1,7 +1,7 @@
 import {observable, action, computed, ObservableMap} from 'mobx';
 import {ROLES_INVERSE} from './constants';
 import _ from 'lodash';
-import {calculateBitrate} from 'lib/util';
+import {calculateBitrate, camelizeKeys} from 'lib/util';
 
 export class RoomMembership {
     @observable.ref currentRecording = null;
@@ -106,7 +106,7 @@ export default class Room {
         this.id = id;
         this.ownerId = ownerId;
         this.memberships.selfId = selfId;
-        this.config = config;
+        this.config = camelizeKeys(config);
     }
 
     @computed get recordings() {

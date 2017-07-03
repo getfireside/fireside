@@ -5,18 +5,20 @@ import Logger from 'lib/logger';
 import {sleep} from 'lib/util/async';
 import {clock} from 'lib/util';
 import {fetchPost, fetchPutBlob, fetchJSON} from 'lib/http';
+import {STATUSES} from '../index';
+
 
 export class HttpFileSender extends WildEmitter {
     @observable bitrate = 0;
     @observable numUploadedChunks = 0;
-    constructor({uploadId, fileId, logger, getFileById}) {
+    constructor({uploadId, fileId, file, logger, getFileById, status}) {
         super();
         // uploadId: an ID that identifies this particular upload
         // on the server
         this.uploadId = uploadId || null;
         // file ID: identifies the file on the client
         this.fileId = fileId;
-        this.file = getFileById(fileId);
+        this.file = file || getFileById(fileId);
         this.chunkSize = this.getChunkSize();
         this.numChunks = Math.ceil(this.file.filesize / this.chunkSize);
         this.numUploadedChunks = 0;
@@ -25,6 +27,8 @@ export class HttpFileSender extends WildEmitter {
         this.uploadSamples = []; // for measuring bitrate
         this.lastUploadedBytes = 0;
         this.logger = new Logger(logger, `${this.constructor.name}:${this.fileId}`);
+        this.status = status || STATUSES.INPROGRESS;
+        this.downloadSamples = [];
     }
 
     // TO BE DEFINED BY SUBCLASS
@@ -83,6 +87,7 @@ export class HttpFileSender extends WildEmitter {
     async notifyComplete() {
         let url = this.getCompleteUploadUrl();
         await fetchPost(url);
+        this.status = STATUSES.COMPLETED;
         this.emit('complete');
     }
 
@@ -141,20 +146,20 @@ export class HttpFileSender extends WildEmitter {
 const MIN_CHUNK_SIZE = 5*1024*1024;
 const MAX_CHUNKS = 10000;
 
-export class FrSdHttpFileSender extends HttpFileSender {
+export class FrSdFileSender extends HttpFileSender {
     getNthChunkUploadUrl(n) {
-        return fetchJSON(`/rooms/${window.fireside.room.id}/uploads/${this.uploadId}/chunk-urls/${n}/`);
+        return fetchPost(`/rooms/${window.fireside.room.id}/uploads/${this.fileId}/${this.uploadId}/chunks/${n}/`);
     }
     getInitiateUploadUrl() {
-        return `/rooms/${window.fireside.room.id}/uploads/start/`;
+        return `/rooms/${window.fireside.room.id}/uploads/${this.fileId}/`;
     }
     getAbortUploadUrl() {
-        return `/rooms/${window.fireside.room.id}/uploads/${this.uploadId}/abort/`;
+        return `/rooms/${window.fireside.room.id}/uploads/${this.fileId}/${this.uploadId}/abort/`;
     }
     getCompleteUploadUrl() {
-        return `/rooms/${window.fireside.room.id}/uploads/${this.uploadId}/complete/`;
+        return `/rooms/${window.fireside.room.id}/uploads/${this.fileId}/${this.uploadId}/complete/`;
     }
     getChunkSize() {
-        Math.max(Math.ceil(this.file.filesize / MAX_CHUNKS), MIN_CHUNK_SIZE);
+        return Math.max(Math.ceil(this.file.filesize / MAX_CHUNKS), MIN_CHUNK_SIZE);
     }
 }

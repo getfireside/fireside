@@ -9,7 +9,8 @@ import {fetchPost, fetchJSON} from 'lib/http';
 import {Message} from 'app/messages/store';
 import {camelize, camelizeKeys, decamelize, decamelizeKeys} from 'lib/util';
 import {MESSAGE_TYPES} from './constants';
-import FileTransferManager from 'lib/filetransfer';
+import {default as FileTransferManager, STATUSES as FILETRANSFER_STATUSES} from 'lib/filetransfer';
+import {FrSdFileSender} from 'lib/filetransfer/http/sender';
 
 export default class RoomConnection extends WildEmitter {
     /**
@@ -39,7 +40,9 @@ export default class RoomConnection extends WildEmitter {
         this.status = 'disconnected';
 
         this.logger = new Logger(opts.logger, "connection");
-        this.fileTransfers = new FileTransferManager(this);
+        this.fileTransfers = new FileTransferManager(this, {
+            getFileById: opts.getFileById,
+        });
 
         this.messageHandlers = {
             signalling: (message) => {
@@ -57,6 +60,7 @@ export default class RoomConnection extends WildEmitter {
             join: (message) => {
                 // when the user connects
                 this.selfPeerId = message.payload.self.peerId;
+                this.attemptResumeUploads();
                 for (let member of message.payload.members) {
                     if (member.peerId) {
                         let peer = this.addPeer(member, {isInitiator: true});
@@ -227,14 +231,16 @@ export default class RoomConnection extends WildEmitter {
         return fetchPost(this.urls.recordings, decamelizeKeys(data));
     }
 
-    requestFileTransfer(fileId, peer, {mode = 'p2p'}) {
-        if (mode == 'p2p') {
-            peer.once('fileTransferChannelOpen', (channel) => {
-                let receiver = this.fileTransfers.receiveFile({channel, peer, fileId, fs: this.fs});
-                receiver.on('*', (name, ...args) => this.emit(`fileTransfer.${name}`, ...args));
-            });
-        }
+    requestFileTransfer(fileId, peer) {
+        peer.once('fileTransferChannelOpen', (channel) => {
+            let receiver = this.fileTransfers.receiveFile({channel, peer, fileId, fs: this.fs});
+            receiver.on('*', (name, ...args) => this.emit(`fileTransfer.${name}`, ...args));
+        });
         peer.sendSignallingMessage('requestFileTransfer', {fileId, mode});
+    }
+
+    uploadFile(file, {fileId}) {
+        this.fileTransfers.uploadFile(file, {fileId});
     }
 
     attemptResumeFileTransfers(peer) {
@@ -243,6 +249,17 @@ export default class RoomConnection extends WildEmitter {
         if (receivers) {
             for (let receiver of receivers) {
                 this.requestFileTransfer(receiver.fileId, peer);
+            }
+        }
+    }
+
+    attemptResumeUploads() {
+        for (let sender of this.fileTransfers.senders) {
+            if (
+                sender instanceof FrSdFileSender &&
+                sender.status == FILETRANSFER_STATUSES.DISCONNECTED
+            ) {
+                sender.startUpload();
             }
         }
     }
