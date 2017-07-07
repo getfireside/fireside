@@ -73,9 +73,6 @@ describe("Recorder", function() {
             let recorder, media;
 
             beforeEach(async () => {
-                if (recorder) {
-                    await recorder.destroy();
-                }
                 // set up a clean recorder instance with a test FS before each test
                 recorder = new Recorder({
                     store: fixtures.generateRecordingStore(window.fs),

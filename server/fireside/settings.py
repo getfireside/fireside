@@ -25,7 +25,7 @@ TEST = False
 SECRET_KEY = env('SECRET_KEY')
 DEBUG = env('DEBUG')
 
-HOSTNAME = 'firesidelocal.ngrok.io'
+HOSTNAME = 'local.fr.sd'
 ALLOWED_HOSTS = [HOSTNAME]
 
 

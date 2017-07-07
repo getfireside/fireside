@@ -148,6 +148,20 @@ class RoomRecordingsView(ListCreateAPIView):
     def perform_create(self, serializer):
         self.request.room.create_recording(**serializer.validated_data)
 
+    def put(self, request, **kwargs):
+        serializer = RecordingSerializer(data=request.data, many=True)
+        if serializer.is_valid():
+            self.request.room.update_recordings(
+                serializer.validated_data,
+                participant=request.participant
+            )
+            return Response(data="OK", status=status.HTTP_200_OK)
+        else:
+            return Response(
+                data=serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
 
 class RoomParticipantsView(ListAPIView):
     permission_classes = (HasRoomAccess,)

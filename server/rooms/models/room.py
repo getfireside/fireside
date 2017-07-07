@@ -237,11 +237,11 @@ class Room(models.Model):
         if not self.members.filter(id=participant.id).exists():
             raise RoomMembership.DoesNotExist
 
-        peer_id = self.peers.for_participant(participant)
-        if peer_id is None:
-            peer_id = self.peers.connect(participant, channel_name).id
-
-        return peer_id
+        peer = self.peers.for_participant(participant)
+        if peer is None:
+            return self.peers.connect(participant, channel_name).id
+        else:
+            return peer.id
 
     def create_recording(self, **kwargs):
         """
@@ -249,7 +249,6 @@ class Room(models.Model):
         send an event.
         """
         rec = self.recordings.create(**kwargs)
-        rec.peer_id = self.peers.for_participant(rec.participant).id
         self.send(self.message(
             type=Message.TYPE.event,
             payload={
@@ -257,9 +256,39 @@ class Room(models.Model):
                 'data': recordings.serializers.RecordingSerializer(rec).data,
             },
             participant_id=rec.participant.id,
-            peer_id=rec.peer_id
+            peer_id=self.peers.for_participant(rec.participant).id
         ))
         return rec
+
+    def update_recordings(self, recordings, participant):
+        from recordings.models import Recording
+        from recordings.serializers import RecordingSerializer
+        existing = {
+            r.id: r
+            for r in self.recordings.filter(participant=participant)
+        }
+        for recording_data in recordings:
+            rec = existing.get(recording_data['id'])
+            if rec is not None:
+                for field, val in recording_data.items():
+                    if field not in ('room_id', 'participant_id'):
+                        setattr(rec, field, val)
+                rec.save()
+            else:
+                rec = Recording(**recording_data)
+                rec.room = self
+                rec.participant = participant
+                rec.save()
+
+            self.send(self.message(
+                type=Message.TYPE.event,
+                payload={
+                    'type': 'update_recording',
+                    'data': RecordingSerializer(rec).data,
+                },
+                participant_id=rec.participant_id,
+                peer_id=self.peers.for_participant(rec.participant).id
+            ))
 
     def add_message(self, message):
         if message.id is not None:

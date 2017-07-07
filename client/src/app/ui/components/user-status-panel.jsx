@@ -1,4 +1,5 @@
 import React from 'react';
+import {whyRun} from 'mobx';
 import {observer} from "mobx-react";
 import _ from 'lodash';
 import {MEMBER_STATUSES} from 'app/rooms/constants';
@@ -205,7 +206,7 @@ export default class UserStatusPanel extends React.Component {
         return (
             <div className="panel user-status-panel">
                 <ul>
-                    {_.map(this.props.room.memberships.values(), (membership) => (
+                    {_.map(this.props.room.memberships.values().slice(), (membership) => (
                         <li key={membership.uid}>
                             <UserStatusPanelItem {...this.props} membership={membership} />
                         </li>

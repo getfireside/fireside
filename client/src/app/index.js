@@ -44,7 +44,11 @@ export default class FiresideApp {
             urls: this.opts.urls,
         });
 
-        // just a shortcut to make debugging a bit easier
+        // load recording data from local storage
+        this.recordingStore.loadFromLocalStorage(this.room);
+        this.recordingStore.setupAutoSaveForRoom(this.room);
+
+        // some shortcuts to make debugging a bit easier
         this.roomConnection = this.roomController.connection;
         this.recordingStore.fileTransfers = this.roomConnection.fileTransfers;
     }

@@ -6,6 +6,7 @@ import webrtc from 'webrtcsupport';
 import { fileToArrayBuffer } from 'lib/fs/util';
 
 let audioContext = new webrtc.AudioContext();
+let wavWorker;
 
 export default class WAVAudioRecorder {
     constructor(stream, cfg) {
@@ -39,8 +40,10 @@ export default class WAVAudioRecorder {
 
         source.connect(this.node);
         this.node.connect(this.context.destination);
-
-        this.worker = new Worker(this.config.workerPath || WORKER_PATH);
+        if (wavWorker == null) {
+            wavWorker = new Worker(this.config.workerPath || WORKER_PATH);
+        }
+        this.worker = wavWorker;
         this.worker.postMessage({
             command: 'init',
             config: {
@@ -85,11 +88,5 @@ export default class WAVAudioRecorder {
 
     clear() {
         return this.worker.postMessage({ command: 'clear' });
-    }
-
-    async destroy() {
-        if (this.worker) {
-            this.worker.terminate();
-        }
     }
 }

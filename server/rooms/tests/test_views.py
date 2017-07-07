@@ -162,7 +162,7 @@ class TestRecordingsView:
         assert msg.payload['data'] == {'room_id': room.id, **rec_data}
         assert response.status_code == 201
 
-    def test_errors_invalid(self, room, api_client, user):
+    def test_create_invalid(self, room, api_client, user):
         api_client.force_login(user)
         url = reverse('rooms:recordings', kwargs={'room_id': room.id})
         response = api_client.post(url, {
@@ -177,6 +177,37 @@ class TestRecordingsView:
         assert 'uid' in response.data
         assert 'type' in response.data
         assert 'started' in response.data
+
+    def test_update_valid(self, room, api_client, user, recording, mocker):
+        peer_id = room.connect(user.participant, 'user_channel')
+        api_client.force_login(user)
+        url = reverse('rooms:recordings', kwargs={'room_id': room.id})
+        mock_send = mocker.patch('rooms.models.room.Room.send', autospec=True)
+        data = [{
+            'id': '827f29c5-8721-4eca-8b86-5ec4c5b5c794',
+            'started': 1493823158970,
+            'ended': None,
+            'filesize': None,
+            'uid': user.participant.id,
+            'type': 'audio/wav',
+        }, {
+            'id': str(recording.id),
+            'started': 1493823158900,
+            'ended': 1493823170000,
+            'filesize': None,
+            'uid': user.participant.id,
+            'type': 'video/webm',
+        }]
+        response = api_client.put(url, data, format='json')
+        msg = mock_send.call_args_list[0][0][1]
+        assert msg.type == 'e'
+        assert msg.payload['type'] == 'update_recording'
+        assert msg.payload['data'] == {'room_id': room.id, **data[0]}
+        msg = mock_send.call_args_list[1][0][1]
+        assert msg.type == 'e'
+        assert msg.payload['type'] == 'update_recording'
+        assert msg.payload['data'] == {'room_id': room.id, **data[1]}
+        assert response.status_code == 200
 
 
 @pytest.mark.django_db

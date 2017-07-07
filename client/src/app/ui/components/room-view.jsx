@@ -30,7 +30,7 @@ export class HostRoomView extends React.Component {
                 </div>
                 <ConfigModal {...this.props} />
             </div>
-        )
+        );
     }
 }
 

@@ -153,9 +153,8 @@ export default class RoomController {
     @action.bound
     async handleJoinRoom(data, message) {
         // TESTS EXIST
-        _.each(
-            data.members,
-            (m) => {
+        for (let m of data.members) {
+            if (m.uid != this.room.memberships.selfId) {
                 this.room.updateMembership(m.uid, {
                     status: m.peerId ? MEMBER_STATUSES.CONNECTED : MEMBER_STATUSES.DISCONNECTED,
                     role: m.info.role,
@@ -171,7 +170,8 @@ export default class RoomController {
                     return r;
                 }));
             }
-        );
+        }
+
         this.room.updateMembership(this.room.memberships.selfId, {
             status: MEMBER_STATUSES.CONNECTED,
             role: data.self.info.role,
@@ -189,6 +189,10 @@ export default class RoomController {
             return;
         }
         this.room.updateMessagesFromServer(messagesData);
+        this.connection.updateRecordings(_.map(
+            this.room.memberships.self.recordings,
+            r => r.serialize()
+        ));
         this.openFS();
     }
 

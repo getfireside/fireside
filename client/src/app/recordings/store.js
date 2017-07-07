@@ -1,7 +1,7 @@
 import _ from 'lodash';
 import fileMixin from 'lib/fs/filemixin';
 import {ListStore} from 'lib/store';
-import {observable, computed, action} from 'mobx';
+import {autorun, observable, computed, action, whyRun} from 'mobx';
 import uuid from 'node-uuid';
 import config from 'app/config';
 import moment from 'moment';
@@ -104,6 +104,37 @@ export default class RecordingStore extends ListStore {
     directory;
     @observable time = null;
     @observable.ref fileTransfers = null;
+
+    setupAutoSaveForRoom(room) {
+        this.autoSaveDisposer = autorun(() => this.saveToLocalStorage(room));
+    }
+
+    saveToLocalStorage(room) {
+        console.log('Saved items to local storage!');
+        localStorage.setItem(
+            `recordings:forRoom:${room.id}`,
+            JSON.stringify(_.map(
+                _.filter(this.items.slice(), (r) => (
+                    r.room == room &&
+                    r.uid == this.selfId
+                )),
+                r => r.serialize()
+            ))
+        );
+    }
+
+    loadFromLocalStorage(room) {
+        let json = localStorage.getItem(`recordings:forRoom:${room.id}`);
+        if (json) {
+            this.update(_.map(
+                JSON.parse(json),
+                (x) => {
+                    x.room = room;
+                    return x;
+                }
+            ));
+        }
+    }
 
     constructor({recordings, fs, selfId} = {}) {
         super();

@@ -113,9 +113,6 @@ export default class Recorder extends WildEmitter {
             this.mediaRecorder.stop();
             this.once('stopped', function() {
                 this.status = null;
-                if (this.mediaRecorder.destroy) {
-                    this.mediaRecorder.destroy();
-                }
                 this.setupMediaRecorder(stream);
             });
         }
@@ -157,7 +154,7 @@ export default class Recorder extends WildEmitter {
             this.currentRecording.ended = new Date;
         }
         if (this.mediaRecorder instanceof WAVAudioRecorder && this.currentRecording.filesize) {
-            this.mediaRecorder.fixWaveFile(this.currentRecording).then( () => {
+            this.mediaRecorder.fixWaveFile(this.currentRecording).then(action(() => {
                 this.logger.log("fixed wave file!");
                 this.status = 'ready';
                 setTimeout(() => {
@@ -167,10 +164,9 @@ export default class Recorder extends WildEmitter {
                         this.setStream(this.stream);
                     }, 250);
                 }, 250);
-            }).catch( (err) => {
+            })).catch( action((err) => {
                 this.logger.error("problem writing wavefile header");
                 this.logger.error(err);
-                this.logger.error(err.stack);
                 this.emit('error', {message: "Problem writing wavefile header", details: err.message, err});
                 this.status = 'ready';
                 setTimeout(() => {
@@ -180,7 +176,7 @@ export default class Recorder extends WildEmitter {
                         this.setStream(this.stream);
                     }, 250);
                 }, 250);
-            });
+            }));
         }
         else {
             setTimeout(() => {
@@ -229,14 +225,6 @@ export default class Recorder extends WildEmitter {
         else {
             this.logger.warn("Not started!");
         }
-    }
-
-    async destroy() {
-        console.warn('Destroying...')
-        if (this.mediaRecorder instanceof WAVAudioRecorder) {
-            await this.mediaRecorder.destroy();
-        }
-        return;
     }
 
 

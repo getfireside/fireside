@@ -5,7 +5,7 @@ import {observable} from 'mobx';
 import Logger from 'lib/logger';
 import Peer from 'lib/rtc/peer';
 import Socket from 'lib/socket';
-import {fetchPost, fetchJSON} from 'lib/http';
+import {fetchPost, fetchJSON, fetchPut} from 'lib/http';
 import {Message} from 'app/messages/store';
 import {camelize, camelizeKeys, decamelize, decamelizeKeys} from 'lib/util';
 import {MESSAGE_TYPES} from './constants';
@@ -16,7 +16,7 @@ export default class RoomConnection extends WildEmitter {
     /**
      * Handles the connection to the signalling server, and to the RTC peers.
      */
-    @observable status = null;
+    @observable status = 'disconnected';
     @observable.ref stream = null;
     @observable.shallow peers = [];
 
@@ -34,10 +34,10 @@ export default class RoomConnection extends WildEmitter {
         this.socket.on('message', this.handleSocketMessage.bind(this));
         this.socket.on('close', () => {
             this.emit('disconnect');
-            this.status = 'disconnected'
+            this.status = 'disconnected';
         });
 
-        this.status = 'disconnected';
+        this.socket.on('open', this.onConnect.bind(this));
 
         this.logger = new Logger(opts.logger, "connection");
         this.fileTransfers = new FileTransferManager(this, {
@@ -53,16 +53,18 @@ export default class RoomConnection extends WildEmitter {
             },
             announce: (message) => {
                 // when another peer joins
-                let peer = this.addPeer(message.payload.peer, {isInitiator: false});
-                this.emit('peerAnnounce', peer, message);
-                this.attemptResumeFileTransfers(peer);
+                if (message.peerId != this.selfPeerId) {
+                    let peer = this.addPeer(message.payload.peer, {isInitiator: false});
+                    this.emit('peerAnnounce', peer, message);
+                    this.attemptResumeFileTransfers(peer);
+                }
             },
             join: (message) => {
                 // when the user connects
                 this.selfPeerId = message.payload.self.peerId;
                 this.attemptResumeUploads();
                 for (let member of message.payload.members) {
-                    if (member.peerId) {
+                    if (member.peerId && member.peerId != this.selfPeerId) {
                         let peer = this.addPeer(member, {isInitiator: true});
                         peer.start();
                         this.attemptResumeFileTransfers(peer);
@@ -94,7 +96,6 @@ export default class RoomConnection extends WildEmitter {
          */
         if (this.status == 'disconnected') {
             this.status = 'connecting';
-            this.socket.once('open', this.onConnect.bind(this));
             this.socket.open();
             this.emit('connecting');
         }
@@ -229,6 +230,10 @@ export default class RoomConnection extends WildEmitter {
 
     notifyCreatedRecording(data) {
         return fetchPost(this.urls.recordings, decamelizeKeys(data));
+    }
+
+    updateRecordings(recordings) {
+        return fetchPut(this.urls.recordings, decamelizeKeys(recordings));
     }
 
     requestFileTransfer(fileId, peer) {

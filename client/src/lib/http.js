@@ -70,6 +70,8 @@ export const fetchPost = async (url, data, method = 'POST') => {
     }
 };
 
+export const fetchPut = (url, data) => fetchPost(url, data, 'PUT');
+
 export const fetchJSON = async (url, data) => {
     let response = await fetch(url, {
         headers: {

@@ -29,18 +29,29 @@
         header.top-bar {
             background: black;
             color: white;
-            padding: 10px;
             display: flex;
             flex: 0 0 40px;
         }
-        header.top-bar h2 {
-            flex: 1 1 auto;
+        header.top-bar > h2 {
             margin: 0;
+            padding: 10px;
             font-size: 18px;
+        }
+        header.top-bar .conf {
+            padding: 10px;
         }
         header.top-bar a {
             color: orange;
             text-decoration: none;
+        }
+        header.top-bar > div.status-area {
+            flex: 1 1 auto;
+        }
+        header.top-bar > .status-area > .notification {
+            padding: 10px;
+        }
+        header.top-bar > .status-area > .notification.error {
+            background: red;
         }
         .membership {
             margin-bottom: 5px;
