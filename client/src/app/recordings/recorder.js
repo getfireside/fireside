@@ -2,7 +2,7 @@ import WildEmitter from 'wildemitter';
 // import moment from 'moment';
 import WAVAudioRecorder from 'lib/wavrecorder/recorder';
 import { Logger } from 'lib/logger';
-import { observable, action } from 'mobx';
+import { observable, action, runInAction } from 'mobx';
 import _ from 'lodash';
 import { isVideo, calculateBitrate } from 'lib/util';
 
@@ -95,7 +95,9 @@ export default class Recorder extends WildEmitter {
         this.mediaRecorder.onstop = this.onStop.bind(this);
 
         this.logger.info('STATUS = "ready"');
-        this.status = 'ready';
+        runInAction(() => {
+            this.status = 'ready';
+        });
 
         this.emit('ready');
 
@@ -111,10 +113,10 @@ export default class Recorder extends WildEmitter {
         if (((this.mediaRecorder != null) && this.status === 'recording') || this.status === 'stopping') {
             // tear down
             this.mediaRecorder.stop();
-            this.once('stopped', function() {
+            this.once('stopped', action(() => {
                 this.status = null;
                 this.setupMediaRecorder(stream);
-            });
+            }));
         }
         else {
             return this.setupMediaRecorder(stream);
@@ -179,14 +181,14 @@ export default class Recorder extends WildEmitter {
             }));
         }
         else {
-            setTimeout(() => {
+            setTimeout(action(() => {
                 this.status = 'ready';
                 this.emit('stopped', this.currentRecording);
                 this.logger.info(`Recording ${this.currentRecording.filename} completed\n\tlength: ${this.currentRecording.duration} secs;\n\tsize: ${this.currentRecording.filesize} bytes`);
                 setTimeout(() => {
                     this.setStream(this.stream);
                 }, 250);
-            }, 250);
+            }), 250);
         }
     }
 

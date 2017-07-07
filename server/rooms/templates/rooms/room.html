@@ -46,12 +46,20 @@
         }
         header.top-bar > div.status-area {
             flex: 1 1 auto;
+            display: flex;
+            justify-content: center;
         }
         header.top-bar > .status-area > .notification {
-            padding: 10px;
+            padding: 9px;
+            height: 28px;
+            line-height: 10px;
+            vertical-align: middle;
+            margin: 6px;
+            border-radius: 2px;
+            font-size: 14px;
         }
         header.top-bar > .status-area > .notification.error {
-            background: red;
+            background: #ec3737;
         }
         .membership {
             margin-bottom: 5px;

@@ -26,7 +26,6 @@ export class StatusArea extends React.Component {
         if (this.props.controller.connection.status == 'disconnected') {
             let messageTemplate = (contents) => (
                 <div className="notification error connection">
-                    <span>Connection lost.</span>
                     {contents}
                 </div>
             );
@@ -36,7 +35,10 @@ export class StatusArea extends React.Component {
                     - this.props.room.recordingStore.time
                 ) / 1000);
                 timeLeft += (timeLeft > 1 ? ' seconds' : " second");
-                return messageTemplate(`Reconnecting in ${timeLeft}...`);
+                return messageTemplate([
+                    <strong>Connection lost.</strong>,
+                    ` Reconnecting in ${timeLeft}...`
+                ]);
             }
             else {
                 return messageTemplate(`Attempting to reconnect...`);
