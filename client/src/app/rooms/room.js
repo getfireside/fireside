@@ -38,7 +38,7 @@ export class RoomMembership {
             bitrate = 176375; // stereo wav @ 44.1khz
         }
         else {
-            if (this.room.config.video_bitrate == null) {
+            if (this.room.config.videoBitrate == null) {
                 let numPixels;
                 if (this.resources && this.resources.video) {
                     numPixels = this.resources.video.width * this.resources.video.height;
@@ -46,7 +46,10 @@ export class RoomMembership {
                 else {
                     numPixels = 1280 * 720;
                 }
-                bitrate = 128000 + calculateBitrate(numPixels);
+                bitrate = 16000 + calculateBitrate(numPixels);
+            }
+            else {
+                bitrate = 16000 + this.room.config.videoBitrate;
             }
         }
         return (freeSpace / bitrate) / 60;
@@ -96,7 +99,11 @@ export default class Room {
     @observable memberships = new RoomMembershipsMap;
     @observable.ref messageStore = null;
     @observable.ref recordingStore = null;
-    @observable config = {};
+    @observable config = {
+        videoBitrate: null,
+        mode: null,
+        debugMode: null
+    };
     id = null;
     ownerId = null;
 

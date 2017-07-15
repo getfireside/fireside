@@ -117,5 +117,5 @@ export class Clock extends WildEmitter {
 export const clock = new Clock(1000);
 
 export function calculateBitrate(pixels) {
-    return pixels * 2 * 0.07 * 30;
+    return pixels * 2 * 0.07 * 30 / 8;
 }

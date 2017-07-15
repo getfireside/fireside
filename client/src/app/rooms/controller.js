@@ -19,7 +19,8 @@ export default class RoomController {
         this.recorder = new Recorder({
             store: this.room.recordingStore,
             fs: this.fs,
-            extraAttrs: {room: this.room, uid: this.room.memberships.selfId}
+            extraAttrs: {room: this.room, uid: this.room.memberships.selfId},
+            videoBitrate: this.room.config.videoBitrate,
         });
         this.connection = new RoomConnection({
             room: this.room,
@@ -277,7 +278,7 @@ export default class RoomController {
     @action.bound
     handleUpdateConfig(newConfig) {
         let oldConfig = {...this.room.config};
-        this.room.config = newConfig;
+        this.room.config = _.extend({}, oldConfig, newConfig);
         if (this.room.config.mode != oldConfig.mode) {
             this.stopRecording();
             if (this.connection.stream) {
@@ -287,6 +288,7 @@ export default class RoomController {
         }
         else if (this.room.config.videoBitrate != oldConfig.videoBitrate) {
             this.stopRecording();
+            this.recorder.setVideoBitrate(this.room.config.videoBitrate);
         }
     }
 

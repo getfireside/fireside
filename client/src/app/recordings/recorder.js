@@ -20,6 +20,7 @@ export default class Recorder extends WildEmitter {
     @observable lastBitrate = null;
     @observable lastChunkTime = null;
     @observable diskUsage = null;
+    @observable videoBitrate = null;
 
     constructor(opts) {
         let defaults = {recordingPeriod: 1000};
@@ -31,6 +32,7 @@ export default class Recorder extends WildEmitter {
         this.store = opts.store;
         this.recordingPeriod = opts.recordingPeriod;
         this.extraAttrs = opts.extraAttrs || {};
+        this.videoBitrate = opts.videoBitrate;
         this.videoCodecs = [
             'video/webm;codecs=avc1',
             'video/webm;codecs=vp9',
@@ -56,6 +58,11 @@ export default class Recorder extends WildEmitter {
         }
     }
 
+    @action setVideoBitrate(newBitrate) {
+        this.videoBitrate = newBitrate;
+        this.setupMediaRecorder(this.stream);
+    }
+
     getVideoResolution(stream) {
         return new Promise( (resolve) => {
             let v = document.createElement('video');
@@ -78,7 +85,7 @@ export default class Recorder extends WildEmitter {
             this.videoResolution = await this.getVideoResolution(stream);
             this.mediaRecorder = new MediaRecorder(stream, {
                 mimeType: this.getVideoMimeType(),
-                videoBitsPerSecond: this.getVideoBitrate(),
+                videoBitsPerSecond: this.getVideoBitrate() * 8,
                 audioBitsPerSecond: 320*1024,
             });
         }

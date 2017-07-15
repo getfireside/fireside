@@ -40,13 +40,13 @@ export class ConfigForm extends React.Component {
         };
     }
     submit(data) {
-        data.video_bitrate = data.video_bitrate || null;
+        data.videoBitrate = parseInt(data.videoBitrate) || null;
         this.props.controller.updateConfig(data);
         this.props.onSubmit && this.props.onSubmit(data);
     }
 
     getBitrate(mbps) {
-        return ((mbps / 8) * 1024 * 1024) + (384 / 8 * 1024);
+        return ((mbps / 8) * 1024 * 1024);
     }
 
     onChange(data) {
@@ -68,8 +68,8 @@ export class ConfigForm extends React.Component {
                 />
                 {this.state.data.mode == 'video' && (
                     <Select
-                        name="video_bitrate"
-                        value={this.props.config.video_bitrate}
+                        name="videoBitrate"
+                        value={this.props.config.videoBitrate}
                         label="Video bitrate"
                         help="This includes the audio track's bitrate."
                         options={[
@@ -84,8 +84,8 @@ export class ConfigForm extends React.Component {
                     />
                 )}
                 <Checkbox
-                   name="debug_mode"
-                   value={this.props.config.debug_mode}
+                   name="debugMode"
+                   value={this.props.config.debugMode}
                    label="Enable debug mode"
                    rowLabel="Debug mode"
                 />
