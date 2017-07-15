@@ -43,6 +43,13 @@ export default class RoomConnection extends WildEmitter {
         this.fileTransfers = new FileTransferManager(this, {
             getFileById: opts.getFileById,
         });
+        if (this.fs.isOpen) {
+            this.fileTransfers.loadFromLocalStorage();
+        }
+        else {
+            // re-call once FS is open
+            this.fs.once('open', () => this.fileTransfers.loadFromLocalStorage());
+        }
 
         this.messageHandlers = {
             signalling: (message) => {
@@ -62,7 +69,12 @@ export default class RoomConnection extends WildEmitter {
             join: (message) => {
                 // when the user connects
                 this.selfPeerId = message.payload.self.peerId;
-                this.attemptResumeUploads();
+                if (this.fs.isOpen) {
+                    this.attemptResumeUploads();
+                }
+                else {
+                    this.fs.once('open', () => this.attemptResumeUploads());
+                }
                 for (let member of message.payload.members) {
                     if (member.peerId && member.peerId != this.selfPeerId) {
                         let peer = this.addPeer(member, {isInitiator: true});
@@ -245,7 +257,8 @@ export default class RoomConnection extends WildEmitter {
     }
 
     uploadFile(file, {fileId}) {
-        this.fileTransfers.uploadFile(file, {fileId});
+        let sender = this.fileTransfers.uploadFile(file, {fileId});
+        sender.on('*', (name, ...args) => this.emit(`fileTransfer.${name}`, ...args));
     }
 
     attemptResumeFileTransfers(peer) {
@@ -265,6 +278,7 @@ export default class RoomConnection extends WildEmitter {
                 sender.status == FILETRANSFER_STATUSES.DISCONNECTED
             ) {
                 sender.startUpload();
+                sender.on('*', (name, ...args) => this.emit(`fileTransfer.${name}`, ...args));
             }
         }
     }

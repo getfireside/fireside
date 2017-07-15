@@ -12,6 +12,8 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+.coverage
+htmlcov
 
 # Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
@@ -48,3 +50,11 @@ __pycache__
 
 # Env
 .env
+
+.eslintrc.js
+
+.tern-project
+media/
+*.sublime-project
+*.sublime-workspace
+.cache

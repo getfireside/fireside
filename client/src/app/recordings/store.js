@@ -24,6 +24,7 @@ export class Recording {
     room = null;
     id = null;
     @observable blobUrl = null;
+    @observable url = null;
     @observable lastBitrate;
 
     @computed get niceFilename() {

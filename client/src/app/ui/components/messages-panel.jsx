@@ -8,7 +8,7 @@ export class MessageContainer extends React.Component {
     render() {
         return (
             <div className={`message ${this.props.className}`}>
-                <time>{this.props.message.time.format('HH:mm')}</time>
+                <time>{this.props.message.time.format('HH:mm:ss')}</time>
                 {this.props.children}
             </div>
         )
@@ -124,6 +124,45 @@ export class RecordingStatusMessage extends React.Component {
 }
 
 @observer
+export class UploadMessage extends React.Component {
+    render() {
+        let isStart = this.props.message.payload.type == 'uploadStarted';
+        let className;
+        let messagePart;
+        let recording = this.props.room.recordingStore.get(
+            this.props.message.payload.data.id
+        );
+        if (isStart) {
+            className = `event upload event-start-upload`;
+            messagePart = "started uploading";
+        }
+        else {
+            className = `event upload event-complete-upload`;
+            messagePart = "finished uploading";
+        }
+        if (recording) {
+            messagePart = [messagePart];
+            messagePart.push(' ');
+            messagePart.push(<b>{recording.niceFilename}</b>);
+            messagePart.push(' ');
+            if (recording.url) {
+                messagePart.push(<a href={recording.url}>Download</a>);
+            }
+        }
+
+        return (
+            <MessageContainer message={this.props.message} className={className}>
+                <div className="content">
+                    <b>{this.props.message.memberDisplayName}</b>{' '}
+                    {messagePart}
+
+                </div>
+            </MessageContainer>
+        );
+    }
+}
+
+@observer
 export class RecorderStatusMessage extends React.Component {
     render() {
         return (
@@ -156,8 +195,11 @@ export class Message extends React.Component {
                 if (_.includes(['startRecording', 'stopRecording'], event.type)) {
                     return <RecordingStatusMessage {...this.props} />;
                 }
-                else if (_.includes(['requestStartRecording', 'requestStopRecording'])) {
+                else if (_.includes(['requestStartRecording', 'requestStopRecording'], event.type)) {
                     return <RecordingRequestMessage {...this.props} />;
+                }
+                else if (_.includes(['uploadComplete', 'uploadStarted'], event.type)) {
+                    return <UploadMessage {...this.props} />;
                 }
                 else if (event.type == 'error') {
                     return <ErrorMessage {...this.props} />;

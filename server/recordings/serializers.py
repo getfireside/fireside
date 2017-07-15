@@ -21,4 +21,5 @@ class RecordingSerializer(serializers.ModelSerializer):
             'filesize',
             'started',
             'ended',
+            'url',
         )

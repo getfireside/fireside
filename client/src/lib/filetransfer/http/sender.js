@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import {observable, action} from 'mobx';
+import {observable, action, runInAction} from 'mobx';
 import WildEmitter from 'wildemitter';
 import Logger from 'lib/logger';
 import {sleep} from 'lib/util/async';
@@ -11,6 +11,9 @@ import {STATUSES} from '../index';
 export class HttpFileSender extends WildEmitter {
     @observable bitrate = 0;
     @observable numUploadedChunks = 0;
+    @observable uploadedBytes = 0;
+    @observable status = null;
+
     constructor({uploadId, fileId, file, logger, getFileById, status}) {
         super();
         // uploadId: an ID that identifies this particular upload
@@ -25,10 +28,10 @@ export class HttpFileSender extends WildEmitter {
         this.timeUntilNextRetry = 100;
         this.maxTimeUntilNextRetry = 30000;
         this.uploadSamples = []; // for measuring bitrate
-        this.lastUploadedBytes = 0;
         this.logger = new Logger(logger, `${this.constructor.name}:${this.fileId}`);
-        this.status = status || STATUSES.INPROGRESS;
-        this.downloadSamples = [];
+        this.status = status != null ? status : STATUSES.DISCONNECTED;
+        this.uploadSamples = [];
+        this.loadFromLocalStorage();
     }
 
     // TO BE DEFINED BY SUBCLASS
@@ -45,9 +48,14 @@ export class HttpFileSender extends WildEmitter {
     }
 
     async startUpload() {
+        runInAction(() => {
+            this.status = STATUSES.INPROGRESS;
+            this.emit('started', this);
+        });
         if (!this.uploadId) {
             this.uploadId = await this.initiateUpload();
         }
+        this.saveToLocalStorage();
         clock.on('tick', this.updateBitrate);
         this.once('complete', () => clock.off('tick', this.updateBitrate));
         // declare these outside the loop,
@@ -55,15 +63,22 @@ export class HttpFileSender extends WildEmitter {
         // in case of HTTP upload failure.
         let chunk;
         let index;
-        while (!this.isAborted && this.numUploadedChunks < this.numChunks) {
-            if (this.numUploadedChunks != index) {
-                index = this.numUploadedChunks;
-                chunk = await this.getNthChunk(index);
-            }
+        while (!this.isAborted) {
+            this.saveToLocalStorage();
             try {
-                await this.sendNthChunk(index, chunk);
-                this.timeUntilNextRetry = 100;
-                this.numUploadedChunks++;
+                if (this.numUploadedChunks == this.numChunks) {
+                    await this.notifyComplete();
+                    break;
+                }
+                else {
+                    if (this.numUploadedChunks != index) {
+                        index = this.numUploadedChunks;
+                        chunk = await this.getNthChunk(index);
+                    }
+                    await this.sendNthChunk(index, chunk);
+                    this.timeUntilNextRetry = 100;
+                    this.numUploadedChunks++;
+                }
             }
             catch (err) {
                 if (err instanceof TypeError) {
@@ -79,16 +94,15 @@ export class HttpFileSender extends WildEmitter {
                 }
             }
         }
-        if (this.numUploadedChunks == this.numChunks) {
-            await this.notifyComplete();
-        }
     }
 
     async notifyComplete() {
+        this.saveToLocalStorage();
         let url = this.getCompleteUploadUrl();
-        await fetchPost(url);
-        this.status = STATUSES.COMPLETED;
-        this.emit('complete');
+        let fileUrl = await fetchPost(url);
+        runInAction(() => this.status = STATUSES.COMPLETED);
+        this.completionTime = new Date();
+        this.emit('complete', this, fileUrl);
     }
 
     async sendNthChunk(n, chunk) {
@@ -96,13 +110,13 @@ export class HttpFileSender extends WildEmitter {
         await fetchPutBlob(url, chunk, {
             onProgress: action(e => {
                 let uploadedBytes = this.chunkSize * this.numUploadedChunks + e.loaded;
-                let delta = uploadedBytes - this.lastUploadedBytes;
-                this.lastUploadedBytes = uploadedBytes;
+                let delta = uploadedBytes - this.uploadedBytes;
+                this.uploadedBytes = uploadedBytes;
                 this.emit('progress', this, {
                     bytes: uploadedBytes,
                     total: this.file.filesize
                 });
-                this.downloadSamples.push([new Date(), delta]);
+                this.uploadSamples.push([new Date(), delta]);
             })
         });
     }
@@ -138,6 +152,7 @@ export class HttpFileSender extends WildEmitter {
         if (res) {
             res = JSON.parse(res);
             this.numUploadedChunks = res.numUploadedChunks;
+            this.uploadedBytes = Math.min(res.numUploadedChunks * this.chunkSize, this.file.filesize);
             this.uploadId = res.uploadId;
         }
     }

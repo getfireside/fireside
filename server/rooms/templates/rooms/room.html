@@ -61,6 +61,48 @@
         header.top-bar > .status-area > .notification.error {
             background: #ec3737;
         }
+        header.top-bar > .status-area > .notification.recording {
+            background: white;
+            color: black;
+            font-weight: bold;
+        }
+        header.top-bar > .status-area > .notification.recording > span {
+            text-transform: uppercase;
+        }
+        header.top-bar > .status-area > .notification.recording > span:before {
+            display: inline-block;
+            content: ' ';
+            background: red;
+            width: 12px;
+            height: 12px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-top: -2px;
+            margin-right: 5px;
+            border-radius: 12px;
+        }
+        header.top-bar > .status-area > .notification.upload {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            position: relative;
+            background: white;
+            border-radius: 2px;
+            color: black;
+            font-weight: bold;
+            overflow: hidden;
+        }
+        header.top-bar > .status-area > .notification.upload > span.progress {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            background: red;
+        }
+        header.top-bar > .status-area > .notification.upload > .foreground {
+            position: relative;
+            z-index: 4;
+        }
         .membership {
             margin-bottom: 5px;
             border-bottom: 1px solid rgba(0,0,0,0.1);
@@ -169,7 +211,7 @@
             padding: 1px 5px;
         }
         .message time {
-            width: 47px;
+            min-width: 65px;
             flex-shrink: 0;
         }
         .message.chat .text {

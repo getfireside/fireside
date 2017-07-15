@@ -8,6 +8,7 @@ import {MESSAGE_TYPES, MEMBER_STATUSES} from 'app/rooms/constants';
 import _ from 'lodash';
 import Logger from 'lib/logger';
 import {camelizeKeys} from 'lib/util';
+import {sleep} from 'lib/util/async';
 
 export default class RoomController {
     constructor(opts = {}) {
@@ -66,17 +67,19 @@ export default class RoomController {
 
     @on('recorder.stopped')
     @action.bound
-    notifyRecordingComplete(recording) {
+    async notifyRecordingComplete(recording) {
         // TESTS EXIST
-        this.sendEvent('stopRecording', {
+        let message = this.sendEvent('stopRecording', {
             id: recording.id,
             filesize: recording.filesize,
             ended: +(recording.ended)
         });
         if (this.room.config.httpUploadEnabled) {
+            await message.sendPromise;
+            await sleep(1000);
             this.connection.uploadFile(recording, {
                 fileId: 'recording:' + recording.id
-            })
+            });
         }
     }
 
@@ -201,16 +204,16 @@ export default class RoomController {
     handleRequestFileTransfer(peer, {fileId, mode}) {
         if (!this.fs.isOpen) {
             // re-call once FS is open
-            this.fs.on('open', () => this.handleRequestFileTransfer(peer, {fileId}));
+            this.fs.once('open', () => this.handleRequestFileTransfer(peer, {fileId}));
         }
         else {
             let recordingId = fileId.split(':')[1];
             let rec = this.room.recordingStore.get(recordingId);
             if (rec == null || !rec.filesize) {
-                this.connection.sendEvent('error', {
+                this.sendEvent('error', {
                     type: 'recordingDoesNotExist',
                     message: "The requested recording is not present on this client's disk"
-                })
+                });
             }
 
             if (mode == 'p2p') {
@@ -240,10 +243,21 @@ export default class RoomController {
 
     @on('connection.fileTransfer.complete')
     @action.bound
-    handleFileTransferComplete(transfer) {
-        this.connection.sendEvent('uploadComplete', {
+    handleFileTransferComplete(transfer, fileUrl) {
+        if (fileUrl) {
+            transfer.file.url = fileUrl;
+        }
+        this.sendEvent('uploadComplete', {
             id: transfer.fileId.split(':')[1]
-        }, {http: true});
+        });
+    }
+
+    @on('connection.fileTransfer.started')
+    @action.bound
+    handleFileTransferStarted(transfer) {
+        this.sendEvent('uploadStarted', {
+            id: transfer.fileId.split(':')[1]
+        });
     }
 
     @action.bound

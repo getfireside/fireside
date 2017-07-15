@@ -55,6 +55,7 @@ export default class MessageStore extends ListStore {
             // we're sending the message
             message.status = 'pending';
             this.items.push(message);
+            this.sendPromise = sendPromise;
             sendPromise
                 .then(action(() => {
                     message.status = 'sent';
