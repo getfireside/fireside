@@ -1,0 +1,54 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:alpine
+    restart: always
+    ports:
+      - "5432:5432"
+    volumes:
+      - /var/lib/postgresql/data/
+
+  redis:
+    image: redis:alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - /data
+
+  nginx:
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./certs:/etc/nginx/certs
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+
+    image: nginx:alpine
+    restart: always
+    links:
+      - server
+
+  server:
+    build: ./server
+    command: python3 manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./server:/usr/src/server
+      - ./client:/usr/src/client
+    environment:
+      - VIRTUAL_HOST=local.fr.sd
+      - VIRTUAL_PORT=8000
+      - DATABASE_URL=psql://postgres@db:5432/postgres
+      - FIRESIDE_REDIS_HOST=redis
+      - FIRESIDE_REDIS_DB=1
+      - CHANNELS_REDIS_HOST=redis
+      - PYTHONUNBUFFERED=1
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    links:
+      - db
+      - redis

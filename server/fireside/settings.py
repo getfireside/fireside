@@ -17,7 +17,6 @@ BASE_DIR = environ.Path(__file__) - 2
 
 env = environ.Env(
     DEBUG=(bool, False),
-    CELERY_BROKER_URL=(str, 'redis://localhost:6379/0'),
 )
 environ.Env.read_env(str(BASE_DIR.path('.env')))
 
@@ -136,15 +135,19 @@ STATICFILES_DIRS = [str(BASE_DIR.path('static'))]
 AUTH_USER_MODEL = 'accounts.User'
 
 FIRESIDE_REDIS_CONF = {
-    'host': 'localhost',
-    'db': 1,
+    'host': env('FIRESIDE_REDIS_HOST'),
+    'port': env.int('FIRESIDE_REDIS_PORT', default=6379),
+    'db': env.int('FIRESIDE_REDIS_DB', default=0),
 }
 
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "asgi_redis.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("localhost", 6379)],
+            "hosts": [(
+                env('CHANNELS_REDIS_HOST'),
+                env.int('CHANNELS_REDIS_PORT', default=6379)
+            )],
         },
         "ROUTING": "fireside.routing.channel_routing",
     },

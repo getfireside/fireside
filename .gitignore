@@ -58,3 +58,4 @@ media/
 *.sublime-project
 *.sublime-workspace
 .cache
+/certs
