@@ -1,10 +1,16 @@
-var path = require('path');
+const path = require('path');
+const ExtractTextPlugin = require('extract-text-webpack-plugin');
+
+const extractSass = new ExtractTextPlugin({
+  filename: "css/[name].css"
+});
 
 module.exports = {
   context: path.resolve(__dirname),
   entry: {
     main: './src/index.js',
-    "wav-recorder-worker": './src/lib/wavrecorder/worker.js'
+    "wav-recorder-worker": './src/lib/wavrecorder/worker.js',
+    style: "./styles/style.scss"
   },
   output: {
     filename: '[name].js',
@@ -18,15 +24,24 @@ module.exports = {
         use: [
           'babel-loader?cacheDirectory=true',
         ],
-      }
-    ]
+      },
+      {
+        test: /\.scss$/,
+        use: extractSass.extract({
+          use: [{loader: 'css-loader'}, {loader:'sass-loader'}],
+        })
+      },
+    ],
   },
+  plugins: [
+    extractSass,
+  ],
   devtool: 'source-map',
   resolve: {
-      extensions: ['.js', '.jsx'],
-      modules: [
-          path.resolve(__dirname, "src"),
-          "node_modules"
-      ]
+    extensions: ['.js', '.jsx'],
+    modules: [
+        path.resolve(__dirname, "src"),
+        "node_modules"
+    ]
   },
 }

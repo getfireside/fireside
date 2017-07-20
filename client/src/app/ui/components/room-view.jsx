@@ -2,7 +2,7 @@ import React from 'react';
 import {observer} from "mobx-react";
 
 import {ROLES} from 'app/rooms/constants';
-import RoomTopBar from './room-top-bar';
+import {default as RoomTopBar, StatusArea} from './room-top-bar';
 import UserStatusPanel from './user-status-panel';
 import RecordingStatusPanel from './recording-status-panel';
 import MessagesPanel from './messages-panel';
@@ -17,13 +17,14 @@ export class HostRoomView extends React.Component {
     render() {
         return (
             <div className="host-role room-view" style={{background: 'whitesmoke'}}>
-                <RoomTopBar {...this.props} />
                 <div className="flex-container">
                     <aside>
+                        <RoomTopBar {...this.props} />
                         <UserStatusPanel {...this.props} />
                         <MessagesPanel {...this.props} />
                     </aside>
                     <main>
+                        <StatusArea {...this.props} />
                         <AVPanel {...this.props} />
                         <FilesDrawer {...this.props} />
                     </main>
@@ -39,13 +40,14 @@ export class GuestRoomView extends React.Component {
     render() {
         return (
             <div className="host-role room-view" style={{background: 'yellow'}}>
-                <RoomTopBar {...this.props} />
                 <div className="flex-container">
                     <aside>
+                        <RoomTopBar {...this.props} />
                         <UserStatusPanel {...this.props} />
                         <MessagesPanel {...this.props} />
                     </aside>
                     <main>
+                        <StatusArea {...this.props} />
                         <AVPanel {...this.props} />
                         <FilesDrawer {...this.props} />
                     </main>

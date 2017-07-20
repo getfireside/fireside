@@ -272,6 +272,7 @@ export default class RoomConnection extends WildEmitter {
     }
 
     attemptResumeUploads() {
+        // TODO: ADD TEST
         for (let sender of this.fileTransfers.senders) {
             if (
                 sender instanceof FrSdFileSender &&

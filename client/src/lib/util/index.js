@@ -92,6 +92,11 @@ export function formatDuration(d, {format = "hms"} = {}) {
     var mins = Math.floor(d / 60);
     var secs = Math.round(d % 60);
     if (format == "hms") {
+        var hours = Math.floor(mins / 60);
+        if (hours) {
+            mins = mins % 60;
+            return `${mins}h ${mins}m ${secs}s`;
+        }
         return `${mins}m ${secs}s`;
     }
     else if (format == "stopwatch") {

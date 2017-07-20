@@ -1,7 +1,10 @@
 import React from 'react';
 import {observer} from "mobx-react";
+import {action} from 'mobx';
 import _ from 'lodash';
 import {formatBytes, runDownload} from 'app/ui/helpers';
+import {formatDuration} from 'lib/util';
+import Button from './Button';
 
 @observer
 export class DownloadStatusButton extends React.Component {
@@ -41,22 +44,10 @@ export class DownloadStatusButton extends React.Component {
             )
         );
     }
-    progressBar() {
-        return <div>
-            <progress
-                value={this.props.recording.fileTransfer.downloadedBytes}
-                max={
-                    this.props.recording.fileTransfer.metadata &&
-                    this.props.recording.fileTransfer.metadata.size
-                }
-            ></progress>
-            <b>{formatBytes(this.props.recording.fileTransfer.bitrate) + "/s"}</b>
-        </div>;
-    }
     render() {
         if (this.shouldShowButton()) {
             return (
-                <button onClick={this.downloadClick.bind(this)}>
+                <Button onClick={this.downloadClick.bind(this)}>
                     {
                         (
                             this.props.recording.fileTransfer &&
@@ -65,7 +56,7 @@ export class DownloadStatusButton extends React.Component {
                         "Copy to Downloads folder" :
                         "Download"
                     }
-                </button>
+                </Button>
             );
         }
         else {
@@ -74,63 +65,137 @@ export class DownloadStatusButton extends React.Component {
     }
 }
 
+class RecordingIcon extends React.Component {
+    render() {
+        return <div className="icon-container"><i className={`fa fa-file-${this.props.recording.type.split('/')[0]}-o`}></i></div>;
+    }
+}
+
 @observer
 export class RecordingInfo extends React.Component {
+    showTransferInfo() {
+        let items = [<div className="size">{formatBytes(this.props.recording.filesize)}</div>];
+        if (this.props.recording.fileTransfer && !this.props.recording.fileTransfer.isComplete) {
+            items.shift(
+                <div className="uploaded">
+                    {formatBytes(this.props.recording.fileTransfer.transferredBytes, {
+                        relativeTo: this.props.recording.filesize
+                    })}
+                    <span className="slash">/</span>
+                </div>
+            );
+            items.shift(<div className="status">uploading...</div>);
+        }
+        if (this.canDownload) {
+            items.push(<div className="actions">
+                <a
+                    className="download"
+                    href={this.props.recording.url || "javascript:void(0);"}
+                    onClick={() => this.onDownloadClick()}
+                >
+                    <span className="sr-only">Download</span>
+                    <i className="sr-hidden fa fa-arrow-down"></i>
+                </a>
+                <Button className="preview" disabled>
+                    <span className="sr-only">Preview</span>
+                    <i className="sr-hidden fa fa-search"></i>
+                </Button>
+            </div>);
+        }
+        return items;
+    }
+    get canDownload() {
+        return (
+            this.props.recording.url || (
+                this.props.recording.fileTransfer && this.props.recording.fileTransfer.isComplete
+            )
+        );
+    }
     render() {
-        if (this.props.recording) {
-            return (
-                <div>
-                    <p>bitrate: {formatBytes(this.props.recording.bitrate)}/sec</p>
-                    <p>status: {this.props.membership.recorderStatus}</p>
-                    <p>started: {this.props.recording.startDate.format()}</p>
-                    <p>duration: {this.props.recording.duration}</p>
-                    <p>filesize: {this.props.recording.filesize}</p>
-                    <p><DownloadStatusButton {...this.props} /></p>
+        return (
+            <div className="recording-info">
+                <RecordingIcon {...this.props} />
+                <div className="right">
+                    <div className="name">
+                        <span className="user">{this.props.recording.membership.name}</span>{" "}
+                        <span className="duration">({formatDuration(this.props.recording.duration, 'hms')})</span>{" "}
+                        {this.props.recording.ended != null ?
+                            <span className="startTime">
+                                {this.props.recording.startDate.calendar(null, {
+                                    sameDay: "HH:MM",
+                                    lastDay: "ddd, HH:MM",
+                                    lastWeek: "ddd, HH:MM",
+                                    sameElse: "Do MMM"
+                                })}
+                            </span> :
+                            <span className="status">RECORDING</span>
+                        }
+                    </div>
+                    <div className="info">
+                        {this.showTransferInfo()}
+                    </div>
                 </div>
-            );
-        }
-        else {
-            return (
-                <div>
-                    <p>status: {this.props.membership.recorderStatus}</p>
-                </div>
-            );
-        }
+            </div>
+        );
     }
 }
 
 
 @observer
 export default class FilesDrawer extends React.Component {
+    @action
+    selectMember(uid) {
+        this.props.uiStore.filesDrawer.selectedMember = uid;
+    }
+    @action toggle() {
+        this.props.uiStore.filesDrawer.isOpen = !this.props.uiStore.filesDrawer.isOpen;
+    }
+    componentDidMount() {
+        this.updateHeight();
+        this.resizeHandler = _.debounce(() => { this.updateHeight() }, 50);
+        window.addEventListener("resize", this.resizeHandler);
+    }
+    componentDidUpdate() {
+        this.updateHeight();
+    }
+    componentWillUnmount() {
+        window.removeEventListener("resize", this.resizeHandler);
+    }
+    updateHeight() {
+        if (this.props.uiStore.filesDrawer.selectedMember == null) {
+            this.height = this.recsUl.offsetHeight;
+        }
+    }
     render() {
         let mems = _.filter(this.props.room.memberships.values(), m => m.recordings.length > 0);
-        let rows = [];
-        _.each(mems, (mem, i) => {
-            _.each(mem.recordings, (rec, j) => {
-                let row = rows[j];
-                if (row == null) {
-                    row = rows[j] = [];
-                }
-                row[i] = <td>
-                    <RecordingInfo recording={rec} membership={mem} {...this.props} />
-                </td>;
-            });
-        });
-        let tableRows = _.map(rows, row => <tr>{row}</tr>);
-        let tableHeadRow = _.map(mems, mem => <td>{mem.name}</td>);
+        let recs = (
+            this.props.uiStore.filesDrawer.selectedMember == null ?
+            this.props.room.recordings :
+            _.filter(this.props.room.recordings, (rec) => (
+                rec.uid == this.props.uiStore.filesDrawer.selectedMember
+            ))
+        );
         return (
-            <div className="files-drawer">
-                <h3>Files drawer</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            {tableHeadRow}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {tableRows}
-                    </tbody>
-                </table>
+            <div className={"files-drawer " + (this.props.uiStore.filesDrawer.isOpen ? "open" : "")}>
+                <h2 onClick={() => this.toggle()}>Files <span className="number">({this.props.room.recordings.length})</span></h2>
+                <div className="content">
+                    <ul className="members">
+                        {_.map([{name: 'All recordings', uid: null}].concat(mems), (mem) => (
+                            <li className={this.props.uiStore.filesDrawer.selectedMember == mem.uid ? 'selected' : ''}>
+                                <a href="javascript:void(0);" onClick={() => this.selectMember(mem.uid)}>{mem.name}</a>
+                            </li>
+                        ))}
+                    </ul>
+                    <ul
+                        className="recordings"
+                        ref={(recsUl) => { this.recsUl = recsUl; }}
+                        style={{minHeight: this.props.uiStore.filesDrawer.selectedMember != null && this.height || 0}}
+                    >
+                        {_.map(recs, (rec) => (
+                            <li><RecordingInfo recording={rec} {...this.props} /></li>
+                        ))}
+                    </ul>
+                </div>
             </div>
         );
     }

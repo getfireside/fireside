@@ -11,8 +11,10 @@ export default class RoomTopBar extends React.Component {
         return (
             <header className="top-bar">
                 <h2>fr.sd/<a href={this.props.room.url}>{this.props.room.id}</a></h2>
-                <StatusArea {...this.props} />
-                <a className="conf" href="javascript:void(0);" onClick={() => this.props.uiStore.openConfigModal()}>conf</a>
+                <a className="conf" href="javascript:void(0);" onClick={() => this.props.uiStore.openConfigModal()}>
+                    <i className="fa fa-sliders sr-hidden" />
+                    <span className="sr-only">Settings</span>
+                </a>
             </header>
         );
     }
@@ -21,8 +23,9 @@ export default class RoomTopBar extends React.Component {
 @observer
 export class StatusArea extends React.Component {
     render() {
+        let contents = this.renderContents();
         return (
-            <div className="status-area">{this.renderContents()}</div>
+            <div className={`status-area ${contents.length == 0 ? "empty" : ""}`}>{contents}</div>
         );
     }
     renderContents() {
@@ -33,6 +36,7 @@ export class StatusArea extends React.Component {
         if (this.props.controller.connection.status == 'disconnected') {
             let messageTemplate = (contents) => (
                 <div className="notification error connection">
+                    <i className="fa fa-exclamation-triangle sr-hidden" />
                     {contents}
                 </div>
             );
@@ -86,15 +90,26 @@ export class StatusArea extends React.Component {
                 _.sumBy(activeHttpUploads, s => s.file.filesize)
             );
             let bitrate = _.sumBy(activeHttpUploads, s => s.bitrate);
+            const ProgressBar = ({children, progress}) => (
+                <div className="bar">
+                    <div className="progress" style={{width: `${progress*100}%`}}>
+                        <div className="text progress-text" style={{width: (progress ? `${100 * (1/progress)}%` : 0)}}>
+                            {children}
+                        </div>
+                    </div>
+                    <div className="text bar-text">
+                        {children}
+                    </div>
+                </div>
+            );
             contents.push(
                 <div className="notification upload http">
-                    <span className="progress" style={{width: `${progress*100}%`}}></span>
-                    <div className="foreground">
+                    <ProgressBar progress={progress}>
                         {text}
                         <span className="percent">{Math.round(progress*100)}%</span>
                         {" "}
                         <span className="bitrate">{formatBytes(bitrate) + "/s"}</span>
-                    </div>
+                    </ProgressBar>
                 </div>
             );
         }

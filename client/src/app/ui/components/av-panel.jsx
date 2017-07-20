@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom';
 import {observer} from "mobx-react";
 import {runInAction, action} from 'mobx';
 import {isVideo} from 'lib/util';
+import Button from './Button';
 import _ from 'lodash';
 
 import AudioVisualizer from './audio-visualizer';
@@ -34,8 +35,8 @@ export default class AVPanel extends React.Component {
         return (
             <div className='av-panel'>
                 {this.props.controller.connection.stream == null ?
-                    <button class='toggle-local-media' onClick={this.onStartClick.bind(this)}>Turn on {resourceText}</button> :
-                    <button class='toggle-local-media' onClick={this.onStopClick.bind(this)}>Turn off {resourceText}</button>
+                    <Button className='toggle-local-media toggle-on' onClick={this.onStartClick.bind(this)}>Turn on {resourceText}</Button> :
+                    <Button className='toggle-local-media toggle-off' onClick={this.onStopClick.bind(this)}>Turn off {resourceText}</Button>
                 }
                 <LocalMedia stream={this.props.controller.connection.stream} onResourceUpdate={this.props.controller.updateResources} />
                 <div className="remotes">

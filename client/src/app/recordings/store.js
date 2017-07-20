@@ -38,6 +38,10 @@ export class Recording {
         return this.room.memberships.get(this.uid);
     }
 
+    @computed get isVideo() {
+        return this.type.split('/')[0] == 'video';
+    }
+
     @computed get startDate() {
         return moment(this.started);
     }

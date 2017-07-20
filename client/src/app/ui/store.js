@@ -4,6 +4,10 @@ export default class UIStore {
     @observable localMediaPromptShowing = false;
     @observable fsPromptShowing = false;
     @observable configModalShowing = false;
+    @observable filesDrawer = {
+        selectedMember: null,
+        isOpen: false
+    };
     constructor({app}) {
         this.app = app;
         this.app.fs.on('promptOpen', action(() => this.fsPromptShowing = true));

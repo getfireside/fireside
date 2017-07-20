@@ -5,7 +5,7 @@ import uuid
 
 def format_duration(total_seconds, format='hms'):
     mins = total_seconds // 60
-    secs = total_seconds % 60
+    secs = round(total_seconds % 60)
 
     if format == 'hms':
         return f'{mins}m {secs}s'

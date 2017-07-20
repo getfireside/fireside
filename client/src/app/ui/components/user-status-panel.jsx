@@ -5,6 +5,7 @@ import _ from 'lodash';
 import {MEMBER_STATUSES} from 'app/rooms/constants';
 import {formatBytes} from '../helpers';
 import {formatDuration} from 'lib/util';
+import Button from './Button';
 
 @observer
 export class RecordingButton extends React.Component {
@@ -26,15 +27,16 @@ export class RecordingButton extends React.Component {
     }
     render() {
         if (this.props.membership.recorderStatus == 'started') {
-            return <button onClick={this.onStopClick.bind(this)}>Stop recording</button>;
+            return <Button className="recording stop" onClick={this.onStopClick.bind(this)}>Stop recording</Button>;
         }
         else {
-            return <button
+            return <Button
                 onClick={this.onStartClick.bind(this)}
                 disabled={this.props.membership.recorderStatus != 'ready'}
+                className="recording start"
             >
-                Start recording
-            </button>;
+                Record
+            </Button>;
         }
     }
 }
@@ -77,9 +79,9 @@ export class RecordAllButton extends React.Component {
     render() {
         return (
             this.showStopRecordingAllButton() ?
-            <button onClick={() => this.onStopClick()}>Stop all</button> :
-            <button disabled={!this.startRecordingAllEnabled()} onClick={() => this.onStartClick()}>Start all</button>
-        )
+            <Button className="recording recording-all stop" onClick={() => this.onStopClick()}>Stop all</Button> :
+            <Button className="recording recording-all start" disabled={!this.startRecordingAllEnabled()} onClick={() => this.onStartClick()}>Record Everyone</Button>
+        );
     }
 }
 
@@ -97,6 +99,9 @@ export class UserStatusPanelItem extends React.Component {
         return c;
     }
     getRecordingStatus() {
+        if (this.props.membership.status == MEMBER_STATUSES.DISCONNECTED) {
+            return 'disconnected';
+        }
         switch (this.props.membership.recorderStatus) {
             case "ready":
                 return "ready";
@@ -128,7 +133,10 @@ export class UserStatusPanelItem extends React.Component {
                         { membership.role == 'o' && <i className="fa fa-star" style={{color: 'gold'}} />}
                         {" "}
                         {
-                            membership.peerStatus &&
+                            (
+                                membership.status == MEMBER_STATUSES.DISCONNECTED &&
+                                membership.peerStatus
+                            ) &&
                             <span className={`peer-status`}>
                                 {
                                     membership.peerStatus == "connected" ?
@@ -139,7 +147,10 @@ export class UserStatusPanelItem extends React.Component {
                         }
                         {" "}
                         {
-                            membership.resources ?
+                            (
+                                membership.status == MEMBER_STATUSES.DISCONNECTED &&
+                                membership.resources
+                            ) ?
                             <div className="resources">
                                 <span className={`video ${membership.resources.video ? '' : 'disabled'}`}>
                                     {

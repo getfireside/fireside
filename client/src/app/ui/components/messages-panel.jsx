@@ -208,7 +208,8 @@ export class Message extends React.Component {
                     return <ChatMessage {...this.props} />;
                 }
                 else if (event.type == 'updateStatus' && event.data.recorderStatus) {
-                    return <RecorderStatusMessage {...this.props} />;
+                    return null;
+                    // return <RecorderStatusMessage {...this.props} />;
                 }
                 return null;
             }
@@ -260,6 +261,7 @@ export default class MessagesPanel extends React.Component {
                             placeholder={"Type here to send a message"}
                             value={this.state.text}
                             useCacheForDOMMeasurements
+                            rows={1}
                         >
                         </Textarea>
                         <button style={{display: 'none'}}>Send</button>

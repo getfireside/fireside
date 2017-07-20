@@ -100,9 +100,11 @@ export class HttpFileSender extends WildEmitter {
         this.saveToLocalStorage();
         let url = this.getCompleteUploadUrl();
         let fileUrl = await fetchPost(url);
-        runInAction(() => this.status = STATUSES.COMPLETED);
-        this.completionTime = new Date();
-        this.emit('complete', this, fileUrl);
+        runInAction(() => {
+            this.status = STATUSES.COMPLETED;
+            this.completionTime = new Date();
+            this.emit('complete', this, fileUrl);
+        });
     }
 
     async sendNthChunk(n, chunk) {

@@ -1,0 +1,45 @@
+.btn {
+    background: white;
+    display: inline-block;
+    padding: 3px 15px;
+    font-family: inherit;
+    color: #333;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 16px;
+    box-shadow: 0 1px 0 rgba(0,0,0,0.3);
+    cursor: pointer;
+    outline: none;
+    &:not([disabled]) {
+        &:hover, &:focus {
+            background: #3199C5;
+            color: white;
+            box-shadow: 0 1px 0 rgba(0,0,0,0.1);
+            border: 1px solid darken(#3199C5, 10%);
+        }
+        &:active {
+            background: darken(#3199C5, 10%);
+            border: 1px solid darken(#3199C5, 20%);
+        }
+    }
+    &.recording.start {
+        border-radius: 20px;
+        background: #D01A1A;
+        color: white;
+        &:not([disabled]) {
+            &:hover, &:focus {
+                border: 1px solid white;
+            }
+            &:active {
+                border: 1px solid darken(#D01A1A, 20%);
+                background: darken(#D01A1A, 10%);
+            }
+        }
+    }
+    &[disabled] {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
