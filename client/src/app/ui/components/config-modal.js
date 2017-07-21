@@ -66,6 +66,19 @@ export class ConfigForm extends React.Component {
                         {value: 'video', label: 'Video'},
                     ]}
                 />
+                <RadioGroup
+                    label="Upload mode"
+                    name="uploadMode"
+                    help={(
+                        _.includes(this.props.config.uploadModeChoices, "HTTP") ?
+                        "HTTP upload is not enabled on this server" :
+                        ""
+                    )}
+                    value={this.props.config.uploadMode}
+                    options={_.map(this.props.config.uploadModeChoices, c => (
+                        {value: c, label: c.toUpperCase()}
+                    ))}
+                />
                 {this.state.data.mode == 'video' && (
                     <Select
                         name="videoBitrate"

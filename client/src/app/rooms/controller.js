@@ -75,7 +75,7 @@ export default class RoomController {
             filesize: recording.filesize,
             ended: +(recording.ended)
         });
-        if (this.room.config.httpUploadEnabled) {
+        if (this.room.config.uploadMode == 'http') {
             await message.sendPromise;
             await sleep(1000);
             this.connection.uploadFile(recording, {

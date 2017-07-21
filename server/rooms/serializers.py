@@ -2,7 +2,7 @@ from rest_framework import serializers
 from . import models
 from recordings.serializers import RecordingSerializer
 from fireside.util import TimestampField
-
+from django.conf import settings
 
 class PeerInfoSerializer(serializers.Serializer):
     recordings = RecordingSerializer(many=True)
@@ -55,10 +55,21 @@ class MessageSerializer(serializers.ModelSerializer):
 
 
 class RoomConfigSerializer(serializers.Serializer):
+    UPLOAD_MODE_CHOICES = (
+        ['p2p'] +
+        ['http'] if settings.FIRESIDE_HTTP_UPLOAD_ENABLED else ['']
+    )
+    DEFAULT_UPLOAD_MODE = 'http' if 'http' in UPLOAD_MODE_CHOICES else 'p2p'
     mode = serializers.ChoiceField(choices=['audio', 'video'], default='audio')
     debug_mode = serializers.BooleanField(default=False)
     video_bitrate = serializers.IntegerField(allow_null=True, default=None)
-    http_upload_enabled = serializers.BooleanField(default=True, read_only=True)
+    upload_mode = serializers.ChoiceField(
+        choices=UPLOAD_MODE_CHOICES,
+        default=DEFAULT_UPLOAD_MODE
+    )
+    upload_mode_choices = serializers.ListField(
+        default=UPLOAD_MODE_CHOICES,
+        read_only=True)
 
 
 class InitialRoomDataSerializer(serializers.Serializer):
