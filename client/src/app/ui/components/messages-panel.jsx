@@ -59,7 +59,7 @@ export class ChatMessage extends React.Component {
     messageToHTML() {
         let text = this.props.message.payload.data.text;
         return {
-            __html: text.split('\n').join('<br />')
+            __html: _.escape(text.split('\n').join('<br />'))
         };
     }
     render() {
