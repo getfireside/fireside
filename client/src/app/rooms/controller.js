@@ -247,6 +247,7 @@ export default class RoomController {
     handleFileTransferComplete(transfer, fileUrl) {
         if (fileUrl) {
             transfer.file.url = fileUrl;
+            transfer.file.deleteFile();
         }
         this.sendEvent('uploadComplete', {
             id: transfer.fileId.split(':')[1]

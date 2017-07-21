@@ -84,8 +84,8 @@ export class Recording {
         return this.store.fileTransfers && this.store.fileTransfers.receiverForFileId(`recording:${this.id}`);
     }
  
-    serialize() {
-        return {
+    serialize({forLocal = false} = {}) {
+        let res = {
             started: this.started && +(this.started),
             ended: this.ended && +(this.ended),
             filesize: this.filesize,
@@ -94,6 +94,10 @@ export class Recording {
             id: this.id,
             roomId: this.room.id,
         };
+        if (forLocal) {
+            res.deleted = this.deleted;
+        }
+        return res;
     }
 }
 
@@ -123,7 +127,7 @@ export default class RecordingStore extends ListStore {
                     r.room == room &&
                     r.uid == this.selfId
                 )),
-                r => r.serialize()
+                r => r.serialize({forLocal: true})
             ))
         );
     }

@@ -144,7 +144,7 @@ export default class HTML5FS extends FS {
     removeFile(path) {
         return new Promise((fulfil, reject) => {
             let done = () => {
-                this.logger.info('Deleted file!');
+                this.logger.info(`Deleted file at ${path}`);
                 fulfil();
             };
             this.fs.root.getFile(path, null, (entry) => {

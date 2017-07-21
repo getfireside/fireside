@@ -4,6 +4,7 @@ import _ from 'lodash';
 const fileMixin = Base => class extends Base {
     @observable filename;
     @observable filesize = null;
+    @observable deleted = false;
 
     constructor(...args) {
         super(...args);
@@ -32,10 +33,10 @@ const fileMixin = Base => class extends Base {
     async deleteFile() {
         let f = await this.fs.getFile(this.filename);
         await f.remove();
-        this._fileSizeDirty = true;
         runInAction( () => {
-            this.filesize = null;
-        });
+            this.deleted = true;
+        })
+
     }
 
     async getFileBlobURL() {
