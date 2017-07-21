@@ -20,6 +20,8 @@ main {
             letter-spacing: 3px;
             opacity: 0.5;
             font-weight: bold;
+            transition: opacity 0.1s ease-in;
+            text-shadow: 1px 1px 0 white;
             .number {
                 letter-spacing: 1px;
                 margin-left: -5px;
@@ -45,6 +47,9 @@ main {
             transform: translateY(0);
             > h2:before {
                 transform: rotateZ(-180deg);
+            }
+            > h2 {
+                opacity: 1;
             }
         }
         .content {

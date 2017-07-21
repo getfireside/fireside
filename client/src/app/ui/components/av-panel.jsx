@@ -32,6 +32,7 @@ export default class AVPanel extends React.Component {
             "camera + mic" :
             "mic"
         );
+        let remotes = this.getRemoteMedia();
         return (
             <div className='av-panel'>
                 {this.props.controller.connection.stream == null ?
@@ -39,14 +40,40 @@ export default class AVPanel extends React.Component {
                     <Button className='toggle-local-media toggle-off' onClick={this.onStopClick.bind(this)}>Turn off {resourceText}</Button>
                 }
                 <LocalMedia stream={this.props.controller.connection.stream} onResourceUpdate={this.props.controller.updateResources} />
-                <div className="remotes">
-                    {this.getRemoteMedia()}
+                <div className={`remotes count-${remotes.length}`} ref="remotes">
+                    {remotes}
                 </div>
             </div>
         );
     }
+    componentDidMount() {
+        const onUpdateSize = () => {
+            let newClass = (
+                this.refs.remotes.offsetWidth >= this.refs.remotes.offsetHeight ?
+                'wide' :
+                'tall'
+            );
+            this.refs.remotes.classList.remove('wide');
+            this.refs.remotes.classList.remove('tall');
+            this.refs.remotes.classList.add(newClass);
+        };
+        onUpdateSize();
+        this.resizeHandler = _.debounce(() => { onUpdateSize() }, 50);
+        window.addEventListener("resize", this.resizeHandler);
+    }
+    componentWillUnmount() {
+        window.removeEventListener("resize", this.resizeHandler);
+    }
     getRemoteMedia() {
         let membersWithStreams = _.filter(this.props.room.memberships.values(), m => m.stream != null);
+        // let tests = _.times(2, (i) => (
+        //     <div>
+        //         <div className="remotemedia">
+        //             <video src="/static/dist/video.mp4" />
+        //         </div>
+        //         <b>Member {i}</b>
+        //     </div>
+        // ));
         return _.map(membersWithStreams, (member) => (
             <div>
                 <RemoteMedia stream={member.stream} />

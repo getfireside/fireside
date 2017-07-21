@@ -6,6 +6,7 @@ $border_color_1: orange;
 @import './sidebar';
 @import './buttons';
 @import './status-area';
+@import './av-panel';
 
 * {
     box-sizing: border-box;
@@ -54,61 +55,6 @@ main {
         / 147px 147px;
     box-shadow: 0 0 10px rgba(0,0,0,0.2) inset;
     overflow: hidden;
-    .av-panel {
-        display: flex;
-        flex-direction: column;
-        flex: 1 1 auto;
-        position: relative;
-        .toggle-local-media {
-            margin: 5px;
-            position: absolute;
-            top: 0;
-            left: 0;
-        }
-        .remotes {
-            display: flex;
-            flex-wrap: wrap;
-            padding: 25px;
-            justify-content: center;
-            align-items: center;
-            flex: 1 1 auto;
-            >* {
-                flex: 0 1 75%;
-                min-width: 50%;
-            }
-        }
-        .localmedia {
-            width: 20%;
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            top: 5px;
-            border: 1px solid white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-            line-height: 0;
-            border-radius: 2px;
-            video {
-                width: 100%;
-                transform: rotateY(180deg);
-            }
-            .resolution {
-                position: absolute;
-                right: 0;
-                bottom: 0;
-                background: rgba(0,0,0,0.8);
-                color: white;
-                font-size: 10px;
-                padding: 2px 2px 1px;
-                border-top-left-radius: 4px;
-                line-height: 1;
-            }
-        }
-    }
-}
-.remotemedia {
-    video {
-        width: 100%;
-    }
 }
 .overlay {
     position: absolute;

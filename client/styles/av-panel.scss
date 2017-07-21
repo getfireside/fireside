@@ -1,0 +1,98 @@
+main {
+    .av-panel {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 auto;
+        position: relative;
+        .toggle-local-media {
+            margin: 5px;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 500;
+        }
+        .remotes {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 25px;
+            justify-content: center;
+            align-items: center;
+            flex: 1 1 auto;
+            >* {
+                padding: 13px;
+                flex: 0 1 25%;
+            }
+            &.count-1 > * {
+                flex-basis: 100%;
+            }
+            &.count-2.wide,
+            &.count-3,
+            &.count-4,
+            &.count-5.tall,
+            &.count-6.tall {
+                > * {
+                    flex-basis: 50%;
+                }
+            }
+            &.count-2.tall {
+                > * {
+                    flex-basis: 100%;
+                }
+            }
+            &.count-5.wide,
+            &.count-6.wide,
+            &.count-7,
+            &.count-8,
+            &.count-9 {
+                > * {
+                    flex-basis: 33.33333333%;
+                }
+            }
+            .remotemedia {
+                padding-bottom: 56.25%;
+                height: 0;
+                position: relative;
+                video {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    height: 100%;
+                }
+            }
+        }
+        .localmedia {
+            width: 20%;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: 5px;
+            border: 1px solid white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            line-height: 0;
+            border-radius: 2px;
+            z-index: 500;
+            video {
+                width: 100%;
+                transform: rotateY(180deg);
+            }
+            .resolution {
+                position: absolute;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.8);
+                color: white;
+                font-size: 10px;
+                padding: 2px 2px 1px;
+                border-top-left-radius: 4px;
+                line-height: 1;
+            }
+        }
+    }
+}
+.remotemedia {
+    video {
+        width: 100%;
+    }
+}
