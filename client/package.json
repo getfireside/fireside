@@ -19,6 +19,7 @@
     "chai-fuzzy": "^1.6.1",
     "chai-roughly": "^1.0.0",
     "chai-subset": "^1.5.0",
+    "copy-webpack-plugin": "^4.0.1",
     "css-loader": "^0.28.4",
     "eslint": "^4.2.0",
     "eslint-plugin-lodash": "^2.4.4",

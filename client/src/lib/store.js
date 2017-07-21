@@ -1,7 +1,8 @@
 import _ from 'lodash';
 import {observable, action} from 'mobx';
+import WildEmitter from 'wildemitter';
 
-export default class Store {
+export default class Store extends WildEmitter {
     @action
     update(updates = []) {
         _.each(updates, (update) => {

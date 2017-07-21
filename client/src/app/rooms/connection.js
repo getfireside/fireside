@@ -146,7 +146,7 @@ export default class RoomConnection extends WildEmitter {
         message = new Message(msgData);
         this.messageHandlers[message.typeName](message);
         if (!this.selfPeerId || message.peerId != this.selfPeerId) {
-            this.emit('message', message);
+            setTimeout(() => this.emit('message', message), 0);
         }
     }
 
@@ -259,6 +259,7 @@ export default class RoomConnection extends WildEmitter {
     uploadFile(file, {fileId}) {
         let sender = this.fileTransfers.uploadFile(file, {fileId});
         sender.on('*', (name, ...args) => this.emit(`fileTransfer.${name}`, ...args));
+        sender.startUpload();
     }
 
     attemptResumeFileTransfers(peer) {
@@ -278,8 +279,8 @@ export default class RoomConnection extends WildEmitter {
                 sender instanceof FrSdFileSender &&
                 sender.status == FILETRANSFER_STATUSES.DISCONNECTED
             ) {
-                sender.startUpload();
                 sender.on('*', (name, ...args) => this.emit(`fileTransfer.${name}`, ...args));
+                sender.startUpload();
             }
         }
     }

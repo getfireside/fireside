@@ -11,6 +11,7 @@ import AVPanel from './av-panel';
 import JoinModal from './join-modal';
 import ConfigModal from './config-modal';
 import {LocalMediaPromptOverlay, FSPromptOverlay} from './prompt-overlays';
+import Notifier from './notifier';
 
 @observer
 export class HostRoomView extends React.Component {
@@ -91,6 +92,7 @@ export default class RoomView extends React.Component {
                 <FSPromptOverlay
                     isOpen={this.props.uiStore.fsPromptShowing}
                 />
+                <Notifier {...this.props} />
             </div>
         );
     }

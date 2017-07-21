@@ -43,6 +43,19 @@ export class Message {
         }
         return null;
     }
+
+    @computed get recording() {
+        if (
+            _.includes([
+                "uploadStarted",
+                "uploadComplete",
+                "startRecording",
+                "stopRecording",
+            ], this.payload.type)
+        ) {
+            return this.room.recordingStore.get(this.payload.data.id);
+        }
+    }
 }
 
 export default class MessageStore extends ListStore {
@@ -69,6 +82,7 @@ export default class MessageStore extends ListStore {
             message.status = 'received';
             this.items.push(message);
         }
+        this.emit('message', message);
         return message;
     }
 

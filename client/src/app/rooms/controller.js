@@ -53,6 +53,15 @@ export default class RoomController {
         // TESTS EXIST
         this.room.memberships.self.currentRecordingId = this.recorder.currentRecording.id;
         this.room.memberships.self.currentRecording = this.recorder.currentRecording;
+        this.room.messageStore.addMessage({
+            type: MESSAGE_TYPES.EVENT,
+            payload: {
+                type:'startRecording',
+                data: recording.serialize(),
+            },
+            room: this.room,
+            uid: this.room.memberships.selfId
+        });
         this.connection.notifyCreatedRecording(recording.serialize());
     }
 
