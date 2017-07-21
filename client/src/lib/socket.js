@@ -31,6 +31,10 @@ export default class Socket extends WildEmitter {
                 timeout = (timeout > this.ws.maxReconnectInterval ? this.ws.maxReconnectInterval : timeout);
                 this.nextAttemptTime = new Date((new Date()).getTime() + timeout);
                 this.status = 'connecting';
+                if (event.code == 4100) {
+                    alert("You're already connected in another tab/window!");
+                    this.ws.close();
+                }
             }
         })
         this.ws.onopen = action((event) => {

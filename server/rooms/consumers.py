@@ -14,23 +14,32 @@ class RoomSocketConsumer(JsonWebsocketConsumer):
         return Participant.objects.from_user_or_session(user, session)
 
     def connect(self, message, **kwargs):
-        self.message.channel_session['participant_id'] = self.get_participant(
+        participant = self.get_participant(
             self.message.user, self.message.http_session
-        ).id
-        self.message.channel_session.save()
-        Channel('room.join').send({
-            'reply_channel': message.content['reply_channel'],
-            'room_id': self.kwargs['id'],
-            'participant_id': self.message.channel_session['participant_id']
-        })
-        message.reply_channel.send({'accept': True})
+        )
+        room = RoomConsumer.get_room(self.kwargs['id'])
+
+        if room.peers.for_participant(participant) is not None:
+            message.reply_channel.send({'close': 4100, "bytes": b"{}"})
+
+        else:
+            message.channel_session['participant_id'] = participant.id
+            message.channel_session.save()
+
+            message.reply_channel.send({'accept': True})
+            Channel('room.join').send({
+                'reply_channel': message.content['reply_channel'],
+                'room_id': self.kwargs['id'],
+                'participant_id': self.message.channel_session['participant_id']
+            })
 
     def disconnect(self, message, **kwargs):
-        Channel('room.leave').send({
-            'reply_channel': message.content['reply_channel'],
-            'room_id': self.kwargs['id'],
-            'participant_id': self.message.channel_session['participant_id']
-        })
+        if 'participant_id' in message.channel_session:
+            Channel('room.leave').send({
+                'reply_channel': message.content['reply_channel'],
+                'room_id': self.kwargs['id'],
+                'participant_id': self.message.channel_session['participant_id']
+            })
 
     def receive(self, text, **kwargs):
         decoded = Message.decode_message_dict(text)

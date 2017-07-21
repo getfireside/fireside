@@ -66,8 +66,7 @@
     "react-dom": "^15.6.1",
     "react-modal": "^2.2.2",
     "react-textarea-autosize": "^5.0.7",
-    "reconnecting-websocket": "^3.0.7",
-    "reconnectingwebsocket": "^1.0.0",
+    "reconnectingwebsocket": "^3.0.7",
     "rtcpeerconnection": "^8.0.1",
     "webrtcsupport": "^2.2.0",
     "wildemitter": "^1.2.0"

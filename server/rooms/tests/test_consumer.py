@@ -72,6 +72,24 @@ class TestRoomConsumer:
         else:
             return None
 
+    def test_error_on_join_twice(self, room, client):
+        client.send_and_consume(
+            'websocket.connect',
+            path=room.get_socket_url()
+        )
+        client.consume('room.join')
+        self.get_message(client, room)
+        self.get_message(client, room)
+
+        client.send_and_consume(
+            'websocket.connect',
+            path=room.get_socket_url(),
+            check_accept=False,
+        )
+        res = client.receive()
+        assert res == {'bytes': b'{}', 'close': 4100}
+
+
     def test_join(self, room, client, client2):
         client.send_and_consume(
             'websocket.connect',
