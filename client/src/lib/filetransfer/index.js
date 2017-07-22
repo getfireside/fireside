@@ -36,6 +36,15 @@ export default class FileTransferManager {
         this.senders.push(sender);
     }
 
+    get numActive() {
+        let iteratee = x => x.status == 1
+        return _.sumBy(this.senders, iteratee) + _.sumBy(this.receivers, iteratee);
+    }
+
+    get hasActive() {
+        return this.numActive > 0;
+    }
+
     @action uploadFile(file, {fileId}) {
         let sender = new FrSdFileSender({
             fileId: fileId,

@@ -63,6 +63,22 @@ export default class RoomView extends React.Component {
     onJoinModalSubmit(data) {
         this.props.controller.initialJoin(data);
     }
+    componentDidMount() {
+        window.addEventListener('beforeunload', (e) => {
+            let msg;
+            if (this.props.controller.connection.fileTransfers.hasActive) {
+                msg = "A file transfer is in progress!";
+            }
+            else if (
+                this.props.controller.recorder.status &&
+                this.props.controller.recorder.status != 'ready'
+            ) {
+                msg = "A recording is in progress!";
+            }
+            e.returnValue = msg;
+            return msg;
+        });
+    }
     render() {
         let joinModalOpen = false;
         let roomView = null;
