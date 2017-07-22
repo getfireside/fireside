@@ -14,6 +14,10 @@ export default class FileReceiver extends WildEmitter {
     @observable numDownloadedChunks = 0;
     @observable numSavedChunks = 0;
 
+    @computed get transferredBytes() {
+        return this.downloadedBytes;
+    }
+
     constructor({channel, uid, fileId, fs, logger, status}) {
         super();
         this.fileId = fileId;

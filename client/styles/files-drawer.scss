@@ -105,7 +105,8 @@ main {
                         .icon-container {
                             width: 28px;
                             height: 28px;
-                            margin-right: 5px;
+                            margin-right: 6px;
+                            position: relative;
                             > i:before {
                                 font-size: 18px;
                                 width: 16px;
@@ -115,6 +116,23 @@ main {
                                 display: block;
                                 border-radius: 200px;
                                 text-align: center;
+                            }
+                            svg {
+                                display: none;
+                            }
+                        }
+                        &.uploading {
+                            svg {
+                                display: block;
+                                transform: rotateZ(270deg);
+                                position: absolute;
+                                left: -2px;
+                                top: -2px;
+                                circle {
+                                    fill: rgba(#3199C5, 0.1);
+                                    stroke: #3199C5;
+                                    stroke-width: 2px;
+                                }
                             }
                         }
                         .right {

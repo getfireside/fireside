@@ -125,5 +125,8 @@ export default class FileTransferManager {
     receiverForFileId(fileId) {
         return _.find(this.receivers, r => r.fileId == fileId);
     }
+    senderForFileId(fileId) {
+        return _.find(this.senders, r => r.fileId == fileId);
+    }
 }
 

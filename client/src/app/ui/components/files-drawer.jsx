@@ -35,6 +35,7 @@ export class DownloadStatusButton extends React.Component {
             }
         }
     }
+
     shouldShowButton() {
         return (
             this.props.membership.isSelf
@@ -67,7 +68,26 @@ export class DownloadStatusButton extends React.Component {
 
 class RecordingIcon extends React.Component {
     render() {
-        return <div className="icon-container"><i className={`fa fa-file-${this.props.recording.type.split('/')[0]}-o`}></i></div>;
+        let size = 16;
+        let r = size - 1;
+        let strokeDasharray = r * 2 * Math.PI;
+        let strokeDashoffset = (1 - this.props.progress) * r * 2 * Math.PI;
+        return (
+            <div className="icon-container">
+                <svg height={size*2} width={size*2}>
+                    <circle
+                        r={r}
+                        cx={size}
+                        cy={size}
+                        style={{
+                            strokeDashoffset,
+                            strokeDasharray,
+                        }}
+                    />
+                </svg>
+                <i className={`fa fa-file-${this.props.recording.type.split('/')[0]}-o`}></i>
+            </div>
+        );
     }
 }
 
@@ -76,15 +96,15 @@ export class RecordingInfo extends React.Component {
     showTransferInfo() {
         let items = [<div className="size">{formatBytes(this.props.recording.filesize)}</div>];
         if (this.props.recording.fileTransfer && !this.props.recording.fileTransfer.isComplete) {
-            items.shift(
+            items.unshift(
                 <div className="uploaded">
                     {formatBytes(this.props.recording.fileTransfer.transferredBytes, {
                         relativeTo: this.props.recording.filesize
                     })}
-                    <span className="slash">/</span>
+                    <span className="slash"> / </span>
                 </div>
             );
-            items.shift(<div className="status">uploading...</div>);
+            items.unshift(<div className="status">uploading... </div>);
         }
         if (this.canDownload) {
             items.push(<div className="actions">
@@ -112,9 +132,26 @@ export class RecordingInfo extends React.Component {
         );
     }
     render() {
+        let className = 'recording-info';
+        let progress = 0;
+        if (this.canDownload) {
+            className += ' complete';
+            progress = 1;
+        }
+        else if (this.props.recording.fileTransfer) {
+            className += ' uploading';
+            progress = (
+                this.props.recording.fileTransfer.transferredBytes /
+                this.props.recording.filesize
+            );
+            console.log('PROGRESS! WOO');
+        }
         return (
-            <div className="recording-info">
-                <RecordingIcon {...this.props} />
+            <div className={className}>
+                <RecordingIcon
+                    {...this.props}
+                    progress={progress}
+                />
                 <div className="right">
                     <div className="name">
                         <span className="user">{this.props.recording.membership.name}</span>{" "}

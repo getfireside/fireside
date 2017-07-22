@@ -81,7 +81,17 @@ export class Recording {
     }
 
     @computed get fileTransfer() {
-        return this.store.fileTransfers && this.store.fileTransfers.receiverForFileId(`recording:${this.id}`);
+        return (
+            // getting the lengths here might not be strictly necessary.
+            // added to make sure it recomputes when a sender or receiver is added.
+            this.store.fileTransfers && (
+                this.store.fileTransfers.senders.length ||
+                this.store.fileTransfers.receivers.length
+            ) && (
+                this.store.fileTransfers.receiverForFileId(`recording:${this.id}`) ||
+                this.store.fileTransfers.senderForFileId(`recording:${this.id}`)
+            )
+        );
     }
  
     serialize({forLocal = false} = {}) {

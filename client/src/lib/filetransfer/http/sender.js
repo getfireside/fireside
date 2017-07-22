@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import {observable, action, runInAction} from 'mobx';
+import {observable, action, runInAction, computed} from 'mobx';
 import WildEmitter from 'wildemitter';
 import Logger from 'lib/logger';
 import {sleep} from 'lib/util/async';
@@ -40,6 +40,10 @@ export class HttpFileSender extends WildEmitter {
     getAbortUploadUrl() {}
     getCompleteUploadUrl() {}
     getChunkSize() {}
+
+    @computed get transferredBytes() {
+        return this.uploadedBytes;
+    }
 
     async initiateUpload() {
         let url = this.getInitiateUploadUrl();

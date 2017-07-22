@@ -1,4 +1,5 @@
 import _ from 'lodash';
+
 export function formatBytes(bytes, opts) {
     opts = _.extend({sf: 3}, opts);
     if (bytes == 0) return '0 bytes';
@@ -15,6 +16,9 @@ export function formatBytes(bytes, opts) {
     }
     else {
         num = num.toPrecision(opts.sf);
+    }
+    if (opts.relativeTo) {
+        return parseFloat(num);
     }
     return parseFloat(num) + ' ' + sizes[i];
 }
