@@ -185,6 +185,11 @@ export default class RoomConnection extends WildEmitter {
         return fetchPost(this.urls.join, decamelizeKeys(data));
     }
 
+    changeName(uid, data) {
+        // NEEDS TEST
+        return fetchPost(this.urls.changeName.replace(':uid', uid), decamelizeKeys(data));
+    }
+
     send({type, payload}, {http = true} = {}) {
         // TESTS EXIST
         let decamelized = decamelizeKeys(payload);

@@ -63,6 +63,15 @@
                     font-size: 12px;
                     .name {
                         font-size: 14px;
+                        .btn.edit {
+                            display: none;
+                            margin: 0 2px;
+                        }
+                        &:hover, &:focus {
+                            .btn.edit {
+                                display: inline-block;
+                            }
+                        }
                     }
                     .topline {
                         display: flex;

@@ -2,7 +2,7 @@ import React from 'react';
 import {whyRun} from 'mobx';
 import {observer} from "mobx-react";
 import _ from 'lodash';
-import {MEMBER_STATUSES} from 'app/rooms/constants';
+import {MEMBER_STATUSES, ROLES} from 'app/rooms/constants';
 import {formatBytes} from '../helpers';
 import {formatDuration} from 'lib/util';
 import Button from './Button';
@@ -100,7 +100,7 @@ export class UserStatusPanelItem extends React.Component {
     }
     getRecordingStatus() {
         if (this.props.membership.status == MEMBER_STATUSES.DISCONNECTED) {
-            return 'disconnected';
+            return 'offline';
         }
         switch (this.props.membership.recorderStatus) {
             case "ready":
@@ -128,7 +128,15 @@ export class UserStatusPanelItem extends React.Component {
             <div className={`membership ${this.getClassName()}`}>
                 <div className="topline">
                     <div className="info">
-                        <span className='name'>{membership.name}</span>
+                        <span className='name'>
+                            {membership.name}
+                            {(this.props.room.memberships.self.role == ROLES.OWNER || membership.isSelf) && (
+                                <Button className="edit btn-small" onClick={() => this.props.uiStore.showEditNameModal(membership)}>
+                                    <i className="fa fa-pencil sr-hidden" />
+                                    <span className="sr-only">Edit</span>
+                                </Button>
+                            )}
+                        </span>
                         {" "}
                         { membership.role == 'o' && <i className="fa fa-star" style={{color: 'gold'}} />}
                         {" "}

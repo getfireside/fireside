@@ -84,6 +84,10 @@ class JoinRoomSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, default=None)
 
 
+class EditNameSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=64, default=None)
+
+
 class PeerActionSerializer(serializers.Serializer):
     peer_id = serializers.UUIDField(format='hex')
 

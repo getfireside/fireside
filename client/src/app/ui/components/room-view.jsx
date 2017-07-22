@@ -12,7 +12,7 @@ import JoinModal from './join-modal';
 import ConfigModal from './config-modal';
 import {LocalMediaPromptOverlay, FSPromptOverlay} from './prompt-overlays';
 import Notifier from './notifier';
-
+import EditNameModal from './edit-name-modal';
 @observer
 export class HostRoomView extends React.Component {
     render() {
@@ -85,6 +85,17 @@ export default class RoomView extends React.Component {
                 <JoinModal
                     isOpen={joinModalOpen}
                     onSubmit={this.onJoinModalSubmit.bind(this)}
+                />
+                <EditNameModal
+                    isOpen={this.props.uiStore.editModalMember != null}
+                    member={this.props.uiStore.editModalMember}
+                    onSubmit={(data) => {
+                        this.props.controller.changeName(
+                            this.props.uiStore.editModalMember,
+                            data
+                        );
+                        this.props.uiStore.closeEditNameModal();
+                    }}
                 />
                 <LocalMediaPromptOverlay
                     isOpen={this.props.uiStore.localMediaPromptShowing}

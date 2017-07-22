@@ -368,6 +368,14 @@ export default class RoomController {
         await this.initialize();
     }
 
+    @action
+    async changeName(member, data) {
+        runInAction(() => {
+            member.name = data.name;
+        });
+        await this.connection.changeName(member.uid, data);
+    }
+
     @action.bound
     updateResources(data) {
         this.room.memberships.self.resources = data;

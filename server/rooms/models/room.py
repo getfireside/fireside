@@ -205,6 +205,19 @@ class Room(models.Model):
         # TODO: implement kick
         raise NotImplementedError
 
+    def change_member_name(self, participant, name):
+        self.memberships.filter(participant=participant).update(name=name)
+        self.send(self.message(
+            type=Message.TYPE.event,
+            payload={
+                'type': 'update_status',
+                'data': {
+                    'name': name,
+                },
+            },
+            participant_id=participant.id,
+        ))
+
     def announce(self, peer_id, participant):
         mem = self.memberships.get(participant=participant)
         mem._peer_id = peer_id

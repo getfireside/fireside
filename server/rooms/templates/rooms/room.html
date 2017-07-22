@@ -25,7 +25,8 @@
                         join: "{{ room.get_join_url }}",
                         messages: "{{ room.get_messages_url }}",
                         recordings: "{{ room.get_recordings_url }}",
-                        action: "{{ room.get_absolute_url }}actions/:name/"
+                        action: "{{ room.get_absolute_url }}actions/:name/",
+                        changeName: "{{ room.get_absolute_url }}participants/:uid/name/",
                     },
                 },
             }).then((fireside) => { window.fireside = fireside });

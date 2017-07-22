@@ -4,6 +4,7 @@ export default class UIStore {
     @observable localMediaPromptShowing = false;
     @observable fsPromptShowing = false;
     @observable configModalShowing = false;
+    @observable.ref editModalMember = null;
     @observable filesDrawer = {
         selectedMember: null,
         isOpen: false
@@ -18,5 +19,11 @@ export default class UIStore {
     }
     @action closeConfigModal() {
         this.configModalShowing = false;
+    }
+    @action showEditNameModal(member) {
+        this.editModalMember = member;
+    }
+    @action closeEditNameModal() {
+        this.editModalMember = null;
     }
 }

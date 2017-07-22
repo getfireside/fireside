@@ -16,7 +16,8 @@ from .serializers import (
     MessageSerializer,
     PeerActionSerializer,
     JoinRoomSerializer,
-    RoomConfigSerializer
+    RoomConfigSerializer,
+    EditNameSerializer
 )
 from recordings.serializers import RecordingSerializer
 
@@ -103,6 +104,32 @@ class JoinRoomView(APIView):
             )
         return Response({'uid': participant.id}, status=status.HTTP_200_OK)
 
+
+class ChangeNameView(APIView):
+    permission_classes = (HasRoomAccess,)
+
+    def post(self, request, room_id, participant_id):
+        participant = get_object_or_404(Participant, id=participant_id)
+        if (
+            participant != request.participant and not
+            request.room.is_admin(request.participant)
+        ):
+            return Response(
+                data="Must be admin to change other member's name",
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        serializer = EditNameSerializer(data=request.data,
+            context={'participant': participant}
+        )
+        if serializer.is_valid():
+            request.room.change_member_name(participant, serializer.validated_data['name'])
+        else:
+            return Response(
+                data=serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response({}, status=status.HTTP_200_OK)
 
 class RoomMessagesView(ListAPIView):
     permission_classes = (HasRoomAccess,)
