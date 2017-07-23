@@ -75,6 +75,9 @@ export default class RoomView extends React.Component {
             ) {
                 msg = "A recording is in progress!";
             }
+            else {
+                return;
+            }
             e.returnValue = msg;
             return msg;
         });

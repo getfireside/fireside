@@ -142,7 +142,7 @@ export class UserStatusPanelItem extends React.Component {
                         {" "}
                         {
                             (
-                                membership.status == MEMBER_STATUSES.DISCONNECTED &&
+                                membership.status != MEMBER_STATUSES.DISCONNECTED &&
                                 membership.peerStatus
                             ) &&
                             <span className={`peer-status`}>
@@ -156,7 +156,7 @@ export class UserStatusPanelItem extends React.Component {
                         {" "}
                         {
                             (
-                                membership.status == MEMBER_STATUSES.DISCONNECTED &&
+                                membership.status != MEMBER_STATUSES.DISCONNECTED &&
                                 membership.resources
                             ) ?
                             <div className="resources">

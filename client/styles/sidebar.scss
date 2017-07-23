@@ -54,11 +54,11 @@
                 .btn.recording-all {
                     width: 80%;
                     display: block;
-                    margin: 0 auto;
+                    margin: 10px auto 0;
                 }
                 .membership {
                     margin-bottom: 5px;
-                    border-bottom: 1px solid rgba(0,0,0,0.1);
+                    border-bottom: 1px solid rgba(0,0,0,0.25);
                     padding: 5px;
                     font-size: 12px;
                     .name {
@@ -132,7 +132,7 @@
                         }
                     }
                 }
-                .membership.disconnected {
+                .membership.disconnected > * {
                     opacity: 0.5;
                     font-style: italic;
                 }

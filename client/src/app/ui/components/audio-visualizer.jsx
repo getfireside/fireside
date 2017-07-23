@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import {observer} from "mobx-react";
+import {createAudioMeter} from "../volume-meter";
 
 var SMOOTHING = 0.8;
 var FFT_SIZE = 256;
@@ -17,15 +18,17 @@ export default class AudioVisualizer extends React.Component {
         this.draw = this.draw.bind(this);
     }
     setup() {
-        this.closed = false;
         this.source = this.audioContext.createMediaStreamSource(this.props.stream);
         this.analyser = this.audioContext.createAnalyser();
-        this.analyser.minDecibels = -130;
-        this.analyser.maxDecibels = -10;
+        this.meter = createAudioMeter(this.audioContext);
+        this.source.connect(this.meter);
+        this.analyser.minDecibels = -140;
+        this.analyser.maxDecibels = 0;
         this.freqs = new Uint8Array(this.analyser.frequencyBinCount);
         // this.times = new Uint8Array(this.analyser.frequencyBinCount);
         this.source.connect(this.analyser);
         this.canvas = ReactDOM.findDOMNode(this.refs.canvas);
+        this.closed = false;
         requestAnimationFrame(this.draw);
     }
     draw() {
@@ -43,33 +46,40 @@ export default class AudioVisualizer extends React.Component {
         var drawContext = canvas.getContext('2d');
         drawContext.clearRect(0, 0, canvasWidth, canvasHeight);
 
+        // drawContext.moveTo(0, canvasHeight * (1 - 115/120));
+        // drawContext.lineTo(canvasWidth, canvasHeight * (1 - 115/120));
+        // drawContext.strokeStyle = "rgba(0,0,0,0.1)";
+        // drawContext.stroke();
+
         var barWidth = Math.round(canvasWidth / this.analyser.frequencyBinCount);
         var barHeight;
         var x = 0;
+        let grad = drawContext.createLinearGradient(0, 0, 0, canvasHeight);
+        grad.addColorStop(0, '#263037');
+        grad.addColorStop(1, '#161c20');
 
         for(var i = 0; i < this.analyser.frequencyBinCount; i++) {
             barHeight = canvasHeight * this.freqs[i] / 255;
-
-            drawContext.fillStyle = 'rgb(' + this.freqs[i] + ',50,50)';
+            if (this.meter.checkClipping()) {
+                drawContext.fillStyle = '#D01A1A';
+            }
+            else {
+                drawContext.fillStyle = grad;
+            }
             drawContext.fillRect(x,Math.round(canvasHeight-barHeight),barWidth,Math.round(barHeight));
 
             x += barWidth;
         }
-
-        // // Draw the time domain chart.
-        // for (var i = 0; i < this.analyser.frequencyBinCount; i++) {
-        //     var value = this.times[i];
-        //     var percent = value / 256;
-        //     var height = canvas.height * percent;
-        //     var offset = canvas.height - height - 1;
-        //     var barWidth = canvas.width/this.analyser.frequencyBinCount;
-        //     drawContext.fillStyle = 'white';
-        //     drawContext.fillRect(i * barWidth, offset, 1, 2);
-        // }
-        requestAnimationFrame(this.draw);
+        if (!this.closed) {
+            requestAnimationFrame(this.draw);
+        }
     }
     componentDidUpdate(prevProps, prevState) {
         if (this.props.stream != prevProps.stream) {
+            if (this.analyser) {
+                this.source.disconnect(this.analyser);
+                this.closed = true;
+            }
             this.setup();
         }
     }
