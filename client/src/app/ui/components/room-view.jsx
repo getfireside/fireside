@@ -60,8 +60,13 @@ export class GuestRoomView extends React.Component {
 
 @observer
 export default class RoomView extends React.Component {
-    onJoinModalSubmit(data) {
+    async onJoinModalSubmit(data) {
         this.props.controller.initialJoin(data);
+        this.props.controller.connection.once('join', () => {
+            if (this.props.room.needsConfig && this.props.room.memberships.self.role == ROLES.OWNER) {
+                this.props.uiStore.openConfigModal();
+            }
+        });
     }
     componentDidMount() {
         window.addEventListener('beforeunload', (e) => {

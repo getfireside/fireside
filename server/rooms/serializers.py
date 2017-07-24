@@ -57,7 +57,7 @@ class MessageSerializer(serializers.ModelSerializer):
 class RoomConfigSerializer(serializers.Serializer):
     UPLOAD_MODE_CHOICES = (
         ['p2p'] +
-        ['http'] if settings.FIRESIDE_HTTP_UPLOAD_ENABLED else ['']
+        (['http'] if settings.FIRESIDE_HTTP_UPLOAD_ENABLED else [])
     )
     DEFAULT_UPLOAD_MODE = 'http' if 'http' in UPLOAD_MODE_CHOICES else 'p2p'
     mode = serializers.ChoiceField(choices=['audio', 'video'], default='audio')

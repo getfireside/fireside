@@ -102,14 +102,16 @@ export default class RoomConnection extends WildEmitter {
         this.emit('connect');
     }
 
-    connect() {
+    async connect() {
         /**
          * Open the websocket and connect
          */
         if (this.status == 'disconnected') {
             this.status = 'connecting';
+            let p = new Promise(resolve => this.socket.once('open', resolve));
             this.socket.open();
             this.emit('connecting');
+            await p;
         }
     }
 

@@ -18,6 +18,7 @@
                     ownerId: {{ room.owner.id }},
                     selfId: {{ self_uid|default:'null' }},
                     config: {{ config_json|safe }},
+                    needsConfig: {% if not room.config %}true{% else %}false{% endif %},
                 },
                 opts: {
                     urls: {

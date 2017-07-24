@@ -102,18 +102,29 @@ export default class Room {
     @observable config = {
         videoBitrate: null,
         mode: null,
-        debugMode: null
+        debugMode: null,
+        uploadMode: null,
     };
+    @observable needsConfig;
     id = null;
     ownerId = null;
 
-    constructor({messageStore, recordingStore, id, ownerId, selfId, config}) {
+    constructor({
+        messageStore, 
+        recordingStore, 
+        id, 
+        ownerId, 
+        selfId, 
+        config, 
+        needsConfig
+    }) {
         this.messageStore = messageStore;
         this.recordingStore = recordingStore;
         this.id = id;
         this.ownerId = ownerId;
         this.memberships.selfId = selfId;
         this.config = camelizeKeys(config);
+        this.needsConfig = needsConfig;
     }
 
     @computed get recordings() {
