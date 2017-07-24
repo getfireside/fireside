@@ -297,6 +297,7 @@ export default class RoomController {
             }
         }
         else if (this.room.config.videoBitrate != oldConfig.videoBitrate) {
+            this.logger.log(`Dispatching bitrate change to recorder`);
             this.stopRecording();
             this.recorder.setVideoBitrate(this.room.config.videoBitrate);
         }

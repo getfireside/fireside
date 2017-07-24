@@ -60,7 +60,10 @@ export default class Recorder extends WildEmitter {
 
     @action setVideoBitrate(newBitrate) {
         this.videoBitrate = newBitrate;
-        this.setupMediaRecorder(this.stream);
+        this.logger.log(`Set video bitrate to ${newBitrate}b/s`);
+        if (isVideo(this.stream)) {
+            this.setupMediaRecorder(this.stream);
+        }
     }
 
     getVideoResolution(stream) {
