@@ -61,12 +61,12 @@ export class GuestRoomView extends React.Component {
 @observer
 export default class RoomView extends React.Component {
     async onJoinModalSubmit(data) {
-        this.props.controller.initialJoin(data);
-        this.props.controller.connection.once('join', () => {
-            if (this.props.room.needsConfig && this.props.room.memberships.self.role == ROLES.OWNER) {
-                this.props.uiStore.openConfigModal();
-            }
-        });
+        if (this.props.room.memberships.selfId == this.props.room.ownerId) {
+            this.props.controller.updateConfig(data.config);
+        }
+        await this.props.controller.initialJoin({name: data.name});
+        this.props.uiStore.joinModalOpen
+
     }
     componentDidMount() {
         window.addEventListener('beforeunload', (e) => {
@@ -91,7 +91,7 @@ export default class RoomView extends React.Component {
         let joinModalOpen = false;
         let roomView = null;
         if (!this.props.room.memberships.self) {
-            if (!this.props.room.memberships.selfId) {
+            if (this.props.room.selfIsNew) {
                 joinModalOpen = true;
             }
         }
@@ -107,8 +107,10 @@ export default class RoomView extends React.Component {
             <div>
                 {roomView}
                 <JoinModal
+                    isOwner={this.props.room.ownerId == this.props.room.memberships.selfId}
                     isOpen={joinModalOpen}
                     onSubmit={this.onJoinModalSubmit.bind(this)}
+                    {...this.props}
                 />
                 <EditNameModal
                     isOpen={this.props.uiStore.editModalMember != null}

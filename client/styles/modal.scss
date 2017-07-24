@@ -1,0 +1,138 @@
+body.modal-open {
+    background: #333;
+    .room-view {
+        filter: blur(5px);
+    }
+}
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 5000; 
+}
+.modal {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    max-height: 100vh;
+    width: 70%;
+    min-width: 500px;
+    overflow: scroll;
+    padding: 20px;
+    display: flex;
+    flex-flow: column;
+    z-index: 10000;
+    .modal-header {
+        background: #263037;
+        padding: 20px;
+        border-radius: 8px 8px 0 0;
+        color: white;
+        h2 {
+            font-size: 32px;
+            margin: 0;
+            margin-bottom: 5px;
+            font-weight: normal;
+            margin-left: -3px;
+        }
+        h3 {
+            font-size: 18px;
+            margin: 0;
+            font-weight: normal;
+        }
+    }
+    .modal-body {
+        background: white;
+        padding: 20px;
+        flex-shrink: 1;
+    }
+    .modal-footer {
+        background: #E5EBEE;
+        padding: 6px;
+        border-radius: 0 0 8px 8px;
+        .btn {
+            font-size: 16px;
+            line-height: 30px;
+        }
+    }
+    form {
+        .required-symbol {
+            display: none;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            &:last-child {
+                margin-bottom: 0;
+            }
+        }
+        .control-label {
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+        input[type=text] {
+            font-family: inherit;
+            color: #263037;
+            background: transparent;
+            border: none;
+            outline: none;
+            border-bottom: 2px solid rgba(#263037, 0.2);
+            font-size: 20px;
+            line-height: 1.4;
+        }
+        .advanced.hide .collapse {
+            display: none;
+        }
+        .advanced.show .collapse {
+            display: block;
+        }
+        .advanced.hide label.show-advanced {
+            &:before {
+                content: "\f054";
+                font-family: FontAwesome;
+                font-size: 10px;
+                margin-right: 5px;
+                margin-top: -2px;
+                display: inline-block;
+            }
+        }
+        .radio-button-group {
+            .buttons {
+                .btn {
+                    label {
+                        padding: 50px 30px 5px;
+                        cursor: pointer;
+                    }
+                    label::before {
+                        content: " ";
+                        position: absolute;
+                        width: 100%;
+                        top: 20px;
+                        left: 0;
+                        text-align: center;
+                        font-family: "FontAwesome";
+                        font-size: 32px;
+                        font-weight: normal;
+                    }
+                    label.radio-audio::before {
+                        content: "\f130";
+                    }
+                    label.radio-video::before {
+                        content: "\f03d";
+                    }
+                    &:first-child {
+                        border-radius: 2px 0 0 2px;
+                    }
+                    &:last-child {
+                        border-radius: 0 2px 2px 0;
+                    }
+                }
+            }
+        }
+    }
+}

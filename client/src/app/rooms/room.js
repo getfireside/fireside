@@ -105,6 +105,7 @@ export default class Room {
         debugMode: null,
         uploadMode: null,
     };
+    @observable selfIsNew;
     @observable needsConfig;
     id = null;
     ownerId = null;
@@ -115,6 +116,7 @@ export default class Room {
         id, 
         ownerId, 
         selfId, 
+        selfIsNew,
         config, 
         needsConfig
     }) {
@@ -122,6 +124,7 @@ export default class Room {
         this.recordingStore = recordingStore;
         this.id = id;
         this.ownerId = ownerId;
+        this.selfIsNew = selfIsNew;
         this.memberships.selfId = selfId;
         this.config = camelizeKeys(config);
         this.needsConfig = needsConfig;

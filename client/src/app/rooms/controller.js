@@ -363,6 +363,7 @@ export default class RoomController {
         let res = await this.connection.initialJoin(data);
         runInAction(() => {
             this.room.memberships.selfId = res.uid;
+            this.room.selfIsNew = false;
             this.recorder.extraAttrs.uid = res.uid;
             this.room.recordingStore.selfId = res.uid;
         });

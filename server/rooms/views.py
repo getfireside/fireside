@@ -63,17 +63,19 @@ class RoomView(DetailView):
     def get_context_data(self, **ctx):
         ctx = super().get_context_data(**ctx)
         # TODO refactor me
+        ctx['is_new'] = True
         ctx['self_uid'] = None
         ctx['config_json'] = json.dumps(self.object.get_config())
         try:
             participant = Participant.objects.from_request(self.request)
+            ctx['self_uid'] = participant.id
         except Participant.DoesNotExist:
             pass
         else:
             if self.object.memberships.filter(
                 participant=participant
             ).exists():
-                ctx['self_uid'] = participant.id
+                ctx['is_new'] = False
         return ctx
 
 
