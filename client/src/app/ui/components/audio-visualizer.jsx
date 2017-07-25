@@ -51,25 +51,32 @@ export default class AudioVisualizer extends React.Component {
         // drawContext.strokeStyle = "rgba(0,0,0,0.1)";
         // drawContext.stroke();
 
-        var barWidth = Math.round(canvasWidth / this.analyser.frequencyBinCount);
+        var barWidth = canvasWidth / (this.analyser.frequencyBinCount - 1);
         var barHeight;
         var x = 0;
+        drawContext.imageSmoothingEnabled = false;
         let grad = drawContext.createLinearGradient(0, 0, 0, canvasHeight);
         grad.addColorStop(0, '#263037');
         grad.addColorStop(1, '#161c20');
 
+        if (this.meter.checkClipping()) {
+            drawContext.fillStyle = '#D01A1A';
+        }
+        else {
+            drawContext.fillStyle = grad;
+        }
+
+        drawContext.beginPath();
+        drawContext.moveTo(0, canvasHeight);
         for(var i = 0; i < this.analyser.frequencyBinCount; i++) {
             barHeight = canvasHeight * this.freqs[i] / 255;
-            if (this.meter.checkClipping()) {
-                drawContext.fillStyle = '#D01A1A';
-            }
-            else {
-                drawContext.fillStyle = grad;
-            }
-            drawContext.fillRect(x,Math.round(canvasHeight-barHeight),barWidth,Math.round(barHeight));
-
+            // drawContext.fillRect(x,canvasHeight-barHeight,barWidth,barHeight);
+            drawContext.lineTo(x, canvasHeight-barHeight);
             x += barWidth;
         }
+        drawContext.lineTo(canvasWidth, canvasHeight);
+        drawContext.closePath();
+        drawContext.fill();
         if (!this.closed) {
             requestAnimationFrame(this.draw);
         }
