@@ -10,6 +10,7 @@ export default class App extends React.Component {
                 controller={this.props.app.roomController}
                 room={this.props.app.room}
                 uiStore={this.props.app.uiStore}
+                self={this.props.app.room.memberships.self}
             />
         );
     }

@@ -15,6 +15,8 @@
         flex-direction: column;
         min-width: 230px;
         max-width: 270px;
+        position: relative;
+        z-index: 1;
         header.top-bar {
             background: rgba(0,0,0,0.2);
             color: white;
@@ -51,13 +53,13 @@
             }
             padding: 5px 5px 10px 5px;
             &.user-status-panel {
-                li {
-                    &:last-child {
-                        .membership {
-                            border: none;
-                        }
-                    }
-                }
+                // li {
+                //     &:last-child {
+                //         .membership {
+                //             border: none;
+                //         }
+                //     }
+                // }
                 .btn.recording-all {
                     width: 80%;
                     display: block;
@@ -81,9 +83,14 @@
                             display: none;
                             margin: 0 2px;
                         }
-                        &:hover, &:focus {
-                            .btn.edit {
-                                display: inline-block;
+                        &.can-edit {
+                            &:hover, &:focus {
+                                .btn.edit {
+                                    display: inline-block;
+                                }
+                                > span {
+                                    border-bottom: 1px dashed rgba(white, 0.8);
+                                }
                             }
                         }
                     }
@@ -172,6 +179,8 @@
             }
             .chat-input {
                 padding: 0 5px;
+                z-index: 5;
+                position: relative;
                 textarea {
                     width: 100%;
                     min-height: 24px;
@@ -184,7 +193,7 @@
                     border: 1px solid white;
                     border-radius: 2px;
                     &:focus {
-                        box-shadow: 0 0 10px #3199C5;
+                        // box-shadow: 0 0 10px #3199C5;
                         border-color: #3199C5;
                         outline: none;
                     }
@@ -196,7 +205,7 @@
             margin-bottom: 1px;
             align-items: baseline;
             time {
-                color: rgba(white, 0.5);
+                color: rgba(white, 0.25);
                 font-size: 12px;
                 letter-spacing: 0.2px;
                 line-height: 1;

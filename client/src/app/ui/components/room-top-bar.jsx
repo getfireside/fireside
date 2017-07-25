@@ -4,6 +4,7 @@ import {observer} from "mobx-react";
 import {formatDuration} from 'lib/util';
 import {formatBytes} from 'app/ui/helpers';
 import {FrSdFileSender} from 'lib/filetransfer/http/sender';
+import {ROLES} from 'app/rooms/constants';
 
 @observer
 export default class RoomTopBar extends React.Component {
@@ -11,10 +12,14 @@ export default class RoomTopBar extends React.Component {
         return (
             <header className="top-bar">
                 <h2>fr.sd/<a href={this.props.room.url}>{this.props.room.id}</a></h2>
-                <a className="conf" href="javascript:void(0);" onClick={() => this.props.uiStore.openConfigModal()}>
-                    <i className="fa fa-sliders sr-hidden" />
-                    <span className="sr-only">Settings</span>
-                </a>
+                {
+                    this.props.self.role == ROLES.OWNER && (
+                        <a className="conf with-tooltip with-tooltip-bottom" href="javascript:void(0);" onClick={() => this.props.uiStore.openConfigModal()} aria-label="Room settings">
+                            <i className="fa fa-sliders sr-hidden" />
+                            <span className="sr-only">Room settings</span>
+                        </a>
+                    )
+                }
             </header>
         );
     }

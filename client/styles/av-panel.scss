@@ -52,13 +52,16 @@ main {
                 padding-bottom: 56.25%;
                 height: 0;
                 position: relative;
-                video {
+                video, > div {
                     position: absolute;
                     top: 0;
                     bottom: 0;
                     left: 50%;
                     transform: translateX(-50%);
                     height: 100%;
+                }
+                > div {
+                    width: 100%;
                 }
             }
         }

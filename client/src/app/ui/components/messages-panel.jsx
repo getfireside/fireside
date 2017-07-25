@@ -144,9 +144,11 @@ export class UploadMessage extends React.Component {
             messagePart = [messagePart];
             messagePart.push(' ');
             messagePart.push(<b>{recording.niceFilename}</b>);
-            messagePart.push(' ');
-            if (recording.url) {
-                messagePart.push(<a href={recording.url}>Download</a>);
+            if (!isStart) {
+                messagePart.push(' ');
+                if (recording.url) {
+                    messagePart.push(<a href={recording.url}>Download</a>);
+                }
             }
         }
 

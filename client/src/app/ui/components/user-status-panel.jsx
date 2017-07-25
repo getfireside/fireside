@@ -124,21 +124,22 @@ export class UserStatusPanelItem extends React.Component {
     }
     render() {
         let membership = this.props.membership;
+        let canEditName = (this.props.room.memberships.self.role == ROLES.OWNER || membership.isSelf);
         return (
             <div className={`membership ${this.getClassName()}`}>
                 <div className="topline">
                     <div className="info">
-                        <span className='name'>
-                            {membership.name}
-                            {(this.props.room.memberships.self.role == ROLES.OWNER || membership.isSelf) && (
-                                <Button className="edit btn-small" onClick={() => this.props.uiStore.showEditNameModal(membership)}>
+                        <span className={"name " + (canEditName ? "can-edit" : "")}>
+                            <span>{membership.name}</span>
+                            {canEditName && (
+                                <Button className="edit btn-small with-tooltip" onClick={() => this.props.uiStore.showEditNameModal(membership)} aria-label="Edit name">
                                     <i className="fa fa-pencil sr-hidden" />
                                     <span className="sr-only">Edit</span>
                                 </Button>
                             )}
                         </span>
                         {" "}
-                        { membership.role == 'o' && <i className="fa fa-star" style={{color: 'gold'}} />}
+                        { membership.role == 'o' && <span className="with-tooltip" aria-label="Host"><i className="fa fa-star" style={{color: 'gold'}} /></span>}
                         {" "}
                         {
                             (
@@ -148,7 +149,7 @@ export class UserStatusPanelItem extends React.Component {
                             <span className={`peer-status`}>
                                 {
                                     membership.peerStatus == "connected" ?
-                                    <i className="fa fa-plug" aria-hidden="true"></i> :
+                                    <span className="with-tooltip" aria-label="P2P connection established"><i className="fa fa-plug" aria-hidden="true"></i></span>:
                                     null
                                 }
                             </span>
@@ -160,19 +161,30 @@ export class UserStatusPanelItem extends React.Component {
                                 membership.resources
                             ) ?
                             <div className="resources">
-                                <span className={`video ${membership.resources.video ? '' : 'disabled'}`}>
+                                <span
+                                    className={`video with-tooltip ${membership.resources.video ? '' : 'disabled'}`}
+                                    aria-label={(
+                                        (
+                                            membership.resources.video &&
+                                            membership.resources.video.width
+                                        ) ?
+                                        `Video available (${membership.resources.video.width} x ${membership.resources.video.height})` :
+                                        `Video unavailable`
+                                    )}>
                                     {
                                         membership.resources.video &&
                                         membership.resources.video.width ?
                                         <i
                                             className="fa fa-video-camera"
                                             aria-hidden="true"
-                                            title={`${membership.resources.video.width} x ${membership.resources.video.height}`}
                                         ></i> :
                                         null
                                     }
                                 </span>{" "}
-                                <span className={`audio ${membership.resources.audio ? '' : 'disabled'}`}>
+                                <span
+                                    className={`audio with-tooltip ${membership.resources.audio ? '' : 'disabled'}`}
+                                    aria-label={membership.resources.audio ? "Audio available" : "Audio unavailable"}
+                                >
                                     {membership.resources.audio && <i
                                         className="fa fa-microphone"
                                         aria-hidden="true"
@@ -211,7 +223,9 @@ export class UserStatusPanelItem extends React.Component {
                             {" "}
                             <span className="bitrate">{formatBytes(membership.currentRecording.bitrate || 0)}/s</span>
                         </div>}
-                        <RecordingButton {...this.props} membership={membership} />
+                        {this.props.self.role == ROLES.OWNER && (
+                            <RecordingButton {...this.props} membership={membership} />
+                        )}
                     </div>
                 }
             </div>
@@ -231,7 +245,9 @@ export default class UserStatusPanel extends React.Component {
                         </li>
                     ))}
                 </ul>
-                <div><RecordAllButton {...this.props} /></div>
+                {this.props.self.role == ROLES.OWNER && (
+                    <div><RecordAllButton {...this.props} /></div>
+                )}
             </div>
         );
     }

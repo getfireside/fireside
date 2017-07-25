@@ -116,10 +116,12 @@ li {
         bottom: 100%;
         margin-bottom: 4px;
         padding: 5px;
-        font-size: 14px;
+        font-size: 12px;
+        font-weight: normal;
         color: white;
         white-space: nowrap;
         border-radius: 2px;
+        line-height: 1;
     }
     &.with-tooltip-bottom {
         &:before {

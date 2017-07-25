@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import {observer} from "mobx-react";
 import {createAudioMeter} from "../volume-meter";
 
-var SMOOTHING = 0.8;
+var SMOOTHING = 0.83;
 var FFT_SIZE = 256;
 
 let audioContext = new AudioContext();
