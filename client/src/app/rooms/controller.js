@@ -353,7 +353,7 @@ export default class RoomController {
     }
 
     async initialize() {
-        if (this.room.memberships.selfId != null) {
+        if (!this.room.selfIsNew) {
             await this.connect();
         }
     }

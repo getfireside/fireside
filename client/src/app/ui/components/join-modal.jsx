@@ -5,6 +5,7 @@ import { Form } from 'formsy-react';
 import FRC from 'formsy-react-components';
 import { ConfigFormFields } from './config-modal';
 import Button from './button';
+import CopyToClipboard from 'react-copy-to-clipboard';
 
 @observer
 export default class JoinModal extends React.Component {
@@ -34,12 +35,23 @@ export default class JoinModal extends React.Component {
             <header className="modal-header">
                 <h2>Welcome to Fireside!</h2>
                 {this.props.isOwner && (
-                    <h3>your unique URL: <a>fr.sd/{this.props.room.id}</a></h3>
+                    <h3>
+                        your unique URL:{' '}
+                        <CopyToClipboard text={window.location.href}>
+                            <a
+                                className="with-tooltip with-tooltip-bottom"
+                                aria-label="Click to copy"
+                                href="javascript:void(0);"
+                            >
+                                {window.location.host}/rooms/{this.props.room.id}
+                            </a>
+                        </CopyToClipboard>
+                    </h3>
                 )}
             </header>
-            <Form 
-                onValidSubmit={(data) => this.submit(data)} 
-                onValid={() => this.enableButton()} 
+            <Form
+                onValidSubmit={(data) => this.submit(data)}
+                onValid={() => this.enableButton()}
                 onInvalid={() => this.disableButton()}
             >
                 <main className="modal-body">
@@ -59,7 +71,7 @@ export default class JoinModal extends React.Component {
                 <footer className="modal-footer">
                     <Button type="submit" className="primary" disabled={!this.state.canSubmit}>
                         {
-                            this.props.isOwner ? 
+                            this.props.isOwner ?
                             "Enter room" :
                             "Join room"
                         }

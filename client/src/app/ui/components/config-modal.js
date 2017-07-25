@@ -32,7 +32,7 @@ import Button from './button';
 //         );
 //     }
 // }
-// 
+//
 @observer
 export class ConfigFormFields extends React.Component {
     getBitrate(mbps) {
@@ -126,7 +126,7 @@ export class ConfigForm extends React.Component {
     }
 
     submit(data) {
-        data = ConfigForm.clean(data);
+        data = ConfigFormFields.clean(data);
         this.props.controller.updateConfig(data);
         this.props.onSubmit && this.props.onSubmit(data);
     }
@@ -137,8 +137,8 @@ export class ConfigForm extends React.Component {
 
     render() {
         return (
-            <FRC.Form 
-                onSubmit={(data) => { this.submit(data) }} 
+            <FRC.Form
+                onSubmit={(data) => { this.submit(data) }}
                 onChange={(vals) => this.onChange(vals)}
             >
                 <main className="modal-body">
@@ -158,8 +158,8 @@ export default class ConfigModal extends React.Component {
     render() {
         return <Modal
             isOpen={this.props.uiStore.configModalShowing}
-            shouldCloseOnOverlayClick={true}
             contentLabel="Room config"
+            onRequestClose={() => this.props.uiStore.closeConfigModal()}
         >
             <header className="modal-header">
                 <h3>Room settings</h3>

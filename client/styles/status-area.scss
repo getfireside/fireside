@@ -31,7 +31,7 @@ main {
             font-weight: bold;
             >span {
                 text-transform: uppercase;
-                &:before {
+                &::before {
                     display: inline-block;
                     content: ' ';
                     background: white;

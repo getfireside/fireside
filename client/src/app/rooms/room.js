@@ -40,7 +40,7 @@ export class RoomMembership {
         else {
             if (this.room.config.videoBitrate == null) {
                 let numPixels;
-                if (this.resources && this.resources.video) {
+                if (this.resources && this.resources.video && this.resources.video.width) {
                     numPixels = this.resources.video.width * this.resources.video.height;
                 }
                 else {
@@ -111,13 +111,13 @@ export default class Room {
     ownerId = null;
 
     constructor({
-        messageStore, 
-        recordingStore, 
-        id, 
-        ownerId, 
-        selfId, 
+        messageStore,
+        recordingStore,
+        id,
+        ownerId,
+        selfId,
         selfIsNew,
-        config, 
+        config,
         needsConfig
     }) {
         this.messageStore = messageStore;

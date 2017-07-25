@@ -29,6 +29,22 @@
         border-radius: 20px;
         background: #D01A1A;
         color: white;
+        position: relative;
+        padding-left: 22px;
+        &:before {
+            display: inline-block;
+            content: ' ';
+            background: white;
+            width: 8px;
+            height: 8px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-top: -4px;
+            position: absolute;
+            top: 50%;
+            left: 8px;
+            border-radius: 8px;
+        }
         &:not([disabled]) {
             &:hover, &:focus {
                 border: 1px solid white;

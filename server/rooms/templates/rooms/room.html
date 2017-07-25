@@ -16,7 +16,7 @@
                 roomData: {
                     id: "{{ room.id }}",
                     ownerId: {{ room.owner.id }},
-                    selfId: {{ self_uid }},
+                    selfId: {{ self_uid|default_if_none:"null" }},
                     selfIsNew: {% if is_new %}true{% else %}false{% endif %},
                     config: {{ config_json|safe }},
                     needsConfig: {% if not room.config %}true{% else %}false{% endif %},

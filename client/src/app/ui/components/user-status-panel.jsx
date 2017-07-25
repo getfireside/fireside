@@ -27,7 +27,7 @@ export class RecordingButton extends React.Component {
     }
     render() {
         if (this.props.membership.recorderStatus == 'started') {
-            return <Button className="recording stop" onClick={this.onStopClick.bind(this)}>Stop recording</Button>;
+            return <Button className="recording stop" onClick={this.onStopClick.bind(this)}>Stop</Button>;
         }
         else {
             return <Button
@@ -207,9 +207,9 @@ export class UserStatusPanelItem extends React.Component {
                     membership.resources &&
                     <div className="recording">
                         {membership.currentRecording && <div className="status">
-                            <span className="size">{formatBytes(membership.currentRecording.filesize)}</span>
+                            <span className="size">{formatBytes(membership.currentRecording.filesize || 0)}</span>
                             {" "}
-                            <span className="bitrate">{formatBytes(membership.currentRecording.bitrate)}/s</span>
+                            <span className="bitrate">{formatBytes(membership.currentRecording.bitrate || 0)}/s</span>
                         </div>}
                         <RecordingButton {...this.props} membership={membership} />
                     </div>

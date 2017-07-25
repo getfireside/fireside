@@ -1,7 +1,6 @@
 body.modal-open {
-    background: #333;
-    .room-view {
-        filter: blur(5px);
+    #appContainer {
+        // filter: blur(1px);
     }
 }
 .modal-overlay {
@@ -11,9 +10,10 @@ body.modal-open {
     bottom: 0;
     right: 0;
     background: rgba(0, 0, 0, 0.7);
-    z-index: 5000; 
+    z-index: 5000;
 }
 .modal {
+    outline: none;
     position: absolute;
     top: 50%;
     left: 50%;
@@ -34,14 +34,22 @@ body.modal-open {
         h2 {
             font-size: 32px;
             margin: 0;
-            margin-bottom: 5px;
             font-weight: normal;
             margin-left: -3px;
+            line-height: 1;
         }
         h3 {
             font-size: 18px;
             margin: 0;
             font-weight: normal;
+            a {
+                color: #3199C5;
+            }
+        }
+        h2 + h3 {
+            margin-top: 10px;
+            line-height: 1;
+            color: rgba(white, 0.5);
         }
     }
     .modal-body {
@@ -84,14 +92,34 @@ body.modal-open {
             border-bottom: 2px solid rgba(#263037, 0.2);
             font-size: 20px;
             line-height: 1.4;
+            &:focus {
+                border-bottom-color: #263037;
+            }
+        }
+        .advanced {
+            .collapse {
+                transition: max-height 0.2s linear;
+            }
         }
         .advanced.hide .collapse {
-            display: none;
+            max-height: 0;
+            overflow: hidden;
+            > * {
+                display: none;
+            }
         }
         .advanced.show .collapse {
-            display: block;
+            max-height: 150px;
+            > * {
+                display: block;
+            }
         }
-        .advanced.hide label.show-advanced {
+        .advanced label.show-advanced {
+            opacity: 0.6;
+            cursor: pointer;
+            &:hover {
+                opacity: 1;
+            }
             &:before {
                 content: "\f054";
                 font-family: FontAwesome;
@@ -99,6 +127,13 @@ body.modal-open {
                 margin-right: 5px;
                 margin-top: -2px;
                 display: inline-block;
+                transition: transform 0.2s ease-in;
+            }
+        }
+        .advanced.show label.show-advanced {
+            // opacity: 1;
+            &:before {
+                transform: rotateZ(90deg);
             }
         }
         .radio-button-group {

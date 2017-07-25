@@ -51,15 +51,29 @@
             }
             padding: 5px 5px 10px 5px;
             &.user-status-panel {
+                li {
+                    &:last-child {
+                        .membership {
+                            border: none;
+                        }
+                    }
+                }
                 .btn.recording-all {
                     width: 80%;
                     display: block;
                     margin: 10px auto 0;
+                    padding-left: 15px;
+                    &::before {
+                        position: static;
+                        margin-right: 5px;
+                    }
                 }
                 .membership {
+                    margin-left: -5px;
+                    margin-right: -5px;
                     margin-bottom: 5px;
                     border-bottom: 1px solid rgba(0,0,0,0.25);
-                    padding: 5px;
+                    padding: 5px 10px;
                     font-size: 12px;
                     .name {
                         font-size: 14px;
@@ -88,6 +102,17 @@
                     .recording-status {
                         text-transform: uppercase;
                         letter-spacing: 1px;
+                        > span::before {
+                            width: 8px;
+                            height: 8px;
+                            border-radius: 8px;
+                            vertical-align: middle;
+                            margin-right: 5px;
+                            margin-top: -2px;
+                            background: #D01A1A;
+                            content: " ";
+                            display: inline-block;
+                        }
                     }
                     .disk {
                         .bar {
@@ -120,15 +145,6 @@
                         }
                         .size {
                             font-weight: bold;
-                        }
-                    }
-                }
-                .user-status-panel {
-                    li {
-                        &:last-child {
-                            .membership {
-                                border: none;
-                            }
                         }
                     }
                 }

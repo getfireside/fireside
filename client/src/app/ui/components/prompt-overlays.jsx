@@ -8,7 +8,7 @@ export class LocalMediaPromptOverlay extends React.Component {
         if (this.props.isOpen) {
             return (
                 <div className="overlay">
-                    ACCEPT THIS (MEDIA)!
+                    Please click <b>Allow</b> in the prompt above to give Fireside access to your mic and/or camera.
                 </div>
             );
         }
@@ -22,7 +22,7 @@ export class FSPromptOverlay extends React.Component {
         if (this.props.isOpen) {
             return (
                 <div className="overlay">
-                    ACCEPT THIS (FS)!
+                    In order to make recordings, Fireside needs to be able to store files on your device. <br /> Please press <b>Allow</b> in the dialogue above.
                 </div>
             );
         }
