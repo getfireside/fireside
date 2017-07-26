@@ -172,7 +172,7 @@
         }
         .messages-panel {
             ul {
-                overflow: scroll;
+                overflow-y: auto;
                 flex: 1 1 auto;
                 padding: 5px 0;
                 background: #263037;

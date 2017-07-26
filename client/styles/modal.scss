@@ -21,7 +21,7 @@ body.modal-open {
     max-height: 100vh;
     width: 70%;
     min-width: 500px;
-    overflow: scroll;
+    overflow: auto;
     padding: 20px;
     display: flex;
     flex-flow: column;

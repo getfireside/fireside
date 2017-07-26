@@ -90,7 +90,7 @@ main {
             }
             > ul.recordings {
                 margin-top: 1px;
-                overflow: scroll;
+                overflow: auto;
                 max-height: 200px;
                 display: grid;
                 grid-gap: 7px;
