@@ -6,10 +6,16 @@ def update_status(event, message, room):
     # TODO refactor this bit - serializer to make sure these are valid
     if 'disk_usage' in event['data']:
         room.peers[message.peer_id]['disk_usage'] = event['data']['disk_usage']
-    elif 'resources' in event['data']:
+    if 'resources' in event['data']:
         room.peers[message.peer_id]['resources'] = event['data']['resources']
-    elif 'recorder_status' in event['data']:
+    if 'recorder_status' in event['data']:
         room.peers[message.peer_id]['recorder_status'] = event['data']['recorder_status']
+    if 'onboarding_complete' in event['data']:
+        room.memberships.filter(
+            participant=message.participant
+        ).update(
+            onboarding_complete=event['data']['onboarding_complete']
+        )
 
 @register_room_event_handler
 def stop_recording(event, message, room):

@@ -6,7 +6,6 @@ import {formatDuration} from 'lib/util';
 
 export default class Notifier extends React.Component {
     componentDidMount() {
-        Notification.requestPermission();
         this.listener = this.onMessage.bind(this);
         this.props.room.messageStore.on('message', this.listener);
     }

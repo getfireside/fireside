@@ -99,9 +99,12 @@ export class LocalMedia extends React.Component {
                     this.props.onResourceUpdate({
                         video: {
                             width: m.videoWidth,
-                            height: m.videoHeight
+                            height: m.videoHeight,
+                            label: this.props.stream.getVideoTracks()[0].label,
                         },
-                        audio:true
+                        audio: {
+                            label: this.props.stream.getAudioTracks()[0].label,
+                        }
                     });
                     this.setState({
                         videoWidth: m.videoWidth,

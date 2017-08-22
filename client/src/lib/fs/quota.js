@@ -1,14 +1,21 @@
 export function requestStorageQuota() {
     return new Promise( (resolve, reject) => {
         if (navigator.webkitPersistentStorage != null) {
-            // In Chrome, let's request as much storage as we can.
-            // In recent versions it seems requesting 1000GB doesn't
-            // error, and just returns as much as we can get.
-            navigator.webkitPersistentStorage.requestQuota(
-                1024*1024*1024*1024,
-                resolve,
-                reject
-            );
+            // In Chrome, request 10GB, which is currently the maximum
+            // that we can store using the filesystem API.
+            let bytesToRequest = 10737418240;
+            getStorageUsage().then(({quota}) => {
+                if (quota == 0) {
+                    navigator.webkitPersistentStorage.requestQuota(
+                        bytesToRequest,
+                        resolve,
+                        reject
+                    );
+                }
+                else {
+                    resolve(bytesToRequest);
+                }
+            });
         }
         else {
             resolve();

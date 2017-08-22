@@ -367,6 +367,7 @@ class RoomMembership(models.Model):
     name = models.CharField(max_length=64, blank=True, null=True)
     role = models.CharField(max_length=1, choices=ROLE, default=ROLE.guest)
     joined = models.DateTimeField(auto_now_add=True)
+    onboarding_complete = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('room', 'participant')

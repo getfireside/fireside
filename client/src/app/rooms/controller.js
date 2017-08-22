@@ -206,7 +206,9 @@ export default class RoomController {
             this.room.memberships.self.recordings,
             r => r.serialize()
         ));
-        this.openFS();
+        if (this.room.memberships.self.onboardingComplete) {
+            this.openFS();
+        }
     }
 
     @on('connection.requestFileTransfer')
@@ -348,12 +350,13 @@ export default class RoomController {
         return this.connection.runAction('updateConfig', config);
     }
 
-    async openFS() {
-        await this.fs.open();
+    openFS() {
+        return this.fs.open();
     }
 
     async initialize() {
-        if (!this.room.selfIsNew) {
+        if (this.room.memberships.selfId && !this.room.memberships.self.isNew) {
+            this.logger.debug('Connecting to room...');
             await this.connect();
         }
     }
@@ -361,9 +364,10 @@ export default class RoomController {
     @action
     async initialJoin(data) {
         let res = await this.connection.initialJoin(data);
+        this.logger.debug('Initial join complete.');
         runInAction(() => {
+            this.room.memberships.self.isNew = false;
             this.room.memberships.selfId = res.uid;
-            this.room.selfIsNew = false;
             this.recorder.extraAttrs.uid = res.uid;
             this.room.recordingStore.selfId = res.uid;
         });
@@ -385,39 +389,45 @@ export default class RoomController {
     }
 
     @action
+    completeOnboarding() {
+        this.room.memberships.self.onboardingComplete = true;
+        this.connection.sendEvent('updateStatus', {onboardingComplete:true})
+    }
+
+    @action
     async setupLocalMedia() {
-        let audio = true;
-        let video = this.room.config.mode == 'video';
-        let mediaStream;
-        if (_.includes(navigator.userAgent, 'Firefox')) {
-            mediaStream = await navigator.mediaDevices.getUserMedia({
-                audio,
-                video: {
-                    height: {
-                        min: 240,
-                        ideal: 2160,
-                        max: 2160
-                    }
+        let audio = {deviceId: _.get(this.room.memberships.self, 'selectedAudioDeviceId')};
+        let video = undefined;
+        if (this.room.config.mode == 'video') {
+            video = {deviceId: _.get(this.room.memberships.self, 'selectedVideoDeviceId')};
+            if (_.includes(navigator.userAgent, 'Firefox')) {
+                video.height = {
+                    min: 240,
+                    ideal: 2160,
+                    max: 2160
                 }
-            });
+            }
+            else {
+                video.optional = [
+                    {minHeight: 240},
+                    {minHeight: 480},
+                    {minHeight: 576},
+                    {minHeight: 720},
+                    {minHeight: 1080},
+                    {minHeight: 1440},
+                    {minHeight: 2160},
+                ]
+            }
         }
-        else {
-            mediaStream = await navigator.mediaDevices.getUserMedia({
-                audio,
-                video: video && {
-                    optional: [
-                        {minHeight: 240},
-                        {minHeight: 480},
-                        {minHeight: 576},
-                        {minHeight: 720},
-                        {minHeight: 1080},
-                        {minHeight: 1440},
-                        {minHeight: 2160},
-                    ]
-                }
-            });
-        }
+        let mediaStream = await navigator.mediaDevices.getUserMedia({
+            audio,
+            video
+        });
         runInAction( () => {
+            audio.label = mediaStream.getAudioTracks()[0].label;
+            if (video) {
+                video.label = mediaStream.getVideoTracks()[0].label;
+            }
             this.recorder.setStream(mediaStream);
             this.connection.connectStream(mediaStream);
             this.updateResources({audio, video});

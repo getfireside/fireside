@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from django.views.generic import DetailView, View
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
+from django.db import IntegrityError
 import json
 
 from rest_framework import status
@@ -62,20 +63,53 @@ class RoomView(DetailView):
 
     def get_context_data(self, **ctx):
         ctx = super().get_context_data(**ctx)
+
         # TODO refactor me
-        ctx['is_new'] = True
-        ctx['self_uid'] = None
-        ctx['config_json'] = json.dumps(self.object.get_config())
+        membership = None
+        participant = None
         try:
             participant = Participant.objects.from_request(self.request)
-            ctx['self_uid'] = participant.id
+            membership = self.object.memberships.filter(
+                participant=participant
+            ).first()
         except Participant.DoesNotExist:
             pass
-        else:
-            if self.object.memberships.filter(
-                participant=participant
-            ).exists():
-                ctx['is_new'] = False
+
+        owner_mem = self.object.memberships.filter(
+            participant=self.object.owner
+        ).first()
+
+        ctx['config_json'] = json.dumps({
+            "roomData": {
+                "id": self.object.id,
+                "owner": {
+                    "id": self.object.owner.id,
+                    "name": owner_mem.get_display_name() if owner_mem else None,
+                    "role": "o",
+                },
+                "self": {
+                    "id": participant.id if participant is not None else None,
+                    "name": membership.get_display_name() if membership is not None else None,
+                    "isNew": membership is None,
+                    "onboardingComplete": (
+                        membership is not None and
+                        membership.onboarding_complete
+                    )
+                },
+                "config": self.object.get_config(),
+            },
+            "opts": {
+                "urls": {
+                    "socket": self.object.get_full_socket_url(),
+                    "join": self.object.get_join_url(),
+                    "messages": self.object.get_messages_url(),
+                    "recordings": self.object.get_recordings_url(),
+                    "action": self.object.get_absolute_url() + "actions/:name/",
+                    "changeName": self.object.get_absolute_url() + "participants/:uid/name/",
+                },
+            },
+        })
+
         return ctx
 
 
@@ -94,11 +128,17 @@ class JoinRoomView(APIView):
             context={'participant': participant}
         )
         if serializer.is_valid():
-            room.memberships.create(
-                participant=participant,
-                name=serializer.validated_data['name'],
-                role='o' if participant == room.owner else 'g',
-            )
+            try:
+                room.memberships.create(
+                    participant=participant,
+                    name=serializer.validated_data['name'],
+                    role='o' if participant == room.owner else 'g',
+                )
+            except IntegrityError:
+                return Response(
+                    data={'error': 'Already joined!'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
         else:
             return Response(
                 data=serializer.errors,

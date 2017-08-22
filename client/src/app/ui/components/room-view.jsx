@@ -1,5 +1,6 @@
 import React from 'react';
 import {observer} from "mobx-react";
+import {runInAction} from "mobx";
 
 import {ROLES} from 'app/rooms/constants';
 import {default as RoomTopBar, StatusArea} from './room-top-bar';
@@ -61,12 +62,10 @@ export class GuestRoomView extends React.Component {
 @observer
 export default class RoomView extends React.Component {
     async onJoinModalSubmit(data) {
-        if (this.props.room.memberships.selfId == this.props.room.ownerId) {
+        await this.props.controller.initialJoin({name: data.name});
+        if (this.props.room.memberships.self.isOwner) {
             this.props.controller.updateConfig(data.config);
         }
-        await this.props.controller.initialJoin({name: data.name});
-        this.props.uiStore.joinModalOpen
-
     }
     componentDidMount() {
         window.addEventListener('beforeunload', (e) => {
@@ -88,14 +87,13 @@ export default class RoomView extends React.Component {
         });
     }
     render() {
-        let joinModalOpen = false;
+        let joinModalOpen = (
+            !this.props.room.memberships.self ||
+            this.props.room.memberships.self.isNew ||
+            !this.props.room.memberships.self.onboardingComplete
+        );
         let roomView = null;
-        if (!this.props.room.memberships.self) {
-            if (this.props.room.selfIsNew) {
-                joinModalOpen = true;
-            }
-        }
-        else {
+        if (!joinModalOpen) {
             let role = this.props.room.memberships.self.role;
             roomView = (
                 role == ROLES.OWNER ?
@@ -107,7 +105,6 @@ export default class RoomView extends React.Component {
             <div>
                 {roomView}
                 <JoinModal
-                    isOwner={this.props.room.ownerId == this.props.room.memberships.selfId}
                     isOpen={joinModalOpen}
                     onSubmit={this.onJoinModalSubmit.bind(this)}
                     {...this.props}

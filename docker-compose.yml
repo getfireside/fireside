@@ -15,7 +15,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - /data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
 
   nginx:
     ports:
@@ -34,6 +34,7 @@ services:
     build: ./server
     command: python3 manage.py runserver 0.0.0.0:8000
     volumes:
+      - ./.git:/usr/src/.git
       - ./server:/usr/src/server
       - ./client:/usr/src/client
     environment:

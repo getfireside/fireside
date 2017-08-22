@@ -1,6 +1,6 @@
 import WildEmitter from 'wildemitter';
 import _ from 'lodash';
-import {observable} from 'mobx';
+import {observable, action} from 'mobx';
 
 import Logger from 'lib/logger';
 import Peer from 'lib/rtc/peer';
@@ -32,10 +32,10 @@ export default class RoomConnection extends WildEmitter {
 
         this.socket = new Socket({url: this.urls.socket});
         this.socket.on('message', this.handleSocketMessage.bind(this));
-        this.socket.on('close', () => {
+        this.socket.on('close', action(() => {
             this.emit('disconnect');
             this.status = 'disconnected';
-        });
+        }));
 
         this.socket.on('open', this.onConnect.bind(this));
 
@@ -97,12 +97,12 @@ export default class RoomConnection extends WildEmitter {
         };
     }
 
-    onConnect() {
+    @action onConnect() {
         this.status = 'connected';
         this.emit('connect');
     }
 
-    async connect() {
+    @action async connect() {
         /**
          * Open the websocket and connect
          */

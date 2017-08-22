@@ -218,7 +218,7 @@ export default class FilesDrawer extends React.Component {
                 <div className="content">
                     <ul className="members">
                         {_.map([{name: 'All recordings', uid: null}].concat(mems), (mem) => (
-                            <li className={this.props.uiStore.filesDrawer.selectedMember == mem.uid ? 'selected' : ''}>
+                            <li key={mem.uid} className={this.props.uiStore.filesDrawer.selectedMember == mem.uid ? 'selected' : ''}>
                                 <a href="javascript:void(0);" onClick={() => this.selectMember(mem.uid)}>{mem.name}</a>
                             </li>
                         ))}
@@ -229,7 +229,7 @@ export default class FilesDrawer extends React.Component {
                         style={{minHeight: this.props.uiStore.filesDrawer.selectedMember != null && this.height || 0}}
                     >
                         {_.map(recs, (rec) => (
-                            <li><RecordingInfo recording={rec} {...this.props} /></li>
+                            <li key={rec.id}><RecordingInfo recording={rec} {...this.props} /></li>
                         ))}
                     </ul>
                 </div>

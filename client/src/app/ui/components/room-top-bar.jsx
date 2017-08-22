@@ -40,7 +40,7 @@ export class StatusArea extends React.Component {
         ));
         if (this.props.controller.connection.status == 'disconnected') {
             let messageTemplate = (contents) => (
-                <div className="notification error connection">
+                <div key="conn" className="notification error connection">
                     <i className="fa fa-exclamation-triangle sr-hidden" />
                     {contents}
                 </div>
@@ -65,7 +65,7 @@ export class StatusArea extends React.Component {
             this.props.controller.recorder.status != 'ready'
         ) {
             contents.push(
-                <div className="notification recording">
+                <div key="rec" className="notification recording">
                     <span>
                         {(
                             this.props.controller.recorder.status == 'started' ?
@@ -108,7 +108,7 @@ export class StatusArea extends React.Component {
                 </div>
             );
             contents.push(
-                <div className="notification upload http">
+                <div key="up" className="notification upload http">
                     <ProgressBar progress={progress}>
                         {text}
                         <span className="percent">{Math.round(progress*100)}%</span>

@@ -56,6 +56,9 @@ body.modal-open {
         background: white;
         padding: 20px;
         flex-shrink: 1;
+        &.nofooter {
+            border-radius: 0 0 8px 8px;
+        }
     }
     .modal-footer {
         background: #E5EBEE;
@@ -64,6 +67,28 @@ body.modal-open {
         .btn {
             font-size: 16px;
             line-height: 30px;
+        }
+    }
+    .onboarding-steps {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        > li {
+            list-style-position: inside;
+            list-style-type: decimal;
+            flex-grow: 1;
+            text-align: center;
+            padding: 10px;
+            background-color: #E5EBEE;
+            color: rgba(#2E373E, 0.4);
+            &.active {
+                background-color: #3199C5;
+                color: white;
+            }
+            &.completed {
+                background-color: lime;
+                color: green;
+            }
         }
     }
     form {

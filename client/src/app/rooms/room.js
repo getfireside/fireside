@@ -1,5 +1,5 @@
 import {observable, action, computed, ObservableMap} from 'mobx';
-import {ROLES_INVERSE} from './constants';
+import {ROLES_INVERSE, ROLES} from './constants';
 import _ from 'lodash';
 import {calculateBitrate, camelizeKeys} from 'lib/util';
 
@@ -15,6 +15,12 @@ export class RoomMembership {
     @observable recorderStatus = null;
     @observable peerStatus = null;
     @observable stream = null;
+    @observable isNew;
+    @observable onboardingComplete;
+
+    @computed get isOwner() {
+        return this.role == 'o';
+    }
 
     @computed get isSelf() {
         return this.uid === this.room.memberships.selfId;
@@ -56,12 +62,16 @@ export class RoomMembership {
 
     }
 
-    constructor({uid, room, name, currentRecordingId, role, status, peer, peerId}) {
+    constructor({
+        uid,
+        room,
+        currentRecordingId,
+        peer,
+        peerId,
+        ...data
+    }) {
         this.uid = uid;
         this.room = room;
-        this.name = name;
-        this.role = role;
-        this.status = status;
         if (currentRecordingId != null) {
             this.currentRecording = this.room.recordingStore.get(currentRecordingId);
         }
@@ -72,9 +82,10 @@ export class RoomMembership {
         else {
             this.peerId = peerId;
         }
+        _.extend(this, data);
     }
 
-    update(data) {
+    @action update(data) {
         _.extend(this, data);
     }
 }
@@ -83,6 +94,9 @@ class RoomMembershipsMap extends ObservableMap {
     @observable selfId = null;
     @computed get self() {
         return this.get(this.selfId);
+    }
+    @computed get owner() {
+        return this.values().find(m => m.role == ROLES.OWNER);
     }
     @computed get others() {
         return this.values().filter(m => m.id != this.selfId);
@@ -105,8 +119,6 @@ export default class Room {
         debugMode: null,
         uploadMode: null,
     };
-    @observable selfIsNew;
-    @observable needsConfig;
     id = null;
     ownerId = null;
 
@@ -114,20 +126,19 @@ export default class Room {
         messageStore,
         recordingStore,
         id,
-        ownerId,
-        selfId,
-        selfIsNew,
+        owner,
+        self,
         config,
-        needsConfig
     }) {
         this.messageStore = messageStore;
         this.recordingStore = recordingStore;
         this.id = id;
-        this.ownerId = ownerId;
-        this.selfIsNew = selfIsNew;
-        this.memberships.selfId = selfId;
+        if (self.id) {
+            this.updateMembership(self.id, self);
+        }
+        this.updateMembership(owner.id, owner);
+        this.memberships.selfId = self.id;
         this.config = camelizeKeys(config);
-        this.needsConfig = needsConfig;
     }
 
     @computed get recordings() {

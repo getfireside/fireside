@@ -91,11 +91,11 @@ export default class HTML5FS extends FS {
             let handleErr = e => reject(translateError(e));
 
             if (!this.fs) {
-                this.emit('promptOpen');
                 requestStorageQuota().then((size) => {
                     this.logger.log(`We got a quota of ${size} bytes`);
                     requestFileSystem(window.PERSISTENT, size, init, handleErr);
-                    this.emit('promptClosed');
+                }).catch(e => {
+                    reject(translateError(e));
                 });
             }
             else {

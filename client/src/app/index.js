@@ -23,14 +23,14 @@ export default class FiresideApp {
         this.setupLogger();
         this.setupFS();
         this.setupStores({selfId: roomData.selfId});
-        this.setupRoom(roomData);
+        this.setupRoom(roomData, opts);
     }
 
     setupLogger() {
         this.logger = new LoggingController();
     }
 
-    setupRoom(roomData) {
+    setupRoom(roomData, opts) {
         this.room = new Room({
             messageStore: this.messageStore,
             recordingStore: this.recordingStore,
@@ -41,7 +41,7 @@ export default class FiresideApp {
             room: this.room,
             logger: this.logger,
             fs: this.fs,
-            urls: this.opts.urls,
+            ...opts,
         });
 
         // load recording data from local storage

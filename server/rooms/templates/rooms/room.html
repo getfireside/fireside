@@ -1,4 +1,4 @@
-{% load static %}
+{% load static raven %}
 <!DOCTYPE html>
 <html>
     <head>
@@ -9,29 +9,22 @@
     </head>
     <body>
         <div id="appContainer"></div>
+        <script src="https://cdn.ravenjs.com/3.17.0/raven.min.js"
+    crossorigin="anonymous"></script>
         <script src="{% static 'dist/main.js' %}"></script>
         <script>
-            window.initializeApp({
-                element: document.getElementById('appContainer'),
-                roomData: {
-                    id: "{{ room.id }}",
-                    ownerId: {{ room.owner.id }},
-                    selfId: {{ self_uid|default_if_none:"null" }},
-                    selfIsNew: {% if is_new %}true{% else %}false{% endif %},
-                    config: {{ config_json|safe }},
-                    needsConfig: {% if not room.config %}true{% else %}false{% endif %},
-                },
-                opts: {
-                    urls: {
-                        socket: "{{ room.get_full_socket_url }}",
-                        join: "{{ room.get_join_url }}",
-                        messages: "{{ room.get_messages_url }}",
-                        recordings: "{{ room.get_recordings_url }}",
-                        action: "{{ room.get_absolute_url }}actions/:name/",
-                        changeName: "{{ room.get_absolute_url }}participants/:uid/name/",
-                    },
-                },
-            }).then((fireside) => { window.fireside = fireside });
+            Raven.config('{% sentry_public_dsn %}').install();
+
+            let roomConfig = {{ config_json|safe }};
+            window.initializeApp(Object.assign(
+                {},
+                { element: document.getElementById('appContainer') },
+                roomConfig
+            )).then((fireside) => { window.fireside = fireside });
+
+            window.onunhandledrejection = function(evt) {
+                Raven.captureException(evt.reason);
+            };
         </script>
     </body>
 </html>

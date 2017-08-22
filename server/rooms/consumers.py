@@ -88,7 +88,7 @@ class RoomConsumer(BaseConsumer):
 
             return getattr(self, msg.get_type_display())(
                 msg,
-                **msg.payload,
+                **msg.payload
             )
 
     def event(self, message, **kwargs):
@@ -129,4 +129,10 @@ class RoomConsumer(BaseConsumer):
 
     def signalling(self, message, to, **data):
         # message.payload = prioritize_h264(message.payload)
-        self.room.send(message, to_peer_id=to)
+        try:
+            self.room.send(message, to_peer_id=to)
+        except KeyError:
+            self.room.send(self.room.message(type=Message.TYPE.message, payload={
+                'type': 'signalling_error',
+                'data': {'message': f'Peer {to} does not exist'}
+            }), to_peer_id=message.peer_id)

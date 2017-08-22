@@ -38,6 +38,7 @@ class MembershipSerializer(serializers.Serializer):
     uid = serializers.IntegerField(source='participant_id')
     info = PeerInfoSerializer(source='*')
     status = serializers.IntegerField()
+    onboarding_complete = serializers.BooleanField()
 
 
 class MessageSerializer(serializers.ModelSerializer):
