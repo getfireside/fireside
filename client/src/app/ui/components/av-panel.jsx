@@ -133,7 +133,12 @@ export class LocalMedia extends React.Component {
                 <div className={`localmedia ${isVideo(this.props.stream) ? 'video' : 'audio'}`}>
                 {(
                     isVideo(this.props.stream) ?
-                    <video muted ref="media"/> :
+                    <div>
+                        <video muted ref="media"/>
+                        {this.props.showAudioWithVideo && (
+                            <AudioVisualizer stream={this.props.stream} />
+                        )}
+                    </div> :
                     <div>
                         <AudioVisualizer stream={this.props.stream} />
                         <audio ref="media" muted/>

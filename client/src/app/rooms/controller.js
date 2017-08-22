@@ -347,7 +347,8 @@ export default class RoomController {
 
     @action.bound
     updateConfig(config) {
-        return this.connection.runAction('updateConfig', config);
+        this.connection.runAction('updateConfig', config);
+        this.handleUpdateConfig(config);
     }
 
     openFS() {

@@ -88,7 +88,9 @@ class NameAndConfigStep extends React.Component {
     }
     submit(data) {
         data = ConfigFormFields.clean(data);
-        this.props.onSubmit(data);
+        let name = data.name;
+        delete data.name;
+        this.props.onSubmit({name, config: data});
         this.props.next();
     }
     disableButton() {
@@ -332,7 +334,7 @@ StorageStep.niceName = "File Storage"
                                 this.props.controller.setupLocalMedia();
                             }}
                         />
-                        <LocalMedia stream={stream} onResourceUpdate={_.noop} />
+                        <LocalMedia stream={stream} onResourceUpdate={_.noop} showAudioWithVideo={true} />
                     </main>
                     <footer className="modal-footer">
                         <Button onClick={() => this.props.next()}>Next</Button>

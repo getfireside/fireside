@@ -127,6 +127,7 @@ export class ConfigForm extends React.Component {
 
     submit(data) {
         data = ConfigFormFields.clean(data);
+        debugger;
         this.props.controller.updateConfig(data);
         this.props.onSubmit && this.props.onSubmit(data);
     }

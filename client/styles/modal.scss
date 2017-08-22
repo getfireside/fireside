@@ -91,6 +91,15 @@ body.modal-open {
             }
         }
     }
+    .localmedia {
+        > div {
+            display: flex;
+            align-items: flex-end;
+            > video, > canvas {
+                width: 50% !important;
+            }
+        }
+    }
     form {
         .required-symbol {
             display: none;
