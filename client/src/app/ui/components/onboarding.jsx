@@ -38,6 +38,7 @@ class InvitesStep extends React.Component {
             <div>
                 <main className="modal-body">
                     <div className="email-invites">
+                        <p>We can email your guests to let them know where the session will take place. Enter their emails in the box below.</p>
                         <TagsInput
                             value={this.state.emails}
                             onChange={(emails) => this.onChange(emails)}
@@ -164,19 +165,6 @@ class MediaDeviceSelector extends React.Component {
     render() {
         return (
             <div className="media-device-selector">
-                {this.props.audio && (
-                    <div>
-                        <label for="audioDeviceSelector">Audio input</label>
-                        <select id="audioDeviceSelector" value={this.props.selectedAudioDeviceId} onChange={(e) => this.props.onChange({
-                            selectedAudioDeviceId: e.target.value,
-                            selectedVideoDeviceId: this.props.video ? this.props.selectedVideoDeviceId : undefined,
-                        })}>
-                            {_.map(this.state.audioDevices, d => (
-                                <option value={d.deviceId}>{d.label}</option>
-                            ))}
-                        </select>
-                    </div>
-                )}
                 {this.props.video && (
                     <div>
                         <label for="videoDeviceSelector">Video input</label>
@@ -185,6 +173,19 @@ class MediaDeviceSelector extends React.Component {
                             selectedVideoDeviceId: e.target.value
                         })}>
                             {_.map(this.state.videoDevices, d => (
+                                <option value={d.deviceId}>{d.label}</option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+                {this.props.audio && (
+                    <div>
+                        <label for="audioDeviceSelector">Audio input</label>
+                        <select id="audioDeviceSelector" value={this.props.selectedAudioDeviceId} onChange={(e) => this.props.onChange({
+                            selectedAudioDeviceId: e.target.value,
+                            selectedVideoDeviceId: this.props.video ? this.props.selectedVideoDeviceId : undefined,
+                        })}>
+                            {_.map(this.state.audioDevices, d => (
                                 <option value={d.deviceId}>{d.label}</option>
                             ))}
                         </select>
@@ -324,6 +325,12 @@ StorageStep.niceName = "File Storage"
             return (
                 <div>
                     <main className="modal-body">
+                        <p>
+                            You need to make sure the correct {resource} {resource == 'microphone' ? 'is' : 'are'} selected.
+                        </p>
+                        <p>
+                            We've chosen some defaults, but check if they look right and change them if necessary!
+                        </p>
                         <MediaDeviceSelector
                             audio={true}
                             video={this.props.room.config.mode == "video"}

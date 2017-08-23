@@ -286,6 +286,30 @@ export default class RoomController {
         this.room.updateMembership(message.uid, change);
     }
 
+    @on('connection.event.uploadStarted')
+    @action.bound
+    handleUploadStarted({id}) {
+        // needs test
+        let rec = this.room.recordingStore.get(id);
+        rec.fileTransfer = {isComplete: false, transferredBytes: 0};
+    }
+
+    @on('connection.event.updateUploadProgress')
+    @action.bound
+    handleUpdateUploadProgress({id, bytes, total}) {
+        // needs test
+        let rec = this.room.recordingStore.get(id);
+        rec.fileTransfer = {isComplete: false, transferredBytes: bytes};
+    }
+
+    @on('connection.event.uploadComplete')
+    @action.bound
+    handleUploadComplete({id}) {
+        // needs test
+        let rec = this.room.recordingStore.get(id);
+        rec.fileTransfer = {isComplete: true};
+    }
+
     @on('connection.event.updateConfig')
     @action.bound
     handleUpdateConfig(newConfig) {

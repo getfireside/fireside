@@ -52,7 +52,6 @@ export default class FileTransferManager {
             logger: this.logger
         });
         sender.on('complete', () => this.saveToLocalStorage());
-        sender.startUpload();
         this.senders.push(sender);
         this.saveToLocalStorage();
         return sender;

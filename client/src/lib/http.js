@@ -24,7 +24,7 @@ export const fetchPutBlob = async (url, blob, {headers = {}, onProgress = null} 
         }
         xhr.onload = e => {
             if (xhr.status.toString()[0] == '2') {
-                resolve(xhr.response);
+                resolve(xhr);
             }
             else {
                 reject(xhr);

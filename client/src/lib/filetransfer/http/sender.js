@@ -31,6 +31,7 @@ export class HttpFileSender extends WildEmitter {
         this.logger = new Logger(logger, `${this.constructor.name}:${this.fileId}`);
         this.status = status != null ? status : STATUSES.DISCONNECTED;
         this.uploadSamples = [];
+        this.etags = {}
         this.loadFromLocalStorage();
     }
 
@@ -103,7 +104,7 @@ export class HttpFileSender extends WildEmitter {
     async notifyComplete() {
         this.saveToLocalStorage();
         let url = this.getCompleteUploadUrl();
-        let fileUrl = await fetchPost(url);
+        let fileUrl = await fetchPost(url, {etags: this.etags});
         runInAction(() => {
             this.status = STATUSES.COMPLETED;
             this.completionTime = new Date();
@@ -113,8 +114,10 @@ export class HttpFileSender extends WildEmitter {
 
     async sendNthChunk(n, chunk) {
         let url = await this.getNthChunkUploadUrl(n);
-        await fetchPutBlob(url, chunk, {
+        let result = await fetchPutBlob(url, chunk, {
             onProgress: action(e => {
+                console.log(e);
+                console.log(this.numUploadedChunks);
                 let uploadedBytes = this.chunkSize * this.numUploadedChunks + e.loaded;
                 let delta = uploadedBytes - this.uploadedBytes;
                 this.uploadedBytes = uploadedBytes;
@@ -125,6 +128,12 @@ export class HttpFileSender extends WildEmitter {
                 this.uploadSamples.push([new Date(), delta]);
             })
         });
+        this.addEtag(n, result.getResponseHeader('etag').replace(/"/g, ''));
+    }
+
+    addEtag(n, etag) {
+        this.etags[n] = etag;
+        this.saveToLocalStorage();
     }
 
     @action.bound
@@ -151,6 +160,7 @@ export class HttpFileSender extends WildEmitter {
         localStorage.setItem(`filetransfer:${this.fileId}`, JSON.stringify({
             numUploadedChunks: this.numUploadedChunks,
             uploadId: this.uploadId,
+            etags: this.etags,
         }));
     }
     loadFromLocalStorage() {
@@ -160,6 +170,7 @@ export class HttpFileSender extends WildEmitter {
             this.numUploadedChunks = res.numUploadedChunks;
             this.uploadedBytes = Math.min(res.numUploadedChunks * this.chunkSize, this.file.filesize);
             this.uploadId = res.uploadId;
+            this.etags = res.etags;
         }
     }
 }

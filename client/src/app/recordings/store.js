@@ -26,6 +26,7 @@ export class Recording {
     @observable blobUrl = null;
     @observable url = null;
     @observable lastBitrate;
+    @observable _fileTransfer;
 
     @computed get niceFilename() {
         let name = this.membership.name;
@@ -82,6 +83,7 @@ export class Recording {
 
     @computed get fileTransfer() {
         return (
+            this._fileTransfer ||
             // getting the lengths here might not be strictly necessary.
             // added to make sure it recomputes when a sender or receiver is added.
             this.store.fileTransfers && (
@@ -92,6 +94,10 @@ export class Recording {
                 this.store.fileTransfers.senderForFileId(`recording:${this.id}`)
             )
         );
+    }
+
+    set fileTransfer(obj) {
+        this._fileTransfer = obj;
     }
  
     serialize({forLocal = false} = {}) {
@@ -129,6 +135,7 @@ export default class RecordingStore extends ListStore {
     }
 
     saveToLocalStorage(room) {
+        debugger;
         console.log('Saved items to local storage!');
         localStorage.setItem(
             `recordings:forRoom:${room.id}`,

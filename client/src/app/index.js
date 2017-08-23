@@ -22,7 +22,7 @@ export default class FiresideApp {
 
         this.setupLogger();
         this.setupFS();
-        this.setupStores({selfId: roomData.selfId});
+        this.setupStores({selfId: roomData.self.id});
         this.setupRoom(roomData, opts);
     }
 

@@ -100,6 +100,16 @@ body.modal-open {
             }
         }
     }
+    .media-device-selector {
+        display: flex;
+        > div {
+            margin-right: 20px;
+            margin-bottom: 5px;
+            label {
+                margin-right: 5px;
+            }
+        }
+    }
     form {
         .required-symbol {
             display: none;
