@@ -29,6 +29,10 @@ class Peer extends WildEmitter {
         this.peerConnectionConfig = {
             iceServers: [{'urls': 'stun:stun.l.google.com:19302'}],
             isInitiator: opts.isInitiator,
+            optional: [{
+                // adds QoS to packets
+                googDscp: true
+            }],
         };
 
         this.channels = {};

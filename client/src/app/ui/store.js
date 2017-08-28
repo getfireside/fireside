@@ -4,6 +4,7 @@ export default class UIStore {
     @observable localMediaPromptShowing = false;
     @observable fsPromptShowing = false;
     @observable configModalShowing = false;
+    @observable mediaSelectorModalShowing = false;
     @observable.ref editModalMember = null;
     @observable filesDrawer = {
         selectedMember: null,
@@ -25,5 +26,11 @@ export default class UIStore {
     }
     @action closeEditNameModal() {
         this.editModalMember = null;
+    }
+    @action openMediaSelectorModal() {
+        this.mediaSelectorModalShowing = true;
+    }
+    @action closeMediaSelectorModal() {
+        this.mediaSelectorModalShowing = false;
     }
 }

@@ -6,6 +6,7 @@ import FRC from 'formsy-react-components';
 import Button from './button';
 import {getStorageUsage} from 'lib/fs/quota';
 import {LocalMedia} from './av-panel';
+import {MediaDeviceSelector} from './media-device-selector';
 import TagsInput from 'react-tagsinput'
 import { ConfigFormFields } from './config-modal';
 import CopyToClipboard from 'react-copy-to-clipboard';
@@ -137,64 +138,6 @@ class NameAndConfigStep extends React.Component {
 }
 
 NameAndConfigStep.niceName = 'Name & settings';
-
-@observer
-class MediaDeviceSelector extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = {};
-    }
-    componentDidMount() {
-        this.updateDevices = async () => {
-            let devs = await navigator.mediaDevices.enumerateDevices();
-            let newState = {};
-            if (this.props.audio) {
-                newState.audioDevices = _.filter(devs, d => d.kind == 'audioinput');
-            }
-            if (this.props.video) {
-                newState.videoDevices = _.filter(devs, d => d.kind == 'videoinput');
-            }
-            this.setState(newState);
-        }
-        this.updateDevices();
-        navigator.mediaDevices.addEventListener("devicechange", this.updateDevices);
-    }
-    componentWillUnmount() {
-        navigator.mediaDevices.removeEventListener("devicechange", this.updateDevices);
-    }
-    render() {
-        return (
-            <div className="media-device-selector">
-                {this.props.video && (
-                    <div>
-                        <label for="videoDeviceSelector">Video input</label>
-                        <select id="videoDeviceSelector" value={this.props.selectedVideoDeviceId} onChange={(e) => this.props.onChange({
-                            selectedAudioDeviceId: this.props.audio ? this.props.selectedAudioDeviceId : undefined,
-                            selectedVideoDeviceId: e.target.value
-                        })}>
-                            {_.map(this.state.videoDevices, d => (
-                                <option value={d.deviceId}>{d.label}</option>
-                            ))}
-                        </select>
-                    </div>
-                )}
-                {this.props.audio && (
-                    <div>
-                        <label for="audioDeviceSelector">Audio input</label>
-                        <select id="audioDeviceSelector" value={this.props.selectedAudioDeviceId} onChange={(e) => this.props.onChange({
-                            selectedAudioDeviceId: e.target.value,
-                            selectedVideoDeviceId: this.props.video ? this.props.selectedVideoDeviceId : undefined,
-                        })}>
-                            {_.map(this.state.audioDevices, d => (
-                                <option value={d.deviceId}>{d.label}</option>
-                            ))}
-                        </select>
-                    </div>
-                )}
-            </div>
-        )
-    }
-}
 
 @observer
 export class NameStep extends React.Component {

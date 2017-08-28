@@ -11,6 +11,7 @@ import FilesDrawer from './files-drawer';
 import AVPanel from './av-panel';
 import JoinModal from './join-modal';
 import ConfigModal from './config-modal';
+import {MediaDeviceSelectorModal} from './media-device-selector';
 import {LocalMediaPromptOverlay, FSPromptOverlay} from './prompt-overlays';
 import Notifier from './notifier';
 import EditNameModal from './edit-name-modal';
@@ -120,6 +121,7 @@ export default class RoomView extends React.Component {
                         this.props.uiStore.closeEditNameModal();
                     }}
                 />
+                <MediaDeviceSelectorModal {...this.props} />
                 <LocalMediaPromptOverlay
                     isOpen={this.props.uiStore.localMediaPromptShowing}
                 />

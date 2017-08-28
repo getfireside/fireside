@@ -39,6 +39,7 @@ export default class AVPanel extends React.Component {
                     <Button className='toggle-local-media toggle-on' onClick={this.onStartClick.bind(this)}>Turn on {resourceText}</Button> :
                     <Button className='toggle-local-media toggle-off' onClick={this.onStopClick.bind(this)}>Turn off {resourceText}</Button>
                 }
+                <Button className='media-selector' onClick={() => this.props.uiStore.openMediaSelectorModal()}>Select input devices</Button>
                 <LocalMedia stream={this.props.controller.connection.stream} onResourceUpdate={this.props.controller.updateResources} />
                 <div className={`remotes count-${remotes.length}`} ref="remotes">
                     {remotes}

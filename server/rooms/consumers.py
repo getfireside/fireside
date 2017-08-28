@@ -38,7 +38,8 @@ class RoomSocketConsumer(JsonWebsocketConsumer):
             Channel('room.leave').send({
                 'reply_channel': message.content['reply_channel'],
                 'room_id': self.kwargs['id'],
-                'participant_id': self.message.channel_session['participant_id']
+                'participant_id': self.message.channel_session['participant_id'],
+                'peer_id': self.message.channel_session['peer_id']
             })
 
     def receive(self, text, **kwargs):
@@ -122,7 +123,7 @@ class RoomConsumer(BaseConsumer):
 
     def leave(self, message, **kwargs):
         self.room.leave(
-            self.message.channel_session['peer_id'],
+            message['peer_id'],
             participant=self.participant
         )
         Group(self.room.group_name).discard(self.message.reply_channel)
