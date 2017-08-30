@@ -6,6 +6,7 @@ import {MEMBER_STATUSES, ROLES} from 'app/rooms/constants';
 import {formatBytes} from '../helpers';
 import {formatDuration} from 'lib/util';
 import Button from './Button';
+import { serverTimeNow } from 'lib/timesync';
 
 @observer
 export class RecordingButton extends React.Component {
@@ -53,25 +54,31 @@ export class RecordAllButton extends React.Component {
         return this.props.room.memberships.connected;
     }
     onStartClick() {
+        // move this calc out of UI component!
+        let when = new Date(
+            Math.round((+(serverTimeNow()) + 5000) / 1000) * 1000
+        );
+        console.log('Starting recording at', when);
         _.each(this.connectedMemberships, (mem) => {
             if (mem.recorderStatus == 'ready') {
                 if (mem.isSelf) {
-                    this.props.controller.startRecording();
+                    this.props.controller.startRecording({when});
                 }
                 else {
-                    this.props.controller.requestStartRecording(mem);
+                    this.props.controller.requestStartRecording(mem, {when});
                 }
             }
         });
     }
     onStopClick() {
+        let when = serverTimeNow();
         _.each(this.connectedMemberships, (mem) => {
             if (mem.recorderStatus == 'started') {
                 if (mem.isSelf) {
-                    this.props.controller.stopRecording();
+                    this.props.controller.stopRecording({when});
                 }
                 else {
-                    this.props.controller.requestStopRecording(mem);
+                    this.props.controller.requestStopRecording(mem, {when});
                 }
             }
         });
@@ -109,8 +116,8 @@ export class UserStatusPanelItem extends React.Component {
                 return [
                     <span>Rec</span>,
                     " ",
-                    <time datetime={`${this.props.membership.currentRecording.duration}s`}>
-                        {formatDuration(this.props.membership.currentRecording.duration, {
+                    <time datetime={`${this.props.membership.currentRecording.currentDuration}s`}>
+                        {formatDuration(this.props.membership.currentRecording.currentDuration, {
                             format: "stopwatch"
                         })}
                     </time>

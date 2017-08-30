@@ -37,6 +37,7 @@ class Room(models.Model):
     ACTION_TYPES = [
         'start_recording',
         'stop_recording',
+        'pause_recording',
         'kick',
         'update_config',
     ]

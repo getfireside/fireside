@@ -1,6 +1,6 @@
 import React from 'react';
 import {observer} from "mobx-react";
-import {action} from 'mobx';
+import {action, computed} from 'mobx';
 import _ from 'lodash';
 import {formatBytes, runDownload} from 'app/ui/helpers';
 import {formatDuration} from 'lib/util';
@@ -94,20 +94,20 @@ class RecordingIcon extends React.Component {
 @observer
 export class RecordingInfo extends React.Component {
     showTransferInfo() {
-        let items = [<div className="size">{formatBytes(this.props.recording.filesize)}</div>];
+        let items = [<div className="size" key="size">{formatBytes(this.props.recording.filesize)}</div>];
         if (this.props.recording.fileTransfer && !this.props.recording.fileTransfer.isComplete) {
             items.unshift(
-                <div className="uploaded">
+                <div className="uploaded" key="uploaded">
                     {formatBytes(this.props.recording.fileTransfer.transferredBytes, {
                         relativeTo: this.props.recording.filesize
                     })}
                     <span className="slash"> / </span>
                 </div>
             );
-            items.unshift(<div className="status">uploading... </div>);
+            items.unshift(<div className="status" key="status">uploading... </div>);
         }
         if (this.canDownload) {
-            items.push(<div className="actions">
+            items.push(<div className="actions" key="actions">
                 <a
                     className="download"
                     href={this.props.recording.url || "javascript:void(0);"}
@@ -144,7 +144,6 @@ export class RecordingInfo extends React.Component {
                 this.props.recording.fileTransfer.transferredBytes /
                 this.props.recording.filesize
             );
-            console.log('PROGRESS! WOO');
         }
         return (
             <div className={className}>
@@ -155,7 +154,7 @@ export class RecordingInfo extends React.Component {
                 <div className="right">
                     <div className="name">
                         <span className="user">{this.props.recording.membership.name}</span>{" "}
-                        <span className="duration">({formatDuration(this.props.recording.duration, 'hms')})</span>{" "}
+                        <span className="duration">({formatDuration(this.props.recording.currentDuration, 'hms')})</span>{" "}
                         {this.props.recording.ended != null ?
                             <span className="startTime">
                                 {this.props.recording.startDate.calendar(null, {

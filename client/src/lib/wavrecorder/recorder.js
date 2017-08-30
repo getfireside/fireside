@@ -70,6 +70,20 @@ export default class WAVAudioRecorder {
         }
     }
 
+    pause() {
+        this.worker.postMessage({ command: 'pause' });
+        if (this.onpause != null) {
+            return this.onpause();
+        }
+    }
+
+    resume() {
+        this.worker.postMessage({ command: 'resume' });
+        if (this.onresume != null) {
+            return this.onresume();
+        }
+    }
+
     stop() {
         this.worker.postMessage({ command: 'stop' });
         this.recording = false;

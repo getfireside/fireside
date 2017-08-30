@@ -27,10 +27,14 @@ class Recording(models.Model):
     room = models.ForeignKey('rooms.Room',
         related_name='recordings'
     )
+    duration = models.IntegerField(default=0)
     type = models.CharField(max_length=48)
     filesize = models.BigIntegerField(default=0, blank=True, null=True)
     started = models.DateTimeField(blank=True, null=True)
     ended = models.DateTimeField(blank=True, null=True)
+    last_paused = models.DateTimeField(blank=True, null=True)
+    is_paused = models.BooleanField(default=False)
+
     url = models.URLField(blank=True, null=True)
 
     @property
@@ -43,10 +47,6 @@ class Recording(models.Model):
     @property
     def file_ext(self):
         return guess_extension(self.type.split(';')[0])
-
-    @property
-    def duration(self):
-        return (self.ended - self.started).total_seconds()
 
     class Meta:
         get_latest_by = 'started'

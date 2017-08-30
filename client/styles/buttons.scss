@@ -25,6 +25,9 @@
             border: 1px solid darken(#3199C5, 20%);
         }
     }
+    &.recording:not(.recording-all) {
+        display: none;
+    }
     &.recording.start {
         border-radius: 20px;
         background: #D01A1A;

@@ -4,6 +4,7 @@ import _ from 'lodash';
 import {MESSAGE_ENCODING_KEYS, MESSAGE_TYPES_INVERSE} from 'app/rooms/constants';
 import moment from 'moment';
 import {camelizeKeys, camelize} from 'lib/util';
+import {serverTimeNow} from 'lib/timesync';
 
 export class Message {
     room = null;
@@ -62,7 +63,7 @@ export default class MessageStore extends ListStore {
     @action addMessage(message, {sendPromise = null} = {}) {
         message = new Message({...message, store: this});
         if (message.timestamp == null) {
-            message.timestamp = +(new Date);
+            message.timestamp = +(serverTimeNow());
         }
         if (sendPromise) {
             // we're sending the message

@@ -48,7 +48,7 @@ export default class Notifier extends React.Component {
                                 `Recording ${action}` :
                                 `${message.member.name} ${action} recording`
                             ),
-                            body: !isStartRecording ? formatDuration(message.recording.duration) : undefined,
+                            body: !isStartRecording ? formatDuration(message.recording.currentDuration) : undefined,
                         };
                     }
                     case "uploadStarted":

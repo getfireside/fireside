@@ -5,7 +5,7 @@ import { Logger } from 'lib/logger';
 import { observable, action, runInAction } from 'mobx';
 import _ from 'lodash';
 import { isVideo, calculateBitrate } from 'lib/util';
-
+import { serverTimeNow } from 'lib/timesync';
 /**
  * Manages the recording of a single stream.
  */
@@ -21,6 +21,10 @@ export default class Recorder extends WildEmitter {
     @observable lastChunkTime = null;
     @observable diskUsage = null;
     @observable videoBitrate = null;
+    @observable startingAt = null;
+    @observable stoppingAt = null;
+    @observable pausingAt = null;
+    @observable resumingAt = null;
 
     constructor(opts) {
         let defaults = {recordingPeriod: 1000};
@@ -103,6 +107,8 @@ export default class Recorder extends WildEmitter {
         this.mediaRecorder.ondataavailable = this.onDataAvailable.bind(this);
         this.mediaRecorder.onstart = this.onStart.bind(this);
         this.mediaRecorder.onstop = this.onStop.bind(this);
+        this.mediaRecorder.onpause = this.onPause.bind(this);
+        this.mediaRecorder.onresume = this.onResume.bind(this);
 
         this.logger.info('STATUS = "ready"');
         runInAction(() => {
@@ -120,13 +126,12 @@ export default class Recorder extends WildEmitter {
      */
     setStream(stream) {
         this.stream = stream;
-        if (((this.mediaRecorder != null) && this.status === 'recording') || this.status === 'stopping') {
+        if (((this.mediaRecorder != null) && this.status === 'started') || this.status === 'stopping' || this.status === 'paused') {
             // tear down
-            this.mediaRecorder.stop();
             this.once('stopped', action(() => {
-                this.status = null;
                 this.setupMediaRecorder(stream);
             }));
+            this.mediaRecorder.stop();
         }
         else {
             return this.setupMediaRecorder(stream);
@@ -136,7 +141,7 @@ export default class Recorder extends WildEmitter {
     onStart(e) {
         this.logger.info('Recording started.');
         if (this.currentRecording.started == null) {
-            this.currentRecording.started = new Date;
+            this.currentRecording.started = serverTimeNow();
         }
         this.emit('started', this.currentRecording);
     }
@@ -146,7 +151,7 @@ export default class Recorder extends WildEmitter {
             this.emit('blobWritten', e.data.size);
             this.logger.info(`Recorded ${e.data.size} bytes to ${this.currentRecording.filename}`);
             this.logger.info(`(New filesize: ${this.currentRecording.filesize})`);
-            let now = new Date();
+            let now = serverTimeNow();
             this.lastBitrate = e.data.size / ((now - this.lastChunkTime) / 1000);
             this.lastChunkTime = now;
         }).catch(err => {
@@ -161,9 +166,27 @@ export default class Recorder extends WildEmitter {
         });
     }
 
+    @action onPause() {
+        this.currentRecording.isPaused = true;
+        this.currentRecording.lastPaused = serverTimeNow();
+        this.currentRecording.duration += (
+            this.currentRecording.lastPaused -
+            this.currentRecording.started
+        ) / 1000;
+    }
+
     @action onStop(e) {
         if (this.currentRecording.ended == null) {
-            this.currentRecording.ended = new Date;
+            this.currentRecording.ended = serverTimeNow();
+            if (!this.currentRecording.isPaused) {
+                this.currentRecording.duration += (
+                    this.currentRecording.ended -
+                    (
+                        this.currentRecording.lastPaused ||
+                        this.currentRecording.started
+                    )
+                ) / 1000;
+            }
         }
         if (this.mediaRecorder instanceof WAVAudioRecorder && this.currentRecording.filesize) {
             this.mediaRecorder.fixWaveFile(this.currentRecording).then(action(() => {
@@ -215,11 +238,37 @@ export default class Recorder extends WildEmitter {
             this.status = 'started';
             this.logger.info('STATUS = "started"');
             this.mediaRecorder.start(this.recordingPeriod);
-            this.currentRecording.started = new Date();
+            this.currentRecording.started = serverTimeNow();
         }
         else {
             this.logger.warn("Not ready to start.");
             setTimeout(() => this.start(), 250);
+        }
+    }
+
+    @action
+    resume() {
+        if (this.status === 'paused') {
+            this.mediaRecorder.resume();
+            this.logger.info('STATUS = "started"');
+            this.status = 'started';
+            this.currentRecording.isPaused = false;
+        }
+    }
+
+    @action
+    onResume() {
+        this.currentRecording.lastPaused = serverTimeNow();
+        this.emit('resumed', this.currentRecording);
+    }
+
+    @action
+    pause() {
+        if (this.status === 'started') {
+            this.status = 'paused';
+            this.logger.info('STATUS = "paused"');
+            this.mediaRecorder.pause();
+            this.emit('paused', this.currentRecording);
         }
     }
 
@@ -228,11 +277,10 @@ export default class Recorder extends WildEmitter {
      */
     @action
     stop() {
-        if (this.status === 'started') {
+        if (this.status === 'started' || this.status === 'paused') {
             this.emit('stopping');
             this.status = 'stopping';
             this.mediaRecorder.stop();
-            this.currentRecording.ended = new Date;
         }
         else {
             this.logger.warn("Not started!");

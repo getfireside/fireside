@@ -1,6 +1,7 @@
 import {ExtendableError} from 'lib/util';
 import WildEmitter from 'wildemitter';
 import {clock} from 'lib/util';
+import { serverTimeNow } from 'lib/timesync';
 
 class FSError extends ExtendableError {
     constructor(message) {
@@ -72,13 +73,13 @@ class FS extends WildEmitter {
                     if (Math.abs(this._lastDiskUsage.quota - res.quota) < 25*1024*1024) {
                         // small change.
                         // if it's been more than 30s since the last update, then we'll go ahead anyway
-                        if (new Date() - this._lastDiskUsageUpdateTime < 30000) {
+                        if (serverTimeNow() - this._lastDiskUsageUpdateTime < 30000) {
                             return;
                         }
                     }
                 }
                 this._lastDiskUsage = res;
-                this._lastDiskUsageUpdateTime = new Date();
+                this._lastDiskUsageUpdateTime = serverTimeNow();
                 this.emit('diskUsageUpdate', res);
             }
         };

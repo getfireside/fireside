@@ -9,6 +9,7 @@ import _ from 'lodash';
 import Logger from 'lib/logger';
 import {camelizeKeys} from 'lib/util';
 import {sleep} from 'lib/util/async';
+import {serverTimeNow, scheduleRun, toServerTime} from 'lib/timesync';
 
 export default class RoomController {
     constructor(opts = {}) {
@@ -65,13 +66,41 @@ export default class RoomController {
         this.connection.notifyCreatedRecording(recording.serialize());
     }
 
+    @on('recorder.paused')
+    @action.bound
+    notifyRecordingPaused() {
+        // TESTS EXIST
+        this.connection.sendEvent('updateRecording', {
+            filesize: this.recorder.currentRecording.filesize,
+            id: this.recorder.currentRecording.id,
+            duration: this.recorder.currentRecording.duration,
+            isPaused: this.recorder.currentRecording.isPaused,
+            lastPaused: +(this.recorder.currentRecording.lastPaused),
+        }, {http: false});
+    }
+
+    @on('recorder.resumed')
+    @action.bound
+    notifyRecordingResumed() {
+        // TESTS EXIST
+        this.connection.sendEvent('updateRecording', {
+            filesize: this.recorder.currentRecording.filesize,
+            id: this.recorder.currentRecording.id,
+            duration: this.recorder.currentRecording.duration,
+            isPaused: this.recorder.currentRecording.isPaused,
+            lastPaused: +(this.recorder.currentRecording.lastPaused),
+        }, {http: false});
+    }
+
     @on('recorder.blobWritten')
     @action.bound
     notifyRecordingUpdate() {
         // TESTS EXIST
         this.connection.sendEvent('updateRecording', {
             filesize: this.recorder.currentRecording.filesize,
-            id: this.recorder.currentRecording.id
+            id: this.recorder.currentRecording.id,
+            duration: this.recorder.currentRecording.duration,
+            isPaused: this.recorder.currentRecording.isPaused,
         }, {http: false});
     }
 
@@ -82,7 +111,9 @@ export default class RoomController {
         let message = this.sendEvent('stopRecording', {
             id: recording.id,
             filesize: recording.filesize,
-            ended: +(recording.ended)
+            ended: +(recording.ended),
+            duration: recording.duration,
+            isPaused: false,
         });
         if (this.room.config.uploadMode == 'http') {
             await message.sendPromise;
@@ -95,14 +126,55 @@ export default class RoomController {
 
     @on('connection.event.requestStartRecording')
     @action.bound
-    startRecording() {
-        this.recorder.start();
+    startRecording({when}) {
+        debugger;
+        if (!(when instanceof Date)) {
+            when = new Date(when);
+        }
+        this.recorder.startingAt = when;
+        scheduleRun(() => {
+            this.recorder.start();
+            this.recorder.startingAt = null;
+        }, when);
+    }
+
+    @on('connection.event.requestPauseRecording')
+    @action.bound
+    pauseRecording({when}) {
+        if (!(when instanceof Date)) {
+            when = new Date(when);
+        }
+        this.recorder.pausingAt = when;
+        scheduleRun(() => {
+            this.recorder.pause();
+            this.recorder.pausingAt = null;
+        }, when);
+    }
+
+    @on('connection.event.requestResumeRecording')
+    @action.bound
+    resumeRecording({when}) {
+        if (!(when instanceof Date)) {
+            when = new Date(when);
+        }
+        this.recorder.resumingAt = when;
+        scheduleRun(() => {
+            this.recorder.resume();
+            this.recorder.resumingAt = null;
+        }, when);
     }
 
     @on('connection.event.requestStopRecording')
     @action.bound
-    stopRecording() {
-        this.recorder.stop();
+    stopRecording({when}) {
+        if (!(when instanceof Date)) {
+            when = new Date(when);
+        }
+        this.recorder.stoppingAt = when;
+        scheduleRun(() => {
+            this.recorder.stop();
+            this.recorder.stoppingAt = null;
+        }, when);
     }
 
     @on('connection.event.startRecording',
@@ -283,6 +355,7 @@ export default class RoomController {
     @on('connection.event.updateStatus')
     @action.bound
     handleStatusUpdate(change, message) {
+        this.logger.error('CHANGE', change, message);
         this.room.updateMembership(message.uid, change);
     }
 
@@ -360,13 +433,23 @@ export default class RoomController {
     }
 
     @action.bound
-    requestStartRecording(user) {
-        return this.connection.runAction('startRecording', {peerId:user.peerId});
+    requestStartRecording(user, {when}) {
+        return this.connection.runAction('startRecording', {peerId:user.peerId, when: +(when)});
     }
 
     @action.bound
-    requestStopRecording(user) {
-        return this.connection.runAction('stopRecording', {peerId:user.peerId});
+    requestStopRecording(user, {when}) {
+        return this.connection.runAction('stopRecording', {peerId:user.peerId, when: +(when)});
+    }
+
+    @action.bound
+    requestPauseRecording(user, {when}) {
+        return this.connection.runAction('pauseRecording', {peerId:user.peerId, when: +(when)});
+    }
+
+    @action.bound
+    requestResumeRecording(user, {when}) {
+        return this.connection.runAction('resumeRecording', {peerId:user.peerId, when: +(when)});
     }
 
     @action.bound

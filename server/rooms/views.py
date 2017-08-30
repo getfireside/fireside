@@ -254,12 +254,20 @@ class RoomActionView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
         peer_id = serializer.validated_data['peer_id']
+
+        # TODO: we need to validate the action data.
+        # This means we'd need to look up the right serializer
+        # for the action.
+        # For now, let's just pass it through to the action without
+        # validating.
+
         getattr(self.request.room, action_name)(
             target_peer_id=peer_id.hex,
             from_peer_id=self.request.room.peers.for_participant(
                 self.request.participant
             ).id,
-            from_participant=self.request.participant
+            from_participant=self.request.participant,
+            data={k: v for k, v in self.request.data.items() if k != 'peer_id'},
         )
         return Response(data='OK', status=status.HTTP_200_OK)
 
@@ -286,6 +294,9 @@ class RoomActionView(APIView):
 
     def stop_recording(self):
         return self.base_action('stop_recording')
+
+    def pause_recording(self):
+        return self.base_action('pause_recording')
 
     def kick(self):
         # TODO: implement kick

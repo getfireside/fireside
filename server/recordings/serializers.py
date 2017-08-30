@@ -10,6 +10,7 @@ class RecordingSerializer(serializers.ModelSerializer):
 
     started = TimestampField()
     ended = TimestampField(default=None, required=False, allow_null=True)
+    last_paused = TimestampField(default=None, required=False, allow_null=True)
 
     class Meta:
         model = models.Recording
@@ -20,6 +21,9 @@ class RecordingSerializer(serializers.ModelSerializer):
             'type',
             'filesize',
             'started',
+            'last_paused',
+            'is_paused',
             'ended',
+            'duration',
             'url',
         )

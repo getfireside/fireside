@@ -20,14 +20,14 @@ class InvitesStep extends React.Component {
         };
     }
     onChange(emails) {
-        this.setState({emails: emails, canSend: emails.length && emails.length < 100});
+        this.setState({ emails: emails, canSend: emails.length && emails.length < 100 });
     }
     onInvalid() {
-        this.setState({canSend: false});
+        this.setState({ canSend: false });
     }
     onSendClick() {
         if (this.state.canSend) {
-            this.props.sendInviteEmails({emails: emails})
+            this.props.sendInviteEmails({ emails: emails });
         }
     }
     next() {
@@ -45,6 +45,9 @@ class InvitesStep extends React.Component {
                             onChange={(emails) => this.onChange(emails)}
                             validationRegex={/^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/}
                             onValidationReject={() => this.onInvalid()}
+                            inputProps={{
+                                placeholder: "Add an email address"
+                            }}
                             renderInput={(props) => {
                                 let {onChange, value, addTag, ...other} = props
                                 return (
@@ -52,7 +55,7 @@ class InvitesStep extends React.Component {
                                 )
                             }}
                         />
-                        <Button type="Send" disabled={!this.state.canSend} onClick={() => this.onSendClick()} />
+                        <Button disabled={!this.state.canSend} onClick={() => this.onSendClick()}>Send invites</Button>
                     </div>
                     <div className="url-invites">
                         <p>You can also send the URL directly to your guests. Here's the URL - just click to copy!</p>
@@ -242,7 +245,7 @@ StorageStep.niceName = "File Storage"
             let alreadyHasPermissions = _.some(devs, dev => (
                 (dev.kind == 'audioinput' || dev.kind == 'videoinput') &&
                 dev.label.length
-            ))
+            ));
             this.setState({
                 alreadyHasPermissions: alreadyHasPermissions,
                 devs: devs
@@ -256,6 +259,10 @@ StorageStep.niceName = "File Storage"
         await this.props.controller.setupLocalMedia();
         let devs = await navigator.mediaDevices.enumerateDevices();
         this.setState({alreadyHasPermissions: true, devs: devs});
+    }
+    next() {
+        this.props.controller.setupLocalMedia();
+        this.props.next();
     }
     render() {
         let resource = this.props.room.config.mode == "audio" ? "microphone" : "microphone and webcam";
@@ -287,7 +294,7 @@ StorageStep.niceName = "File Storage"
                         <LocalMedia stream={stream} onResourceUpdate={_.noop} showAudioWithVideo={true} />
                     </main>
                     <footer className="modal-footer">
-                        <Button onClick={() => this.props.next()}>Next</Button>
+                        <Button onClick={() => this.next()}>Next</Button>
                     </footer>
                 </div>
             )

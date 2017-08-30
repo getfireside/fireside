@@ -81,13 +81,27 @@ body.modal-open {
             padding: 10px;
             background-color: #E5EBEE;
             color: rgba(#2E373E, 0.4);
+            position: relative;
             &.active {
                 background-color: #3199C5;
                 color: white;
             }
             &.completed {
-                background-color: lime;
-                color: green;
+                background-color: #9ed879;
+                color: #4d7335;
+                border-left: 1px solid #4d7335;
+                &:first-child {
+                    border-left: #8dbf6c;
+                }
+                &:before {
+                    content: '\f14a';
+                    position: absolute;
+                    font-family: FontAwesome;
+                    left: 14px;
+                    top: 50%;
+                    margin-top: -8px;
+                    font-size: 16px;
+                }
             }
         }
     }

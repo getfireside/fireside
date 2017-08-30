@@ -3,6 +3,7 @@
  */
 import MemListAppender from './appenders/memory.js';
 import ConsoleAppender from './appenders/console.js';
+import { serverTimeNow } from 'lib/timesync';
 export default class LoggingController {
     /**
      * @param  {obj} [opts] - options
@@ -18,7 +19,7 @@ export default class LoggingController {
     write(logger, data, opts) {
         let log = {
             data,
-            timestamp: new Date(),
+            timestamp: serverTimeNow(),
             name: logger.name,
             level: opts.level
         };

@@ -74,8 +74,8 @@ export class StatusArea extends React.Component {
                         )}
                     </span>
                     {" "}
-                    <time datetime={`${this.props.controller.recorder.currentRecording.duration || 0}s`}>
-                        {formatDuration(this.props.controller.recorder.currentRecording.duration || 0, {
+                    <time datetime={`${this.props.controller.recorder.currentRecording.currentDuration || 0}s`}>
+                        {formatDuration(this.props.controller.recorder.currentRecording.currentDuration || 0, {
                             format: "stopwatch"
                         })}
                     </time>

@@ -11,12 +11,16 @@ import RoomController from 'app/rooms/controller';
 import UIApp from 'app/ui/components/app';
 import UIStore from 'app/ui/store';
 import {useStrict} from 'mobx';
+import {startSyncingTime} from 'lib/timesync';
 
 useStrict(true);
 
 export default class FiresideApp {
     constructor({roomData, opts}) {
         this.opts = opts;
+
+        startSyncingTime();
+
         this.clock = clock;
         clock.start();
 

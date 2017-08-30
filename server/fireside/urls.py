@@ -9,6 +9,7 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^rooms/', include(rooms.urls, namespace='rooms')),
     url(r'^$', views.index),
+    url(r'^ntp/$', views.ntp),
 ]
 
 if settings.DEBUG:

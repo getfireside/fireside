@@ -54,7 +54,7 @@ export default class AudioVisualizer extends React.Component {
         var barWidth = canvasWidth / (this.analyser.frequencyBinCount - 1);
         var barHeight;
         var x = 0;
-        drawContext.imageSmoothingEnabled = false;
+        // drawContext.imageSmoothingEnabled = false;
         let grad = drawContext.createLinearGradient(0, 0, 0, canvasHeight);
         grad.addColorStop(0, '#263037');
         grad.addColorStop(1, '#161c20');
@@ -95,9 +95,12 @@ export default class AudioVisualizer extends React.Component {
             this.setup();
         }
     }
+    // componentDidUnmount() {
+    //     window.removeEventListener('resize', this.windowResizeListener)
+    // }
     render() {
         return (
-            <canvas class="visualiser" ref="canvas" style={{width: '100%', height: '100%', display: 'block'}}></canvas>
+            <canvas className="visualiser" ref="canvas" style={{width: '100%', height: '100%', display: 'block'}}></canvas>
         );
     }
 }

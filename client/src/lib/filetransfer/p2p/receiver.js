@@ -6,6 +6,7 @@ import Logger from 'lib/logger';
 import {CHUNK_SIZE, CHUNKS_PER_BLOCK, STATUSES} from '../index';
 import {clock} from 'lib/util';
 import {formatBytes} from 'app/ui/helpers';
+import { serverTimeNow } from 'lib/timesync';
 
 export default class FileReceiver extends WildEmitter {
     @observable.ref metadata;
@@ -219,12 +220,12 @@ export default class FileReceiver extends WildEmitter {
     }
 
     addDownloadSample(size) {
-        this.downloadSamples.push([new Date(), size]);
+        this.downloadSamples.push([serverTimeNow(), size]);
     }
 
     @action.bound
     updateBitrate() {
-        let now = new Date();
+        let now = serverTimeNow();
         let samples = _.filter(this.downloadSamples.slice(-20), x => (now - x[0]) < 10000);
         if (samples.length) {
             this.bitrate = _.sumBy(samples, x => x[1]) / ((now - samples[0][0]) / 1000);

@@ -195,27 +195,47 @@ export default class RoomConnection extends WildEmitter {
     send({type, payload}, {http = true} = {}) {
         // TESTS EXIST
         let decamelized = decamelizeKeys(payload);
-        if (http) {
-            return fetchPost(this.urls.messages, {
-                type: type,
-                payload: decamelized,
-            });
+        let fn = () => {
+            if (http) {
+                return fetchPost(this.urls.messages, {
+                    type: type,
+                    payload: decamelized,
+                });
+            }
+            else {
+                this.socket.send({
+                    t: type,
+                    p: decamelized,
+                });
+            }
+        };
+        if (this.status == 'connected') {
+            return fn();
         }
         else {
-            this.socket.send({
-                t: type,
-                p: decamelized,
+            return new Promise((resolve) => {
+                this.once('connect', () => setTimeout(() => resolve(fn()), 200));
             });
         }
     }
 
     sendEvent(type, data, {http = true} = {}) {
         // TESTS EXIST
-        let toSend = {type: MESSAGE_TYPES.EVENT, payload: {
-            type: decamelize(type),
-            data: data
-        }};
-        return this.send(toSend, {http: http});
+        let fn = () => {
+            let toSend = {type: MESSAGE_TYPES.EVENT, payload: {
+                type: decamelize(type),
+                data: data
+            }};
+            return this.send(toSend, {http: http});
+        };
+        if (this.status == 'connected') {
+            return fn();
+        }
+        else {
+            return new Promise((resolve) => {
+                this.once('connect', () => setTimeout(() => resolve(fn()), 200));
+            });
+        }
     }
 
     runAction(name, data) {

@@ -157,7 +157,6 @@ export class UploadMessage extends React.Component {
                 <div className="content">
                     <b>{this.props.message.memberDisplayName}</b>{' '}
                     {messagePart}
-
                 </div>
             </MessageContainer>
         );
@@ -250,7 +249,7 @@ export default class MessagesPanel extends React.Component {
                 <h2>Messages</h2>
                 <ul ref={(ul) => {this.ul = ul;}}>
                     {_.map(this.props.room.messages, (message) => (
-                        message && <li key={`${message.id}:${message.timestamp}`}>
+                        message && <li key={`${message.id}:${message.timestamp}:${message.type}`}>
                             <Message message={message} {...this.props} />
                         </li>
                     ))}

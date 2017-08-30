@@ -6,7 +6,7 @@ import {sleep} from 'lib/util/async';
 import {clock} from 'lib/util';
 import {fetchPost, fetchPutBlob, fetchJSON} from 'lib/http';
 import {STATUSES} from '../index';
-
+import { serverTimeNow } from 'lib/timesync';
 
 export class HttpFileSender extends WildEmitter {
     @observable bitrate = 0;
@@ -107,9 +107,13 @@ export class HttpFileSender extends WildEmitter {
         let fileUrl = await fetchPost(url, {etags: this.etags});
         runInAction(() => {
             this.status = STATUSES.COMPLETED;
-            this.completionTime = new Date();
+            this.completionTime = serverTimeNow();
             this.emit('complete', this, fileUrl);
         });
+    }
+
+    @computed get isComplete() {
+        return this.status === STATUSES.COMPLETED;
     }
 
     async sendNthChunk(n, chunk) {
@@ -125,7 +129,7 @@ export class HttpFileSender extends WildEmitter {
                     bytes: uploadedBytes,
                     total: this.file.filesize
                 });
-                this.uploadSamples.push([new Date(), delta]);
+                this.uploadSamples.push([serverTimeNow(), delta]);
             })
         });
         this.addEtag(n, result.getResponseHeader('etag').replace(/"/g, ''));
@@ -138,7 +142,7 @@ export class HttpFileSender extends WildEmitter {
 
     @action.bound
     updateBitrate() {
-        let now = new Date();
+        let now = serverTimeNow();
         let samples = _.filter(this.uploadSamples.slice(-20), x => (now - x[0]) < 10000);
         if (samples.length) {
             this.bitrate = _.sumBy(samples, x => x[1]) / ((now - samples[0][0]) / 1000);

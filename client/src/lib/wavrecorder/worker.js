@@ -4,6 +4,7 @@ let recBuffersR = [];
 let sampleRate = undefined;
 let sliceLength = 44100;
 let dataBuffer = [];
+let isPaused = false;
 
 function writeHeader(sampleRate, chunkLength) {
     function writeString(view, offset, string) {
@@ -100,6 +101,7 @@ var clear = function() {
 
 let totalClear = function() {
     clear();
+    isPaused = false;
     dataBuffer = [];
     dataBuffer.push(writeHeader(sampleRate, 0));
 };
@@ -145,10 +147,20 @@ self.onmessage = function(e) {
             init(e.data.config);
             break;
         case 'record':
-            record(e.data.buffer);
+            if (!isPaused) {
+                record(e.data.buffer);
+            }
             break;
         case 'stop':
+            isPaused = false;
             writeData(true); // isLast = true;
+            break;
+        case 'pause':
+            isPaused = true;
+            writeData();
+            break;
+        case 'resume':
+            isPaused = false;
             break;
         case 'clear':
             totalClear();

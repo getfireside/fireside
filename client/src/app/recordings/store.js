@@ -7,6 +7,7 @@ import config from 'app/config';
 import moment from 'moment';
 import {formatDuration} from 'lib/util';
 import {clock} from 'lib/util';
+import { serverTimeNow } from 'lib/timesync';
 
 let mimesMap = {
     'audio/wav': 'wav',
@@ -27,6 +28,9 @@ export class Recording {
     @observable url = null;
     @observable lastBitrate;
     @observable _fileTransfer;
+    @observable duration = 0;
+    @observable lastPausedAt = null;
+    @observable isPaused = false;
 
     @computed get niceFilename() {
         let name = this.membership.name;
@@ -51,12 +55,17 @@ export class Recording {
         return moment(this.ended);
     }
 
-    @computed get duration() {
-        return ((this.ended || this.store.time) - this.started) / 1000;
+    @computed get currentDuration() {
+        if (this.ended || this.isPaused) {
+            return this.duration;
+        }
+        else {
+            return this.duration + Math.max(0, this.store.time - this.started) / 1000;
+        }
     }
 
     @computed get bitrate() {
-        return this.filesize / this.duration;
+        return this.filesize / this.currentDuration;
     }
 
     @computed get directory() {
@@ -109,6 +118,9 @@ export class Recording {
             uid: this.uid,
             id: this.id,
             roomId: this.room.id,
+            duration: this.duration,
+            isPaused: this.isPaused,
+            lastPaused: this.lastPaused && +(this.lastPaused)
         };
         if (forLocal) {
             res.deleted = this.deleted;
@@ -131,22 +143,26 @@ export default class RecordingStore extends ListStore {
     @observable.ref fileTransfers = null;
 
     setupAutoSaveForRoom(room) {
+        this.autosaveInitialRun = true;
         this.autoSaveDisposer = autorun(() => this.saveToLocalStorage(room));
     }
 
     saveToLocalStorage(room) {
-        debugger;
-        console.log('Saved items to local storage!');
-        localStorage.setItem(
-            `recordings:forRoom:${room.id}`,
-            JSON.stringify(_.map(
-                _.filter(this.items.slice(), (r) => (
-                    r.room == room &&
-                    r.uid == this.selfId
-                )),
-                r => r.serialize({forLocal: true})
-            ))
+        let toSave = _.map(
+            _.filter(this.items.slice(), (r) => (
+                r.room == room &&
+                r.uid == this.selfId
+            )),
+            r => r.serialize({forLocal: true})
         );
+        if (!this.autosaveInitialRun) {
+            console.log('Saved items to local storage!');
+            localStorage.setItem(
+                `recordings:forRoom:${room.id}`,
+                JSON.stringify(toSave)
+            )
+            this.autosaveInitialRun = false;
+        }
     }
 
     loadFromLocalStorage(room) {
@@ -165,7 +181,7 @@ export default class RecordingStore extends ListStore {
     constructor({recordings, fs, selfId} = {}) {
         super();
         this.fs = fs;
-        this.time = new Date();
+        this.time = serverTimeNow();
         this.selfId = selfId;
         if (recordings) {
             this.update(recordings);
@@ -174,7 +190,7 @@ export default class RecordingStore extends ListStore {
     }
 
     @action.bound tick() {
-        this.time = new Date();
+        this.time = serverTimeNow();
     }
 
     isLocal(data) {
