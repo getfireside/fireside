@@ -242,10 +242,22 @@ StorageStep.niceName = "File Storage"
     }
     componentDidMount() {
         navigator.mediaDevices.enumerateDevices().then((devs) => {
-            let alreadyHasPermissions = _.some(devs, dev => (
-                (dev.kind == 'audioinput' || dev.kind == 'videoinput') &&
-                dev.label.length
-            ));
+            let audioDevices = _.filter(devs, dev => dev.kind == 'audioinput');
+            let videoDevices = _.filter(devs, dev => dev.kind == 'videoinput');
+            let alreadyHasPermissions;
+            if (this.props.room.config.mode == "video") {
+                alreadyHasPermissions = _.some(
+                    videoDevices, dev => dev.label.length
+                ) && _.some(
+                    audioDevices, dev => dev.label.length
+                );
+            }
+            else {
+                alreadyHasPermissions = _.some(
+                    audioDevices, dev => dev.label.length
+                );
+            }
+
             this.setState({
                 alreadyHasPermissions: alreadyHasPermissions,
                 devs: devs

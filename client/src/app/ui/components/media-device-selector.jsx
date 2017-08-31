@@ -33,7 +33,7 @@ export class MediaDeviceSelector extends React.Component {
             <div className="media-device-selector">
                 {this.props.video && (
                     <div>
-                        <label for="videoDeviceSelector">Video input</label>
+                        <label htmlFor="videoDeviceSelector">Video input</label>
                         <select id="videoDeviceSelector" value={this.props.selectedVideoDeviceId} onChange={(e) => this.props.onChange({
                             selectedAudioDeviceId: this.props.audio ? this.props.selectedAudioDeviceId : undefined,
                             selectedVideoDeviceId: e.target.value
@@ -46,7 +46,7 @@ export class MediaDeviceSelector extends React.Component {
                 )}
                 {this.props.audio && (
                     <div>
-                        <label for="audioDeviceSelector">Audio input</label>
+                        <label htmlFor="audioDeviceSelector">Audio input</label>
                         <select id="audioDeviceSelector" value={this.props.selectedAudioDeviceId} onChange={(e) => this.props.onChange({
                             selectedAudioDeviceId: e.target.value,
                             selectedVideoDeviceId: this.props.video ? this.props.selectedVideoDeviceId : undefined,

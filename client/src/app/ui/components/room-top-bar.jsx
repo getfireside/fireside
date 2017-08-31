@@ -5,6 +5,7 @@ import {formatDuration} from 'lib/util';
 import {formatBytes} from 'app/ui/helpers';
 import {FrSdFileSender} from 'lib/filetransfer/http/sender';
 import {ROLES} from 'app/rooms/constants';
+import {toServerTime} from 'lib/timesync';
 
 @observer
 export default class RoomTopBar extends React.Component {
@@ -47,7 +48,7 @@ export class StatusArea extends React.Component {
             );
             if (this.props.controller.connection.socket.nextAttemptTime > new Date()) {
                 let timeLeft = Math.ceil((
-                    this.props.controller.connection.socket.nextAttemptTime
+                    toServerTime(this.props.controller.connection.socket.nextAttemptTime)
                     - this.props.room.recordingStore.time
                 ) / 1000);
                 timeLeft += (timeLeft > 1 ? ' seconds' : " second");

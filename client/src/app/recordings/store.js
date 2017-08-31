@@ -161,6 +161,8 @@ export default class RecordingStore extends ListStore {
                 `recordings:forRoom:${room.id}`,
                 JSON.stringify(toSave)
             )
+        }
+        else {
             this.autosaveInitialRun = false;
         }
     }

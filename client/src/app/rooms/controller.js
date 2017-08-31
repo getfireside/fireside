@@ -126,8 +126,7 @@ export default class RoomController {
 
     @on('connection.event.requestStartRecording')
     @action.bound
-    startRecording({when}) {
-        debugger;
+    startRecording({when} = {}) {
         if (!(when instanceof Date)) {
             when = new Date(when);
         }
@@ -140,7 +139,7 @@ export default class RoomController {
 
     @on('connection.event.requestPauseRecording')
     @action.bound
-    pauseRecording({when}) {
+    pauseRecording({when} = {}) {
         if (!(when instanceof Date)) {
             when = new Date(when);
         }
@@ -153,7 +152,7 @@ export default class RoomController {
 
     @on('connection.event.requestResumeRecording')
     @action.bound
-    resumeRecording({when}) {
+    resumeRecording({when} = {}) {
         if (!(when instanceof Date)) {
             when = new Date(when);
         }
@@ -166,7 +165,7 @@ export default class RoomController {
 
     @on('connection.event.requestStopRecording')
     @action.bound
-    stopRecording({when}) {
+    stopRecording({when} = {}) {
         if (!(when instanceof Date)) {
             when = new Date(when);
         }
